@@ -34,7 +34,7 @@ export default function ConnectPage() {
                   className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                     i === 0
                       ? "bg-accent text-black"
-                      : "border border-border text-text-secondary"
+                      : "border border-white/8 text-text-secondary"
                   }`}
                 >
                   {step.number}
@@ -50,7 +50,7 @@ export default function ConnectPage() {
 
               {/* Connecting line */}
               {i < steps.length - 1 && (
-                <div className="w-12 md:w-16 h-px bg-border mx-3 -mt-5" />
+                <div className="w-12 md:w-16 h-px bg-white/8 mx-3 -mt-5" />
               )}
             </div>
           ))}
