@@ -1,0 +1,13 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #000000;
+  --color-bg-secondary: #0A0A0A;
+  --color-bg-glass: rgba(255, 255, 255, 0.05);
+  --color-text-primary: #FAFAFA;
+  --color-text-secondary: #A1A1AA;
+  --color-accent: #25D366;
+  --color-accent-glow: rgba(37, 211, 102, 0.15);
+  --color-border: rgba(255, 255, 255, 0.08);
+  --font-sans: var(--font-satoshi), system-ui, sans-serif;
+}
