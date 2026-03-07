@@ -26,12 +26,12 @@ export function Hero() {
       {/* Background radial gradient glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(37,211,102,0.08)_0%,transparent_70%)] pointer-events-none" />
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 w-full pt-32 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left column — text */}
           <div>
             {/* Animated headline */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight">
+            <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold tracking-tight leading-tight">
               {headlineWords.map((word, i) => (
                 <motion.span
                   key={i}
