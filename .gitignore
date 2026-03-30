@@ -36,7 +36,7 @@ yarn-error.log*
 
 # claude
 .claude/
-
+CLAUDE.md
 # vercel
 .vercel
 
