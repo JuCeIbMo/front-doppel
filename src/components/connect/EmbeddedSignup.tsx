@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { getToken } from "@/lib/auth";
 
 declare global {
   interface Window {
@@ -23,6 +24,11 @@ declare global {
   }
 }
 
+interface MetaSignupData {
+  waba_id: string;
+  phone_number_id: string;
+}
+
 type Status = "idle" | "loading" | "error";
 
 export function EmbeddedSignup() {
@@ -30,6 +36,29 @@ export function EmbeddedSignup() {
   const [sdkReady, setSdkReady] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const router = useRouter();
+
+  // Captured from Meta's window.message event during the signup popup
+  const metaData = useRef<MetaSignupData | null>(null);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
+      try {
+        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+        if (data?.type === "WA_EMBEDDED_SIGNUP" && data?.data?.waba_id) {
+          metaData.current = {
+            waba_id: data.data.waba_id,
+            phone_number_id: data.data.phone_number_id,
+          };
+        }
+      } catch {
+        // ignore non-JSON messages
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
 
   const handleSdkLoad = useCallback(() => {
     window.fbAsyncInit = () => {
@@ -51,24 +80,47 @@ export function EmbeddedSignup() {
     if (!window.FB) return;
     setStatus("loading");
     setErrorMsg("");
+    metaData.current = null;
 
     window.FB.login(
       (response) => {
         if (response.authResponse) {
           const code = response.authResponse.code;
+          const signup = metaData.current;
+
+          if (!signup?.waba_id || !signup?.phone_number_id) {
+            setStatus("error");
+            setErrorMsg("No se recibieron los datos de WhatsApp. Intenta de nuevo.");
+            return;
+          }
+
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-          fetch(`${apiUrl}/api/oauth/callback`, {
+          const token = getToken();
+          fetch(`${apiUrl}/oauth/exchange`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code }),
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({
+              code,
+              waba_id: signup.waba_id,
+              phone_number_id: signup.phone_number_id,
+            }),
           })
-            .then((res) => res.json())
+            .then(async (res) => {
+              if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || "Error del servidor");
+              }
+              return res.json();
+            })
             .then(() => {
               router.push("/connect/success");
             })
-            .catch(() => {
+            .catch((err: Error) => {
               setStatus("error");
-              setErrorMsg("Error al procesar la conexion. Intenta de nuevo.");
+              setErrorMsg(err.message || "Error al procesar la conexion. Intenta de nuevo.");
             });
         } else {
           setStatus("idle");
