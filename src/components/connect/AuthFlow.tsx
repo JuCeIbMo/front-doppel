@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { OTPInput } from "@/components/connect/OTPInput";
 import { EmbeddedSignup } from "@/components/connect/EmbeddedSignup";
-import { getToken, setToken } from "@/lib/auth";
+import { getToken, setToken, clearToken } from "@/lib/auth";
 
 type Step = "email" | "otp" | "connect";
 
@@ -36,9 +36,15 @@ export function AuthFlow() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
-        if (res.ok) setStep("connect");
+        if (res.ok) {
+          setStep("connect");
+        } else {
+          clearToken();
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        clearToken();
+      })
       .finally(() => setChecking(false));
   }, []);
 
