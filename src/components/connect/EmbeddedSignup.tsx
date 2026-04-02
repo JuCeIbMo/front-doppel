@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { getToken } from "@/lib/auth";
+import { authenticatedFetch } from "@/lib/api";
 
 declare global {
   interface Window {
@@ -94,14 +94,8 @@ export function EmbeddedSignup() {
             return;
           }
 
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-          const token = getToken();
-          fetch(`${apiUrl}/oauth/exchange`, {
+          authenticatedFetch("/oauth/exchange", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
             body: JSON.stringify({
               code,
               waba_id: signup.waba_id,
