@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { OTPInput } from "@/components/connect/OTPInput";
@@ -19,6 +20,7 @@ const steps: { key: Step; label: string }[] = [
 ];
 
 export function AuthFlow() {
+  const router = useRouter();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,8 +36,13 @@ export function AuthFlow() {
       return;
     }
     authenticatedFetch("/auth/me")
-      .then((res) => {
+      .then(async (res) => {
         if (res.ok) {
+          const tenantRes = await authenticatedFetch("/me/tenant");
+          if (tenantRes.ok) {
+            router.replace("/dashboard");
+            return;
+          }
           setStep("connect");
         } else {
           clearToken();
@@ -45,7 +52,7 @@ export function AuthFlow() {
         clearToken();
       })
       .finally(() => setChecking(false));
-  }, []);
+  }, [router]);
 
   const handleSendOTP = useCallback(
     async (e: React.FormEvent) => {

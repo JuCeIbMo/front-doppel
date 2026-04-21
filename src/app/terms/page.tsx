@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terminos de Servicio — Doppel",
@@ -9,10 +10,10 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen py-24 px-6">
       <div className="max-w-3xl mx-auto">
-        <a href="/" className="inline-flex items-center gap-2 mb-12 group">
+        <Link href="/" className="inline-flex items-center gap-2 mb-12 group">
           <span className="text-xl font-bold text-text-primary">Doppel</span>
           <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-        </a>
+        </Link>
 
         <h1 className="text-4xl font-bold text-text-primary mb-2">Terminos de Servicio</h1>
         <p className="text-text-secondary mb-12">Ultima actualizacion: 7 de marzo de 2026</p>
