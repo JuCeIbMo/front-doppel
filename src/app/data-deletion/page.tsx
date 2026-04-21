@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
  
 export const metadata: Metadata = {
   title: "Eliminación de Datos — Doppel",
@@ -9,10 +10,10 @@ export default function DataDeletionPage() {
   return (
     <div className="min-h-screen py-24 px-6">
       <div className="max-w-3xl mx-auto">
-        <a href="/" className="inline-flex items-center gap-2 mb-12 group">
+        <Link href="/" className="inline-flex items-center gap-2 mb-12 group">
           <span className="text-xl font-bold text-text-primary">Doppel</span>
           <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-        </a>
+        </Link>
  
         <h1 className="text-4xl font-bold text-text-primary mb-2">Eliminación de Datos</h1>
         <p className="text-text-secondary mb-12">Ultima actualización: 26 de marzo de 2026</p>
@@ -62,8 +63,9 @@ export default function DataDeletionPage() {
               </li>
             </ol>
             <p className="mt-4">
-              También puedes cancelar tu cuenta directamente desde la plataforma, lo cual inicia
-              automáticamente el proceso de eliminación de datos.
+              Si ya tienes acceso al dashboard, también puedes eliminar tu cuenta desde la
+              plataforma. Esa acción elimina tu tenant, configuraciones y mensajes almacenados
+              en Doppel.
             </p>
           </section>
  

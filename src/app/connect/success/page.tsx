@@ -1,5 +1,4 @@
-"use client";
-
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 
 const confettiPieces = [
@@ -9,15 +8,20 @@ const confettiPieces = [
   { color: "bg-accent", top: "15%", left: "40%", delay: "0.15s", size: "w-1 h-1" },
   { color: "bg-white", top: "25%", left: "60%", delay: "0.05s", size: "w-1.5 h-1.5" },
   { color: "bg-green-300", top: "35%", left: "25%", delay: "0.25s", size: "w-1 h-1" },
-  { color: "bg-accent", top: "12%", left: "50%", delay: "0.3s", size: "w-2 h-2" },
-  { color: "bg-white", top: "40%", left: "70%", delay: "0.12s", size: "w-1 h-1" },
-  { color: "bg-green-300", top: "18%", left: "30%", delay: "0.22s", size: "w-1.5 h-1.5" },
-  { color: "bg-accent", top: "28%", left: "90%", delay: "0.08s", size: "w-1 h-1" },
-  { color: "bg-white", top: "8%", left: "20%", delay: "0.18s", size: "w-2 h-2" },
-  { color: "bg-green-300", top: "22%", left: "55%", delay: "0.28s", size: "w-1.5 h-1.5" },
 ];
 
-export default function SuccessPage() {
+type SuccessPageProps = {
+  searchParams: Promise<{
+    phone?: string;
+    business?: string;
+  }>;
+};
+
+export default async function SuccessPage({ searchParams }: SuccessPageProps) {
+  const params = await searchParams;
+  const phone = params.phone;
+  const business = params.business;
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 relative overflow-hidden">
       <style>{`
@@ -49,44 +53,24 @@ export default function SuccessPage() {
         }
       `}</style>
 
-      {/* Logo */}
-      <a href="/" className="flex items-center gap-2 mb-12">
+      <Link href="/" className="flex items-center gap-2 mb-12">
         <span className="text-xl font-bold text-text-primary">Doppel</span>
         <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-      </a>
+      </Link>
 
-      {/* Confetti */}
       <div className="absolute inset-0 pointer-events-none">
         {confettiPieces.map((piece, i) => (
           <span
             key={i}
             className={`absolute rounded-full ${piece.color} ${piece.size} confetti-piece`}
-            style={{
-              top: piece.top,
-              left: piece.left,
-              animationDelay: piece.delay,
-            }}
+            style={{ top: piece.top, left: piece.left, animationDelay: piece.delay }}
           />
         ))}
       </div>
 
-      {/* Animated check mark */}
       <div className="relative">
-        <svg
-          className="w-24 h-24"
-          viewBox="0 0 52 52"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <circle
-            className="circle-animate"
-            cx="26"
-            cy="26"
-            r="25"
-            fill="none"
-            stroke="#25D366"
-            strokeWidth="2"
-          />
+        <svg className="w-24 h-24" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle className="circle-animate" cx="26" cy="26" r="25" fill="none" stroke="#25D366" strokeWidth="2" />
           <path
             className="check-animate"
             fill="none"
@@ -99,17 +83,18 @@ export default function SuccessPage() {
         </svg>
       </div>
 
-      {/* Text */}
-      <h1 className="text-3xl font-bold text-text-primary mt-8 text-center">
-        Tu WhatsApp esta conectado!
-      </h1>
+      <h1 className="text-3xl font-bold text-text-primary mt-8 text-center">Tu WhatsApp ya esta conectado</h1>
       <p className="text-text-secondary mt-3 text-center max-w-md">
-        En las proximas horas recibiras un mensaje de bienvenida en tu WhatsApp
+        {business ? `Negocio conectado: ${business}. ` : ""}
+        {phone ? `Numero activo: ${phone}. ` : ""}
+        Ya puedes terminar la configuracion del bot desde tu dashboard.
       </p>
 
-      {/* CTA */}
-      <div className="mt-8">
-        <Button variant="primary" href="/">
+      <div className="mt-8 flex flex-wrap justify-center gap-4">
+        <Button variant="primary" href="/dashboard">
+          Ir al dashboard
+        </Button>
+        <Button variant="secondary" href="/">
           Volver al inicio
         </Button>
       </div>

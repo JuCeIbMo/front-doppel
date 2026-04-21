@@ -26,7 +26,8 @@ declare global {
 
 interface MetaSignupData {
   waba_id: string;
-  phone_number_id: string;
+  phone_number_id?: string;
+  is_coexistence: boolean;
 }
 
 type Status = "idle" | "loading" | "error";
@@ -45,11 +46,16 @@ export function EmbeddedSignup() {
       if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
       try {
         const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data?.type === "WA_EMBEDDED_SIGNUP" && data?.data?.waba_id) {
-          metaData.current = {
-            waba_id: data.data.waba_id,
-            phone_number_id: data.data.phone_number_id,
-          };
+        if (data?.type === "WA_EMBEDDED_SIGNUP") {
+          if (data?.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" && data?.data?.waba_id) {
+            metaData.current = { waba_id: data.data.waba_id, is_coexistence: true };
+          } else if (data?.data?.waba_id && data?.data?.phone_number_id) {
+            metaData.current = {
+              waba_id: data.data.waba_id,
+              phone_number_id: data.data.phone_number_id,
+              is_coexistence: false,
+            };
+          }
         }
       } catch {
         // ignore non-JSON messages
@@ -88,7 +94,7 @@ export function EmbeddedSignup() {
           const code = response.authResponse.code;
           const signup = metaData.current;
 
-          if (!signup?.waba_id || !signup?.phone_number_id) {
+          if (!signup?.waba_id) {
             setStatus("error");
             setErrorMsg("No se recibieron los datos de WhatsApp. Intenta de nuevo.");
             return;
@@ -99,7 +105,8 @@ export function EmbeddedSignup() {
             body: JSON.stringify({
               code,
               waba_id: signup.waba_id,
-              phone_number_id: signup.phone_number_id,
+              phone_number_id: signup.phone_number_id ?? null,
+              is_coexistence: signup.is_coexistence,
             }),
           })
             .then(async (res) => {
@@ -109,8 +116,11 @@ export function EmbeddedSignup() {
               }
               return res.json();
             })
-            .then(() => {
-              router.push("/connect/success");
+            .then((data: { display_phone?: string | null; business_name?: string | null }) => {
+              const params = new URLSearchParams();
+              if (data.display_phone) params.set("phone", data.display_phone);
+              if (data.business_name) params.set("business", data.business_name);
+              router.push(`/connect/success?${params.toString()}`);
             })
             .catch((err: Error) => {
               setStatus("error");
@@ -126,7 +136,7 @@ export function EmbeddedSignup() {
         override_default_response_type: true,
         extras: {
           setup: {},
-          featureType: "",
+          featureType: "whatsapp_business_app_onboarding",
           sessionInfoVersion: "3",
         },
       },

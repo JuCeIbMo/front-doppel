@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
@@ -46,11 +47,23 @@ export function Navbar() {
 
   const renderLink = (link: { label: string; href: string }, className: string) => {
     const isAnchor = link.href.startsWith("#");
+    if (!isAnchor) {
+      return (
+        <Link
+          key={link.label}
+          href={link.href}
+          onClick={() => setMobileOpen(false)}
+          className={className}
+        >
+          {link.label}
+        </Link>
+      );
+    }
     return (
       <a
         key={link.label}
         href={link.href}
-        onClick={isAnchor ? (e) => handleAnchorClick(e, link.href.slice(1)) : () => setMobileOpen(false)}
+        onClick={(e) => handleAnchorClick(e, link.href.slice(1))}
         className={className}
       >
         {link.label}
@@ -69,10 +82,10 @@ export function Navbar() {
       >
         <div className="mx-auto max-w-7xl flex items-center justify-between px-6 py-4">
           {/* ── Logo ── */}
-          <a href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
             <span className="text-xl font-bold text-text-primary">Doppel</span>
             <span className="inline-block w-2 h-2 rounded-full bg-accent" />
-          </a>
+          </Link>
 
           {/* ── Desktop links (hidden below md) ── */}
           <div className="hidden md:flex items-center gap-8">

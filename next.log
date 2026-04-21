@@ -1,0 +1,17 @@
+
+> front-doppel@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.198.1:3000
+- Environments: .env.local
+
+✓ Starting...
+✓ Ready in 998ms
+ GET / 200 in 874ms (compile: 681ms, render: 193ms)
+ GET / 200 in 92ms (compile: 7ms, render: 85ms)
+ GET /connect 200 in 205ms (compile: 182ms, render: 23ms)
+ GET / 200 in 62ms (compile: 5ms, render: 57ms)
+ GET /dashboard 200 in 551ms (compile: 456ms, render: 95ms)
+ GET /dashboard 200 in 78ms (compile: 6ms, render: 72ms)

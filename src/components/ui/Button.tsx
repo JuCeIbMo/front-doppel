@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { type ButtonHTMLAttributes } from "react";
 
 type Variant = "primary" | "secondary" | "ghost";
@@ -26,6 +27,9 @@ export function Button({ variant = "primary", className = "", children, href, ..
   const cls = `${base} ${variants[variant]} ${shimmer} ${className}`;
 
   if (href) {
+    if (href.startsWith("/")) {
+      return <Link href={href} className={cls}>{children}</Link>;
+    }
     return <a href={href} className={cls}>{children}</a>;
   }
 
