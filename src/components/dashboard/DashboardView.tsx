@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
+import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
 interface Tenant {
   id: string;
@@ -206,6 +207,8 @@ export function DashboardView() {
             Cerrar sesion
           </button>
         </div>
+
+        <DashboardNav />
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
           <div className="flex flex-col gap-6">
