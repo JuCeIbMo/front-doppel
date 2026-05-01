@@ -116,11 +116,15 @@ export function EmbeddedSignup() {
               }
               return res.json();
             })
-            .then((data: { display_phone?: string | null; business_name?: string | null }) => {
+            .then((data: { display_phone?: string | null; business_name?: string | null; requires_manager_setup?: boolean }) => {
               const params = new URLSearchParams();
               if (data.display_phone) params.set("phone", data.display_phone);
               if (data.business_name) params.set("business", data.business_name);
-              router.push(`/connect/success?${params.toString()}`);
+              if (data.requires_manager_setup) {
+                router.push(`/connect/manager?${params.toString()}`);
+              } else {
+                router.push(`/connect/success?${params.toString()}`);
+              }
             })
             .catch((err: Error) => {
               setStatus("error");
