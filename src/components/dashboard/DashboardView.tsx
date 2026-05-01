@@ -49,6 +49,10 @@ interface MessagePage {
   offset: number;
 }
 
+interface AdminPhonesPayload {
+  phones: string[];
+}
+
 type SaveStatus = "idle" | "saving" | "ok" | "error";
 
 export function DashboardView() {
@@ -76,8 +80,9 @@ export function DashboardView() {
       authenticatedFetch("/me/whatsapp"),
       authenticatedFetch("/me/bot-config"),
       authenticatedFetch("/me/messages?limit=20&offset=0"),
+      authenticatedFetch("/me/admin-phones"),
     ]);
-    const [tenantRes, whatsappRes, botRes, messagesRes] = responses;
+    const [tenantRes, whatsappRes, botRes, messagesRes, adminPhonesRes] = responses;
 
     if (tenantRes.status === 401) {
       clearToken();
@@ -94,6 +99,17 @@ export function DashboardView() {
     const whatsappData: WhatsAppAccount[] = await whatsappRes.json();
     setTenant(tenantData);
     setWhatsapp(whatsappData[0] ?? null);
+
+    if (adminPhonesRes.ok && whatsappData[0]?.status === "connected") {
+      const adminPhones: AdminPhonesPayload = await adminPhonesRes.json();
+      if ((adminPhones.phones || []).length === 0) {
+        const params = new URLSearchParams();
+        if (whatsappData[0]?.display_phone) params.set("phone", whatsappData[0].display_phone);
+        if (tenantData.business_name) params.set("business", tenantData.business_name);
+        router.replace(`/connect/manager?${params.toString()}`);
+        return;
+      }
+    }
 
     if (botRes.ok) {
       const botData: BotConfig = await botRes.json();
