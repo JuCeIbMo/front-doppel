@@ -29,7 +29,6 @@ interface BotConfig {
   system_prompt: string;
   welcome_message: string;
   language: string;
-  ai_model: string;
   bot_enabled: boolean;
 }
 
@@ -67,7 +66,6 @@ export function DashboardView() {
     system_prompt: "",
     welcome_message: "",
     language: "es",
-    ai_model: "claude-sonnet-4-20250514",
     bot_enabled: true,
   });
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -118,7 +116,6 @@ export function DashboardView() {
         system_prompt: botData.system_prompt,
         welcome_message: botData.welcome_message,
         language: botData.language,
-        ai_model: botData.ai_model,
         bot_enabled: botData.bot_enabled,
       });
     } else {
@@ -150,7 +147,6 @@ export function DashboardView() {
         system_prompt: updated.system_prompt,
         welcome_message: updated.welcome_message,
         language: updated.language,
-        ai_model: updated.ai_model,
         bot_enabled: updated.bot_enabled,
       });
       setSaveStatus("ok");
@@ -285,27 +281,15 @@ export function DashboardView() {
                 </p>
               ) : (
                 <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-text-secondary text-sm mb-2">Idioma</label>
-                      <input
-                        type="text"
-                        value={form.language}
-                        onChange={(e) => setForm((current) => ({ ...current, language: e.target.value }))}
-                        maxLength={10}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-text-secondary text-sm mb-2">Modelo</label>
-                      <input
-                        type="text"
-                        value={form.ai_model}
-                        onChange={(e) => setForm((current) => ({ ...current, ai_model: e.target.value }))}
-                        maxLength={50}
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
-                      />
-                    </div>
+                  <div>
+                    <label className="block text-text-secondary text-sm mb-2">Idioma</label>
+                    <input
+                      type="text"
+                      value={form.language}
+                      onChange={(e) => setForm((current) => ({ ...current, language: e.target.value }))}
+                      maxLength={10}
+                      className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-text-primary outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
+                    />
                   </div>
 
                   <div>
