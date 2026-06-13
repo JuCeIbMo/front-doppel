@@ -52,6 +52,7 @@ export function PosScreen({ onSessionExpired }: Props) {
   const [confirming, setConfirming] = useState(false);
   const [networkErrorModal, setNetworkErrorModal] = useState(false);
   const [continuePromptVisible, setContinuePromptVisible] = useState(false);
+  const [firstSearchResult, setFirstSearchResult] = useState<ErpProduct | null>(null);
 
   // Wrap setCart so it always syncs to sessionStorage
   const setCart = useCallback((updater: CartItem[] | ((prev: CartItem[]) => CartItem[])) => {
@@ -220,6 +221,10 @@ export function PosScreen({ onSessionExpired }: Props) {
         e.preventDefault();
         void handleConfirmSale();
       }
+      if (e.key === "Enter" && !e.ctrlKey && firstSearchResult) {
+        e.preventDefault();
+        addToCart(firstSearchResult);
+      }
       if (e.key === "+") {
         setCart((prev) => {
           if (prev.length === 0) return prev;
@@ -255,7 +260,7 @@ export function PosScreen({ onSessionExpired }: Props) {
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, confirming, cart]);
+  }, [isOnline, confirming, cart, firstSearchResult]);
 
   const total = cart.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
 
@@ -323,6 +328,7 @@ export function PosScreen({ onSessionExpired }: Props) {
             onAddToCart={addToCart}
             onOpenScanner={() => setScannerOpen(true)}
             baseUrl={API_URL}
+            onResultsChange={(results) => setFirstSearchResult(results[0] ?? null)}
           />
           <div className="flex-1 overflow-y-auto">
             <CartPanel
@@ -402,7 +408,7 @@ export function PosScreen({ onSessionExpired }: Props) {
           )}
 
           <p className="text-center text-xs text-gray-600">
-            Ctrl+Enter para confirmar · F2 para escanear · + / − última línea
+            Enter: agregar primer resultado · Ctrl+Enter confirmar · F2 escanear · + / − última línea
           </p>
         </div>
       </div>

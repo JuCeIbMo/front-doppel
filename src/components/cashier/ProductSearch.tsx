@@ -8,9 +8,10 @@ interface Props {
   onAddToCart: (product: ErpProduct) => void;
   onOpenScanner: () => void;
   baseUrl: string;
+  onResultsChange?: (results: ErpProduct[]) => void;
 }
 
-export function ProductSearch({ onAddToCart, onOpenScanner, baseUrl }: Props) {
+export function ProductSearch({ onAddToCart, onOpenScanner, baseUrl, onResultsChange }: Props) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<ErpProduct[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,10 @@ export function ProductSearch({ onAddToCart, onOpenScanner, baseUrl }: Props) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [query, baseUrl]);
+
+  useEffect(() => {
+    onResultsChange?.(results);
+  }, [results, onResultsChange]);
 
   function handleSelect(product: ErpProduct) {
     onAddToCart(product);
