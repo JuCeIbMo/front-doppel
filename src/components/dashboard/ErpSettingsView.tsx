@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
@@ -31,10 +31,14 @@ export function ErpSettingsView() {
   // Categories state
   const [newCategory, setNewCategory] = useState("");
 
+  // Ref for focusing the copy button when the PIN modal opens
+  const copyBtnRef = useRef<HTMLButtonElement>(null);
+
   // Countdown effect — starts ticking whenever generatedPin is set.
   // State is reset to 60 / false in the mutation onSuccess before this runs.
   useEffect(() => {
     if (generatedPin === null) return;
+    copyBtnRef.current?.focus();
     const interval = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -86,8 +90,8 @@ export function ErpSettingsView() {
       setConfirmDisablePinOpen(false);
       toast.success("PIN deshabilitado");
     },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "No se pudo deshabilitar el PIN.");
+    onError: () => {
+      // Inline modal error display is sufficient; no toast needed here.
     },
   });
 
@@ -107,6 +111,7 @@ export function ErpSettingsView() {
       await queryClient.invalidateQueries({ queryKey: ["settings-categories"] });
       await queryClient.invalidateQueries({ queryKey: ["erp-categories"] });
       setNewCategory("");
+      toast.success("Categoría agregada");
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "No se pudo agregar la categoría.");
@@ -199,7 +204,9 @@ export function ErpSettingsView() {
             value={newCategory}
             onChange={(event) => setNewCategory(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter") addCategoryMutation.mutate();
+              if (event.key === "Enter" && !addCategoryMutation.isPending && newCategory.trim()) {
+                addCategoryMutation.mutate();
+              }
             }}
             placeholder="Nueva categoría"
             className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
@@ -244,8 +251,13 @@ export function ErpSettingsView() {
       {/* PIN display modal — no click-outside close, intentional */}
       {generatedPin !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6">
-            <h2 className="text-xl font-semibold">PIN generado</h2>
+          <div
+            className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pin-modal-title"
+          >
+            <h2 id="pin-modal-title" className="text-xl font-semibold">PIN generado</h2>
             <p className="mt-2 text-sm text-text-secondary">
               Este PIN solo se mostrará una vez. Cópialo antes de cerrar.
             </p>
@@ -256,6 +268,7 @@ export function ErpSettingsView() {
 
             <div className="mt-6 flex flex-col items-center gap-3">
               <Button
+                ref={copyBtnRef}
                 variant="primary"
                 className="w-full px-5 py-3 text-sm"
                 onClick={handleCopyPin}
@@ -263,7 +276,7 @@ export function ErpSettingsView() {
                 {pinCopied ? "¡Copiado!" : "Copiar"}
               </Button>
               <p className="text-sm text-text-secondary">
-                Puedes cerrar en: {countdown}s
+                {countdown > 0 ? `Puedes cerrar en: ${countdown}s` : "Podés cerrar ahora"}
               </p>
               <button
                 type="button"
