@@ -157,7 +157,10 @@ export function ErpActivityView() {
             <label className="text-xs text-text-secondary">Módulo</label>
             <select
               value={moduleFilter}
-              onChange={(e) => setModuleFilter(e.target.value)}
+              onChange={(e) => {
+                setModuleFilter(e.target.value);
+                reset();
+              }}
               className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value="">Todos los módulos</option>
@@ -197,7 +200,7 @@ export function ErpActivityView() {
             {filteredItems.map((item) => {
               const href =
                 buildEntityHref(item.entity_type, item.entity_id) ??
-                (item.entityId ? guessEntityHref(item.entityId) : null);
+                (item.entity_id ? guessEntityHref(item.entity_id) : null);
               return (
                 <div
                   key={item.id}
@@ -243,20 +246,22 @@ export function ErpActivityView() {
           </div>
         )}
       </Card>
-      <Pagination
-        page={page}
-        onPrev={prevPage}
-        onNext={nextPage}
-        hasMore={hasMore}
-        isLoading={activeQuery.isLoading}
-      />
+      {!moduleFilter && (
+        <Pagination
+          page={page}
+          onPrev={prevPage}
+          onNext={nextPage}
+          hasMore={hasMore}
+          isLoading={activeQuery.isLoading}
+        />
+      )}
     </div>
   );
 }
 
-function guessEntityHref(entityId: string): string {
+function guessEntityHref(entityId: string): string | null {
   if (entityId.startsWith("sale")) return `/dashboard/sales/${entityId}`;
   if (entityId.startsWith("prod")) return `/dashboard/products/${entityId}`;
   if (entityId.startsWith("client")) return `/dashboard/clients/${entityId}`;
-  return "/dashboard/activity";
+  return null;
 }

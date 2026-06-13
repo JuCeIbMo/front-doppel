@@ -9,12 +9,10 @@ export interface ActivityInsight {
   title: string;
   subtitle: string;
   timestamp: string;
-  entityId: string | null;
   entity_type?: string;
   entity_id?: string;
   module?: string;
   isAi?: boolean;
-  href?: string | null;
 }
 
 function asArray(value: unknown): unknown[] {
@@ -96,7 +94,7 @@ export function normalizeActivityItems(payload: unknown): ActivityInsight[] {
       asString(record.title) ??
       asString(record.event) ??
       "Actividad";
-    const actor = asString(record.actor) ?? asString(record.module) ?? "sistema";
+    const actor = asString(record.actor) ?? "sistema";
     const detail = asString(record.detail) ?? asString(record.description) ?? "";
     const timestamp =
       asString(record.created_at) ?? asString(record.timestamp) ?? new Date(0).toISOString();
@@ -106,12 +104,11 @@ export function normalizeActivityItems(payload: unknown): ActivityInsight[] {
       title,
       subtitle: detail ? `${actor} · ${detail}` : actor,
       timestamp,
-      entityId: asString(record.entity_id) ?? asString(record.reference_id),
       isAi: isAiActor(actor),
     };
 
     const entityType = asString(record.entity_type);
-    const entityId = asString(record.entity_id);
+    const entityId = asString(record.entity_id) ?? asString(record.reference_id) ?? null;
     const mod = asString(record.module);
     if (entityType !== null) item.entity_type = entityType;
     if (entityId !== null) item.entity_id = entityId;

@@ -54,7 +54,6 @@ describe("normalizeActivityItems", () => {
         title: "Venta registrada",
         subtitle: "bot · 2x producto",
         timestamp: "2026-06-13T12:00:00Z",
-        entityId: "sale_1",
         entity_id: "sale_1",
         isAi: true,
       },
@@ -77,7 +76,6 @@ describe("normalizeActivityItems", () => {
         title: "Cliente actualizado",
         subtitle: "admin",
         timestamp: "2026-06-13T10:00:00Z",
-        entityId: null,
         isAi: false,
       },
     ]);
@@ -102,7 +100,6 @@ describe("normalizeActivityItems", () => {
         title: "Producto editado",
         subtitle: "usuario",
         timestamp: "2026-06-13T09:00:00Z",
-        entityId: "prod_5",
         entity_id: "prod_5",
         entity_type: "product",
         module: "inventory",
