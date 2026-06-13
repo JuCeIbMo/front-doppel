@@ -1,5 +1,5 @@
-import { AdminPhonesView } from "@/components/dashboard/AdminPhonesView";
+import { redirect } from "next/navigation";
 
 export default function AdminPhonesPage() {
-  return <AdminPhonesView />;
+  redirect("/dashboard/automation/admin-phones");
 }

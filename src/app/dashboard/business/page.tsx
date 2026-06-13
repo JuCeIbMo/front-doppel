@@ -1,5 +1,5 @@
-import { BusinessView } from "@/components/dashboard/BusinessView";
+import { redirect } from "next/navigation";
 
 export default function BusinessPage() {
-  return <BusinessView />;
+  redirect("/dashboard/automation/business");
 }
