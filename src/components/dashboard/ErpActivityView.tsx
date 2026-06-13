@@ -49,7 +49,8 @@ export function ErpActivityView() {
   }
 
   const items = normalizeActivityItems(activeQuery.data);
-  const hasMore = items.length === limit;
+  const rawData = (mode === "all" ? activityQuery.data : aiActivityQuery.data) as unknown[] | undefined;
+  const hasMore = (rawData?.length ?? 0) === limit;
 
   return (
     <div className="flex flex-col gap-6">
