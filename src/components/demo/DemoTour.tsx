@@ -10,8 +10,10 @@ export function DemoTour() {
     if (sessionStorage.getItem(TOUR_KEY)) return;
 
     let driver: { drive: () => void; destroy: () => void } | null = null;
+    let isMounted = true;
 
     import("driver.js").then(({ driver: createDriver }) => {
+      if (!isMounted) return;
       driver = createDriver({
         showProgress: true,
         steps: [
@@ -66,6 +68,7 @@ export function DemoTour() {
     });
 
     return () => {
+      isMounted = false;
       driver?.destroy();
     };
   }, []);
