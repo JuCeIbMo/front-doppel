@@ -16,7 +16,11 @@ import {
   Legend,
 } from "recharts";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { StatCard } from "@/components/ui/StatCard";
+import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
+import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
@@ -213,37 +217,41 @@ export function ErpFinanceView() {
 
   return (
     <div className="flex flex-col gap-6">
+      {/* PAGE HEADER */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Finanzas</h1>
+          <h1 className="text-xl font-semibold">Finanzas</h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Saldo de cajas y transacciones sobre backend actual.
+            Saldo de cajas y transacciones.
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="secondary" className="px-5 py-3 text-sm" onClick={() => setAccountOpen(true)}>
+          <Button variant="secondary" size="sm" onClick={() => setAccountOpen(true)}>
             Nueva caja
           </Button>
-          <Button variant="primary" className="px-5 py-3 text-sm" onClick={() => setTransactionOpen(true)}>
+          <Button variant="primary" size="sm" onClick={() => setTransactionOpen(true)}>
             Nueva transacción
           </Button>
         </div>
       </div>
 
+      {/* ACCOUNTS GRID */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {accountsQuery.isLoading
           ? Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index}>
-                <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
-              </Card>
+              <div
+                key={index}
+                className="bg-bg-secondary border border-border rounded-xl h-28 animate-pulse"
+              />
             ))
           : accounts.map((account) => (
-              <Card key={account.id}>
-                <p className="text-sm text-text-secondary">{account.name}</p>
-                <p className="mt-3 text-xl font-semibold">{format(account.balance)}</p>
-                <p className="mt-2 text-xs text-text-secondary">
-                  {account.type} · {account.is_active ? "Activa" : "Inactiva"}
-                </p>
+              <div key={account.id} className="relative">
+                <StatCard
+                  label={account.name}
+                  value={format(account.balance)}
+                  delta={`${account.type} · ${account.is_active ? "Activa" : "Inactiva"}`}
+                  deltaPositive={account.is_active}
+                />
                 <button
                   type="button"
                   onClick={() =>
@@ -255,43 +263,45 @@ export function ErpFinanceView() {
                       is_active: account.is_active,
                     })
                   }
-                  className="mt-4 text-sm text-text-secondary transition-colors hover:text-text-primary"
+                  className="absolute top-4 right-4 text-xs text-text-muted hover:text-text-primary transition-colors"
                 >
                   Editar
                 </button>
-              </Card>
+              </div>
             ))}
       </div>
 
-      {/* Cashflow Chart Card */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-lg font-semibold">Flujo de caja</p>
-          <div className="flex gap-2">
-            <input
-              type="date"
-              value={fromDate}
-              max={toDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setDrillDate(null);
-                reset();
-              }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-text-primary"
-            />
-            <input
-              type="date"
-              value={toDate}
-              min={fromDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setDrillDate(null);
-                reset();
-              }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-text-primary"
-            />
-          </div>
-        </div>
+      {/* CASHFLOW CHART */}
+      <Card>
+        <CardHeader
+          title="Flujo de caja"
+          action={
+            <div className="flex gap-2">
+              <Input
+                type="date"
+                value={fromDate}
+                max={toDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setDrillDate(null);
+                  reset();
+                }}
+                className="py-1"
+              />
+              <Input
+                type="date"
+                value={toDate}
+                min={fromDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setDrillDate(null);
+                  reset();
+                }}
+                className="py-1"
+              />
+            </div>
+          }
+        />
 
         {cashflowQuery.isLoading && (
           <div className="h-60 animate-pulse rounded-xl bg-white/5" />
@@ -334,8 +344,9 @@ export function ErpFinanceView() {
             No hay datos para el período seleccionado.
           </p>
         )}
-      </div>
+      </Card>
 
+      {/* TRANSACTIONS */}
       <Card>
         {drillDate && (
           <div className="flex items-center gap-2 mb-3">
@@ -349,46 +360,47 @@ export function ErpFinanceView() {
             </button>
           </div>
         )}
-
+        <CardHeader title="Transacciones" />
         {transactionsQuery.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-          </div>
+          <Table><Table.Loading rows={5} cols={5} /></Table>
         ) : error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {error instanceof Error ? error.message : "No se pudo cargar finanzas."}
           </p>
         ) : displayedTransactions.length === 0 ? (
-          <p className="text-sm text-text-secondary">No hay transacciones registradas todavía.</p>
+          <Table><Table.Empty>No hay transacciones registradas todavía.</Table.Empty></Table>
         ) : (
-          <div className="space-y-3">
-            {displayedTransactions.map((transaction) => (
-              <div key={transaction.id} className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4">
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="font-medium">{transaction.category}</p>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {transaction.description || "Sin descripción"}
-                    </p>
-                    <p className="mt-2 text-xs text-text-secondary">
-                      {transaction.actor} · {transaction.date}
-                    </p>
-                  </div>
-                  <p
-                    className={`text-lg font-semibold ${
-                      transaction.type === "income" ? "text-accent" : "text-red-300"
-                    }`}
-                  >
-                    {transaction.type === "income" ? "+" : "-"}
-                    {format(transaction.amount)}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>Fecha</Table.Th>
+                <Table.Th>Tipo</Table.Th>
+                <Table.Th>Categoría</Table.Th>
+                <Table.Th>Descripción</Table.Th>
+                <Table.Th className="text-right">Monto</Table.Th>
+              </tr>
+            </Table.Head>
+            <Table.Body>
+              {displayedTransactions.map((transaction) => (
+                <Table.Row key={transaction.id}>
+                  <Table.Cell className="text-text-muted text-xs">{transaction.date}</Table.Cell>
+                  <Table.Cell>
+                    <Badge variant={transaction.type === "income" ? "success" : "danger"}>
+                      {transaction.type === "income" ? "Ingreso" : "Egreso"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell className="text-text-primary">{transaction.category}</Table.Cell>
+                  <Table.Cell className="text-text-muted">{transaction.description || "—"}</Table.Cell>
+                  <Table.Cell className={`text-right font-semibold ${transaction.type === "income" ? "text-accent" : "text-danger"}`}>
+                    {transaction.type === "income" ? "+" : "-"}{format(transaction.amount)}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
         )}
       </Card>
+
       <Pagination
         page={page}
         onPrev={prevPage}
@@ -397,31 +409,63 @@ export function ErpFinanceView() {
         isLoading={transactionsQuery.isLoading}
       />
 
+      {/* MODAL: Nueva caja */}
       {accountOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" onClick={() => setAccountOpen(false)}>
-          <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-bg-primary p-6" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Nueva caja</h2>
-              <button type="button" onClick={() => setAccountOpen(false)} className="text-sm text-text-secondary hover:text-text-primary">Cerrar</button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => setAccountOpen(false)}
+        >
+          <div
+            className="w-full max-w-xl rounded-xl border border-border bg-bg-secondary p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-base font-semibold text-text-primary">Nueva caja</h2>
+              <button
+                type="button"
+                onClick={() => setAccountOpen(false)}
+                className="text-sm text-text-secondary hover:text-text-primary"
+              >
+                Cerrar
+              </button>
             </div>
-            <div className="mt-6 grid gap-4">
-              <div>
-                <label className="block text-sm text-text-secondary">Nombre</label>
-                <input value={accountDraft.name} onChange={(event) => setAccountDraft((current) => ({ ...current, name: event.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
-              </div>
-              <div>
-                <label className="block text-sm text-text-secondary">Tipo</label>
-                <input value={accountDraft.type} onChange={(event) => setAccountDraft((current) => ({ ...current, type: event.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
-              </div>
+            <div className="grid gap-4">
+              <Input
+                label="Nombre"
+                value={accountDraft.name}
+                onChange={(event) =>
+                  setAccountDraft((current) => ({ ...current, name: event.target.value }))
+                }
+              />
+              <Input
+                label="Tipo"
+                value={accountDraft.type}
+                onChange={(event) =>
+                  setAccountDraft((current) => ({ ...current, type: event.target.value }))
+                }
+              />
               <label className="inline-flex items-center gap-3 text-sm">
-                <input type="checkbox" checked={accountDraft.is_default} onChange={(event) => setAccountDraft((current) => ({ ...current, is_default: event.target.checked }))} />
+                <input
+                  type="checkbox"
+                  checked={accountDraft.is_default}
+                  onChange={(event) =>
+                    setAccountDraft((current) => ({ ...current, is_default: event.target.checked }))
+                  }
+                />
                 Caja por defecto
               </label>
             </div>
-            {accountError ? <p className="mt-4 text-sm text-red-400">{accountError}</p> : null}
+            {accountError ? <p className="mt-4 text-sm text-danger">{accountError}</p> : null}
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" className="px-5 py-3 text-sm" onClick={() => setAccountOpen(false)}>Cancelar</Button>
-              <Button variant="primary" className="px-5 py-3 text-sm" onClick={() => createAccountMutation.mutate()} disabled={createAccountMutation.isPending}>
+              <Button variant="ghost" size="sm" onClick={() => setAccountOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => createAccountMutation.mutate()}
+                disabled={createAccountMutation.isPending}
+              >
                 {createAccountMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -429,28 +473,64 @@ export function ErpFinanceView() {
         </div>
       ) : null}
 
+      {/* MODAL: Nueva transacción */}
       {transactionOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" onClick={() => setTransactionOpen(false)}>
-          <div className="w-full max-w-2xl rounded-3xl border border-white/10 bg-bg-primary p-6" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Nueva transacción</h2>
-              <button type="button" onClick={() => setTransactionOpen(false)} className="text-sm text-text-secondary hover:text-text-primary">Cerrar</button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => setTransactionOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-xl border border-border bg-bg-secondary p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-base font-semibold text-text-primary">Nueva transacción</h2>
+              <button
+                type="button"
+                onClick={() => setTransactionOpen(false)}
+                className="text-sm text-text-secondary hover:text-text-primary"
+              >
+                Cerrar
+              </button>
             </div>
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm text-text-secondary">Tipo</label>
-                <select value={transactionDraft.type} onChange={(event) => setTransactionDraft((current) => ({ ...current, type: event.target.value as "income" | "expense" }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30">
+                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
+                  Tipo
+                </label>
+                <select
+                  value={transactionDraft.type}
+                  onChange={(event) =>
+                    setTransactionDraft((current) => ({
+                      ...current,
+                      type: event.target.value as "income" | "expense",
+                    }))
+                  }
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
+                >
                   <option value="income">Ingreso</option>
                   <option value="expense">Egreso</option>
                 </select>
               </div>
+              <Input
+                label="Monto"
+                value={transactionDraft.amount}
+                onChange={(event) =>
+                  setTransactionDraft((current) => ({ ...current, amount: event.target.value }))
+                }
+              />
               <div>
-                <label className="block text-sm text-text-secondary">Monto</label>
-                <input value={transactionDraft.amount} onChange={(event) => setTransactionDraft((current) => ({ ...current, amount: event.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
-              </div>
-              <div>
-                <label className="block text-sm text-text-secondary">Categoría</label>
-                <input value={transactionDraft.category} list="finance-categories" onChange={(event) => setTransactionDraft((current) => ({ ...current, category: event.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
+                <Input
+                  label="Categoría"
+                  value={transactionDraft.category}
+                  list="finance-categories"
+                  onChange={(event) =>
+                    setTransactionDraft((current) => ({
+                      ...current,
+                      category: event.target.value,
+                    }))
+                  }
+                />
                 <datalist id="finance-categories">
                   {categories.map((category) => (
                     <option key={category} value={category} />
@@ -458,8 +538,19 @@ export function ErpFinanceView() {
                 </datalist>
               </div>
               <div>
-                <label className="block text-sm text-text-secondary">Caja</label>
-                <select value={transactionDraft.cash_account_id} onChange={(event) => setTransactionDraft((current) => ({ ...current, cash_account_id: event.target.value }))} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30">
+                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
+                  Caja
+                </label>
+                <select
+                  value={transactionDraft.cash_account_id}
+                  onChange={(event) =>
+                    setTransactionDraft((current) => ({
+                      ...current,
+                      cash_account_id: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
+                >
                   <option value="">Sin caja</option>
                   {accounts.map((account) => (
                     <option key={account.id} value={account.id}>
@@ -469,18 +560,45 @@ export function ErpFinanceView() {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm text-text-secondary">Fecha (opcional)</label>
-                <input value={transactionDraft.date} onChange={(event) => setTransactionDraft((current) => ({ ...current, date: event.target.value }))} placeholder="YYYY-MM-DD" className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
+                <Input
+                  label="Fecha (opcional)"
+                  placeholder="YYYY-MM-DD"
+                  value={transactionDraft.date}
+                  onChange={(event) =>
+                    setTransactionDraft((current) => ({ ...current, date: event.target.value }))
+                  }
+                />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm text-text-secondary">Descripción</label>
-                <textarea value={transactionDraft.description} onChange={(event) => setTransactionDraft((current) => ({ ...current, description: event.target.value }))} rows={3} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
+                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
+                  Descripción
+                </label>
+                <textarea
+                  value={transactionDraft.description}
+                  onChange={(event) =>
+                    setTransactionDraft((current) => ({
+                      ...current,
+                      description: event.target.value,
+                    }))
+                  }
+                  rows={3}
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
+                />
               </div>
             </div>
-            {transactionError ? <p className="mt-4 text-sm text-red-400">{transactionError}</p> : null}
+            {transactionError ? (
+              <p className="mt-4 text-sm text-danger">{transactionError}</p>
+            ) : null}
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" className="px-5 py-3 text-sm" onClick={() => setTransactionOpen(false)}>Cancelar</Button>
-              <Button variant="primary" className="px-5 py-3 text-sm" onClick={() => createTransactionMutation.mutate()} disabled={createTransactionMutation.isPending}>
+              <Button variant="ghost" size="sm" onClick={() => setTransactionOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => createTransactionMutation.mutate()}
+                disabled={createTransactionMutation.isPending}
+              >
                 {createTransactionMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -488,35 +606,83 @@ export function ErpFinanceView() {
         </div>
       ) : null}
 
+      {/* MODAL: Editar caja */}
       {editingAccount ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4" onClick={() => setEditingAccount(null)}>
-          <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-bg-primary p-6" onClick={(event) => event.stopPropagation()}>
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Editar caja</h2>
-              <button type="button" onClick={() => setEditingAccount(null)} className="text-sm text-text-secondary hover:text-text-primary">Cerrar</button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          onClick={() => setEditingAccount(null)}
+        >
+          <div
+            className="w-full max-w-xl rounded-xl border border-border bg-bg-secondary p-6"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-base font-semibold text-text-primary">Editar caja</h2>
+              <button
+                type="button"
+                onClick={() => setEditingAccount(null)}
+                className="text-sm text-text-secondary hover:text-text-primary"
+              >
+                Cerrar
+              </button>
             </div>
-            <div className="mt-6 grid gap-4">
-              <div>
-                <label className="block text-sm text-text-secondary">Nombre</label>
-                <input value={editingAccount.name} onChange={(event) => setEditingAccount((current) => current ? { ...current, name: event.target.value } : current)} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
-              </div>
-              <div>
-                <label className="block text-sm text-text-secondary">Tipo</label>
-                <input value={editingAccount.type} onChange={(event) => setEditingAccount((current) => current ? { ...current, type: event.target.value } : current)} className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30" />
-              </div>
+            <div className="grid gap-4">
+              <Input
+                label="Nombre"
+                value={editingAccount.name}
+                onChange={(event) =>
+                  setEditingAccount((current) =>
+                    current ? { ...current, name: event.target.value } : current
+                  )
+                }
+              />
+              <Input
+                label="Tipo"
+                value={editingAccount.type}
+                onChange={(event) =>
+                  setEditingAccount((current) =>
+                    current ? { ...current, type: event.target.value } : current
+                  )
+                }
+              />
               <label className="inline-flex items-center gap-3 text-sm">
-                <input type="checkbox" checked={editingAccount.is_default} onChange={(event) => setEditingAccount((current) => current ? { ...current, is_default: event.target.checked } : current)} />
+                <input
+                  type="checkbox"
+                  checked={editingAccount.is_default}
+                  onChange={(event) =>
+                    setEditingAccount((current) =>
+                      current ? { ...current, is_default: event.target.checked } : current
+                    )
+                  }
+                />
                 Caja por defecto
               </label>
               <label className="inline-flex items-center gap-3 text-sm">
-                <input type="checkbox" checked={editingAccount.is_active} onChange={(event) => setEditingAccount((current) => current ? { ...current, is_active: event.target.checked } : current)} />
+                <input
+                  type="checkbox"
+                  checked={editingAccount.is_active}
+                  onChange={(event) =>
+                    setEditingAccount((current) =>
+                      current ? { ...current, is_active: event.target.checked } : current
+                    )
+                  }
+                />
                 Caja activa
               </label>
             </div>
-            {editAccountError ? <p className="mt-4 text-sm text-red-400">{editAccountError}</p> : null}
+            {editAccountError ? (
+              <p className="mt-4 text-sm text-danger">{editAccountError}</p>
+            ) : null}
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" className="px-5 py-3 text-sm" onClick={() => setEditingAccount(null)}>Cancelar</Button>
-              <Button variant="primary" className="px-5 py-3 text-sm" onClick={() => updateAccountMutation.mutate()} disabled={updateAccountMutation.isPending}>
+              <Button variant="ghost" size="sm" onClick={() => setEditingAccount(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => updateAccountMutation.mutate()}
+                disabled={updateAccountMutation.isPending}
+              >
                 {updateAccountMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
