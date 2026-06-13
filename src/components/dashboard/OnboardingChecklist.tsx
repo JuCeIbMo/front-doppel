@@ -14,7 +14,7 @@ interface OnboardingChecklistProps {
 
 export function OnboardingChecklist({ steps, onDismiss }: OnboardingChecklistProps) {
   return (
-    <div className="rounded-2xl border border-accent/30 bg-accent/5 p-6 mb-6">
+    <div className="rounded-2xl border border-accent/30 bg-accent/5 p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="font-semibold text-text-primary">¡Bienvenido a Doppel ERP!</p>

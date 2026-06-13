@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +11,15 @@ import type { ErpDashboardResponse, InventoryRow } from "@/lib/erp-types";
 import { OnboardingChecklist } from "./OnboardingChecklist";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+const IGNORE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Returns a Record with the given productId mapped to a 7-day expiry timestamp. */
+function addIgnoreExpiry(
+  existing: Record<string, number>,
+  productId: string
+): Record<string, number> {
+  return { ...existing, [productId]: Date.now() + IGNORE_DURATION_MS };
+}
 
 async function getDashboard() {
   return apiFetch<ErpDashboardResponse>("/erp/reports/dashboard", {
@@ -53,9 +62,7 @@ export function ErpOverviewView() {
   });
 
   function ignoreProduct(productId: string) {
-    // eslint-disable-next-line react-hooks/purity
-    const expiry = Date.now() + 7 * 24 * 60 * 60 * 1000;
-    const updated = { ...ignored, [productId]: expiry };
+    const updated = addIgnoreExpiry(ignored, productId);
     setIgnored(updated);
     localStorage.setItem("low_stock_ignored", JSON.stringify(updated));
   }
@@ -77,6 +84,49 @@ export function ErpOverviewView() {
 
   const error = dashboardQuery.error ?? lowStockQuery.error;
 
+  const dashboardData = dashboardQuery.data;
+
+  const onboardingSteps = dashboardData
+    ? [
+        {
+          label: "Cargá tu primer producto",
+          done: !!dashboardData.top_product,
+          href: "/dashboard/products/new",
+        },
+        {
+          label: "Registrá tu primera venta",
+          done: dashboardData.sales_count > 0,
+          href: "/dashboard/sales",
+        },
+        {
+          label: "Configurá tu caja en Finanzas",
+          done: !!(dashboardData.cash_balances && dashboardData.cash_balances.length > 0),
+          href: "/dashboard/finance",
+        },
+      ]
+    : [];
+
+  const hasData = dashboardData !== undefined;
+  const allStepsDone = onboardingSteps.every((s) => s.done);
+
+  // Auto-dismiss when all steps are done: persist to localStorage so the
+  // checklist stays hidden across page loads. No setState here — showOnboarding
+  // already derives to false via !allStepsDone, avoiding cascading renders.
+  useEffect(() => {
+    if (!onboardingDismissed && hasData && allStepsDone) {
+      localStorage.setItem("onboarding_dismissed", "true");
+    }
+  }, [onboardingDismissed, hasData, allStepsDone]);
+
+  // `onboardingDismissed` state already reflects localStorage on mount.
+  // !allStepsDone ensures we never render a fully-completed checklist.
+  const showOnboarding =
+    !onboardingDismissed &&
+    hasData &&
+    dashboardData!.sales_count === 0 &&
+    dashboardData!.new_clients === 0 &&
+    !allStepsDone;
+
   if (error instanceof ApiError && error.status === 401) {
     clearToken();
     router.replace("/connect");
@@ -89,49 +139,14 @@ export function ErpOverviewView() {
   // no need to re-check Date.now() during render (avoids impure-call lint error).
   const visibleLowStock = lowStockItems.filter((item) => !ignored[item.product_id]);
 
-  const cards = dashboardQuery.data
+  const cards = dashboardData
     ? [
-        { label: "Ventas del período", value: format(dashboardQuery.data.sales_total) },
-        { label: "Transacciones", value: String(dashboardQuery.data.sales_count) },
-        { label: "Margen bruto", value: format(dashboardQuery.data.gross_margin) },
-        { label: "Clientes nuevos", value: String(dashboardQuery.data.new_clients) },
+        { label: "Ventas del período", value: format(dashboardData.sales_total) },
+        { label: "Transacciones", value: String(dashboardData.sales_count) },
+        { label: "Margen bruto", value: format(dashboardData.gross_margin) },
+        { label: "Clientes nuevos", value: String(dashboardData.new_clients) },
       ]
     : [];
-
-  const dashboardData = dashboardQuery.data;
-
-  const onboardingSteps = dashboardData
-    ? [
-        {
-          label: "Cargá tu primer producto",
-          done: false,
-          href: "/dashboard/products/new",
-        },
-        {
-          label: "Registrá tu primera venta",
-          done: dashboardData.sales_count > 0,
-          href: "/dashboard/sales",
-        },
-        {
-          label: "Configurá tu caja en Finanzas",
-          done: false,
-          href: "/dashboard/finance",
-        },
-      ]
-    : [];
-
-  // `onboardingDismissed` state already reflects localStorage on mount,
-  // so the double-check is not needed here (and avoids impure-call lint errors).
-  const showOnboarding =
-    !onboardingDismissed &&
-    dashboardData !== undefined &&
-    dashboardData.sales_count === 0 &&
-    dashboardData.new_clients === 0;
-
-  // Auto-dismiss when all steps are done
-  if (showOnboarding && onboardingSteps.every((s) => s.done)) {
-    dismissOnboarding();
-  }
 
   return (
     <div className="flex flex-col gap-6">
