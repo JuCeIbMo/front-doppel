@@ -184,12 +184,6 @@ export function DashboardView() {
     }
   }, [router]);
 
-  const handleLogout = useCallback(async () => {
-    await authenticatedFetch("/auth/logout", { method: "POST" }).catch(() => {});
-    clearToken();
-    router.replace("/");
-  }, [router]);
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -203,28 +197,19 @@ export function DashboardView() {
   const canReply = Boolean(form.bot_enabled && isConnected);
 
   return (
-    <div className="min-h-screen bg-bg-primary px-6 py-10">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <span className="text-text-primary font-bold text-xl">Doppel</span>
-            <p className="text-text-secondary text-sm mt-1">
-              Panel operativo para tu WhatsApp Business automatizado.
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="text-text-secondary text-sm hover:text-text-primary transition-colors cursor-pointer"
-          >
-            Cerrar sesion
-          </button>
-        </div>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Automatización WhatsApp</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Panel operativo del bot y la cuenta conectada.
+        </p>
+      </div>
 
-        <DashboardNav />
+      <DashboardNav />
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
-          <div className="flex flex-col gap-6">
-            <Card>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div className="flex flex-col gap-6">
+          <Card>
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-text-secondary text-sm mb-1">Negocio</p>
@@ -245,9 +230,9 @@ export function DashboardView() {
                   {isConnected ? "Conectado" : "Desconectado"}
                 </span>
               </div>
-            </Card>
+          </Card>
 
-            <Card>
+          <Card>
               <div className="flex items-center justify-between gap-4 mb-5">
                 <div>
                   <h2 className="text-text-primary font-semibold text-base">Estado del bot</h2>
@@ -330,11 +315,11 @@ export function DashboardView() {
                   </div>
                 </div>
               )}
-            </Card>
-          </div>
+          </Card>
+        </div>
 
-          <div className="flex flex-col gap-6">
-            <Card>
+        <div className="flex flex-col gap-6">
+          <Card>
               <div className="flex items-center justify-between gap-4 mb-5">
                 <div>
                   <h2 className="text-text-primary font-semibold text-base">Mensajes recientes</h2>
@@ -373,9 +358,9 @@ export function DashboardView() {
                   ))}
                 </div>
               )}
-            </Card>
+          </Card>
 
-            <Card>
+          <Card>
               <h2 className="text-text-primary font-semibold text-base mb-3">Acciones de cuenta</h2>
               <p className="text-text-secondary text-sm mb-5">
                 La desconexion pausa el bot y desactiva la cuenta dentro de Doppel. La eliminacion
@@ -390,8 +375,7 @@ export function DashboardView() {
                   {deletingAccount ? "Eliminando cuenta..." : "Eliminar cuenta y datos"}
                 </Button>
               </div>
-            </Card>
-          </div>
+          </Card>
         </div>
       </div>
     </div>

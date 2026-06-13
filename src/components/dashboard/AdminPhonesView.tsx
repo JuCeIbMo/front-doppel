@@ -89,20 +89,17 @@ export function AdminPhonesView() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary px-6 py-10">
-      <div className="max-w-3xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <span className="text-text-primary font-bold text-xl">Doppel</span>
-            <p className="text-text-secondary text-sm mt-1">
-              Numeros que pueden hablar con el agente manager por WhatsApp.
-            </p>
-          </div>
-        </div>
+    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Números admin</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Controlá qué teléfonos pueden hablar con el agente manager por WhatsApp.
+        </p>
+      </div>
 
-        <DashboardNav />
+      <DashboardNav />
 
-        <Card>
+      <Card>
           <h2 className="text-text-primary font-semibold text-base mb-2">Numeros admin</h2>
           <p className="text-text-secondary text-sm mb-5">
             Solo los numeros listados aqui acceden al manager. Cualquier otro contacto sera
@@ -162,8 +159,7 @@ export function AdminPhonesView() {
               <span className="text-red-400 text-sm">{errorMessage ?? "Error al guardar"}</span>
             )}
           </div>
-        </Card>
-      </div>
+      </Card>
     </div>
   );
 }

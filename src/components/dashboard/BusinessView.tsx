@@ -243,20 +243,17 @@ export function BusinessView() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary px-6 py-10">
-      <div className="max-w-5xl mx-auto flex flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <span className="text-text-primary font-bold text-xl">Doppel</span>
-            <p className="text-text-secondary text-sm mt-1">
-              Datos del negocio y catalogo que usa el bot al responder a tus clientes.
-            </p>
-          </div>
-        </div>
+    <div className="mx-auto flex max-w-5xl flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Negocio y catálogo del bot</h1>
+        <p className="mt-1 text-sm text-text-secondary">
+          Datos que usa la automatización actual mientras migra al ERP canónico.
+        </p>
+      </div>
 
-        <DashboardNav />
+      <DashboardNav />
 
-        <Card>
+      <Card>
           <h2 className="text-text-primary font-semibold text-base mb-2">Datos del negocio</h2>
           <p className="text-text-secondary text-sm mb-5">
             Estos campos los puede consultar el bot (tool <code className="text-accent">lookup_business_info</code>)
@@ -330,9 +327,9 @@ export function BusinessView() {
             {businessStatus === "ok" && <span className="text-accent text-sm">Guardado</span>}
             {businessStatus === "error" && <span className="text-red-400 text-sm">Error al guardar</span>}
           </div>
-        </Card>
+      </Card>
 
-        <Card>
+      <Card>
           <div className="flex items-center justify-between gap-4 mb-5">
             <div>
               <h2 className="text-text-primary font-semibold text-base">Productos</h2>
@@ -417,8 +414,7 @@ export function BusinessView() {
           {errorMessage && !modalOpen && (
             <p className="text-red-400 text-sm mt-3">{errorMessage}</p>
           )}
-        </Card>
-      </div>
+      </Card>
 
       {modalOpen && (
         <div
