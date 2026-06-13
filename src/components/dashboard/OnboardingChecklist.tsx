@@ -32,7 +32,7 @@ export function OnboardingChecklist({ steps, onDismiss }: OnboardingChecklistPro
         {steps.map((step) => (
           <li key={step.href} className="flex items-center gap-3">
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-              step.done ? "bg-accent text-black" : "border border-white/20 text-text-secondary"
+              step.done ? "bg-accent text-black" : "border border-border text-text-secondary"
             }`}>
               {step.done ? "✓" : ""}
             </span>

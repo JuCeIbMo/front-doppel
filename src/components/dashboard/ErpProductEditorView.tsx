@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { buildProductPayload, type ProductDraftInput } from "@/lib/erp-forms";
@@ -62,16 +63,16 @@ export function ErpProductEditorView({
         <Link href="/dashboard/products" className="text-sm text-text-secondary hover:text-text-primary">
           Volver a productos
         </Link>
-        <h1 className="mt-2 text-2xl font-semibold">
+        <h1 className="mt-2 text-xl font-semibold">
           {productId ? "Editar producto" : "Nuevo producto"}
         </h1>
       </div>
 
       <Card>
         {query.isLoading ? (
-          <div className="h-40 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-40 animate-pulse rounded-lg bg-bg-elevated" />
         ) : query.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar el producto."}
           </p>
         ) : (
@@ -151,11 +152,10 @@ function ProductFormCard({
     <>
       <div className="grid gap-4 md:grid-cols-2">
         <div className="md:col-span-2">
-          <label className="block text-sm text-text-secondary">Nombre</label>
-          <input
+          <Input
+            label="Nombre"
             value={draft.name}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
           />
         </div>
         <div className="md:col-span-2">
@@ -164,7 +164,7 @@ function ProductFormCard({
             value={draft.description}
             onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))}
             rows={3}
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
+            className="mt-2 w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
           />
         </div>
         {[
@@ -178,13 +178,12 @@ function ProductFormCard({
           ["low_stock_threshold", "Umbral stock"],
         ].map(([field, label]) => (
           <div key={field}>
-            <label className="block text-sm text-text-secondary">{label}</label>
-            <input
+            <Input
+              label={label}
               value={draft[field as keyof ProductDraftInput] as string}
               onChange={(event) =>
                 setDraft((current) => ({ ...current, [field]: event.target.value }))
               }
-              className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
             />
           </div>
         ))}
@@ -203,15 +202,15 @@ function ProductFormCard({
         </div>
       </div>
 
-      {formError ? <p className="mt-4 text-sm text-red-400">{formError}</p> : null}
+      {formError ? <p className="mt-4 text-sm text-danger">{formError}</p> : null}
 
       <div className="mt-6 flex justify-end gap-3">
-        <Button variant="ghost" className="px-5 py-3 text-sm" href="/dashboard/products">
+        <Button variant="ghost" size="sm" href="/dashboard/products">
           Cancelar
         </Button>
         <Button
           variant="primary"
-          className="px-5 py-3 text-sm"
+          size="sm"
           onClick={() => saveMutation.mutate()}
           disabled={saveMutation.isPending}
         >

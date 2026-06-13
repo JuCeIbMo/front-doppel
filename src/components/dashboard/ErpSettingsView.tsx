@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import type { PinSetResponse } from "@/lib/erp-types";
@@ -117,22 +119,22 @@ export function ErpSettingsView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Configuración</h1>
+        <h1 className="text-xl font-semibold">Configuración</h1>
         <p className="mt-1 text-sm text-text-secondary">
           Gestión de PIN de cajero y categorías financieras.
         </p>
       </div>
 
       {/* PIN section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-lg font-semibold">PIN de cajero</h2>
+      <Card>
+        <CardHeader title="PIN de cajero" />
         <p className="mt-2 text-sm text-text-secondary">
           El PIN solo se mostrará una vez. Asegurate de copiarlo antes de cerrar.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-4">
           <Button
             variant="secondary"
-            className="px-5 py-3 text-sm"
+            size="sm"
             onClick={() => generatePinMutation.mutate()}
             disabled={generatePinMutation.isPending}
           >
@@ -140,17 +142,17 @@ export function ErpSettingsView() {
           </Button>
           <button
             type="button"
-            className="text-sm text-red-400 hover:text-red-300"
+            className="text-sm text-danger hover:brightness-110"
             onClick={() => setConfirmDisablePinOpen(true)}
           >
             Deshabilitar PIN
           </button>
         </div>
-      </div>
+      </Card>
 
       {/* Categories section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-lg font-semibold">Categorías financieras</h2>
+      <Card>
+        <CardHeader title="Categorías financieras" />
         <p className="mt-2 text-sm text-text-secondary">
           Las categorías se generan automáticamente a partir de las transacciones registradas.
         </p>
@@ -164,22 +166,19 @@ export function ErpSettingsView() {
             </p>
           ) : (
             categories.map((category) => (
-              <span
-                key={category}
-                className="rounded-full bg-white/8 px-3 py-1 text-xs text-text-secondary"
-              >
+              <Badge key={category} variant="neutral">
                 {category}
-              </span>
+              </Badge>
             ))
           )}
         </div>
-      </div>
+      </Card>
 
       {/* PIN display modal — no click-outside close, intentional */}
       {generatedPin !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
           <div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6"
+            className="w-full max-w-sm rounded-xl border border-border bg-bg-secondary p-6"
             role="dialog"
             aria-modal="true"
             aria-labelledby="pin-modal-title"
@@ -197,7 +196,8 @@ export function ErpSettingsView() {
               <Button
                 ref={copyBtnRef}
                 variant="primary"
-                className="w-full px-5 py-3 text-sm"
+                size="md"
+                className="w-full"
                 onClick={handleCopyPin}
               >
                 {pinCopied ? "¡Copiado!" : "Copiar"}
@@ -225,7 +225,7 @@ export function ErpSettingsView() {
           onClick={() => setConfirmDisablePinOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl border border-white/10 bg-[#111] p-6"
+            className="w-full max-w-sm rounded-xl border border-border bg-bg-secondary p-6"
             onClick={(event) => event.stopPropagation()}
           >
             <h2 className="text-xl font-semibold">Deshabilitar PIN</h2>
@@ -233,7 +233,7 @@ export function ErpSettingsView() {
               ¿Estás seguro que deseas deshabilitar el PIN de cajero?
             </p>
             {disablePinMutation.isError ? (
-              <p className="mt-4 text-sm text-red-400">
+              <p className="mt-4 text-sm text-danger">
                 {disablePinMutation.error instanceof Error
                   ? disablePinMutation.error.message
                   : "No se pudo deshabilitar el PIN."}
@@ -242,14 +242,14 @@ export function ErpSettingsView() {
             <div className="mt-6 flex justify-end gap-3">
               <Button
                 variant="ghost"
-                className="px-5 py-3 text-sm"
+                size="sm"
                 onClick={() => setConfirmDisablePinOpen(false)}
               >
                 Cancelar
               </Button>
               <button
                 type="button"
-                className="rounded-2xl px-5 py-3 text-sm text-red-400 hover:text-red-300 disabled:opacity-50"
+                className="rounded-lg px-3 py-1.5 text-sm text-danger disabled:opacity-50"
                 onClick={() => disablePinMutation.mutate()}
                 disabled={disablePinMutation.isPending}
               >

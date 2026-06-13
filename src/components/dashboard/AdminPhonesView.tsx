@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { authenticatedFetch } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
@@ -91,7 +92,7 @@ export function AdminPhonesView() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Números admin</h1>
+        <h1 className="text-xl font-semibold">Números admin</h1>
         <p className="mt-1 text-sm text-text-secondary">
           Controlá qué teléfonos pueden hablar con el agente manager por WhatsApp.
         </p>
@@ -100,7 +101,7 @@ export function AdminPhonesView() {
       <DashboardNav />
 
       <Card>
-          <h2 className="text-text-primary font-semibold text-base mb-2">Numeros admin</h2>
+          <CardHeader title="Números admin" />
           <p className="text-text-secondary text-sm mb-5">
             Solo los numeros listados aqui acceden al manager. Cualquier otro contacto sera
             atendido por el bot cliente. Formato libre: el servidor descarta caracteres no numericos.
@@ -115,7 +116,7 @@ export function AdminPhonesView() {
               phones.map((phone) => (
                 <div
                   key={phone}
-                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/3"
+                  className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg border border-border bg-bg-elevated/40"
                 >
                   <span className="text-text-primary text-sm">+{phone}</span>
                   <button
@@ -132,20 +133,13 @@ export function AdminPhonesView() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 mb-5">
-            <input
-              type="text"
+            <Input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  handleAdd();
-                }
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
               placeholder="+591 70000000"
-              className="flex-1 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-text-primary placeholder:text-text-secondary/50 outline-none focus:border-accent focus:ring-1 focus:ring-accent/30 transition-all text-sm"
             />
-            <Button variant="secondary" onClick={handleAdd} className="px-6 py-3 text-sm">
+            <Button variant="secondary" size="sm" onClick={handleAdd}>
               Agregar
             </Button>
           </div>
@@ -156,7 +150,7 @@ export function AdminPhonesView() {
             </Button>
             {status === "ok" && <span className="text-accent text-sm">Guardado</span>}
             {status === "error" && (
-              <span className="text-red-400 text-sm">{errorMessage ?? "Error al guardar"}</span>
+              <span className="text-danger text-sm">{errorMessage ?? "Error al guardar"}</span>
             )}
           </div>
       </Card>
