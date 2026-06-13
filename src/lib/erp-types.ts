@@ -128,3 +128,10 @@ export interface PinLoginResponse {
   access_token: string;
   expires_in: number;
 }
+
+export interface CartItem {
+  product_id: string;
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+}
