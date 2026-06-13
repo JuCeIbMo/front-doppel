@@ -50,11 +50,13 @@ function Loading({ rows = 4, cols = 4 }: { rows?: number; cols?: number }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return (
-    <tr>
-      <td colSpan={99} className="py-12 text-center text-sm text-text-muted">
-        {children}
-      </td>
-    </tr>
+    <tbody>
+      <tr>
+        <td colSpan={99} className="py-12 text-center text-sm text-text-muted">
+          {children}
+        </td>
+      </tr>
+    </tbody>
   );
 }
 

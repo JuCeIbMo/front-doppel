@@ -23,9 +23,7 @@ describe("Table", () => {
   it("Table.Empty renders the message in a cell", () => {
     render(
       <Table>
-        <Table.Body>
-          <Table.Empty>Sin datos</Table.Empty>
-        </Table.Body>
+        <Table.Empty>Sin datos</Table.Empty>
       </Table>
     );
     expect(screen.getByText("Sin datos")).toBeInTheDocument();
