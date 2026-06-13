@@ -8,6 +8,10 @@ import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
+import { Badge } from "@/components/ui/Badge";
+import { CardHeader } from "@/components/ui/Card";
 import { apiFetch, apiRequest, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -116,40 +120,38 @@ export function ErpProductsView() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Catálogo ERP</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Fuente de verdad operativa basada en `/erp/products`.
-          </p>
+          <h1 className="text-xl font-semibold">Productos</h1>
+          <p className="mt-0.5 text-sm text-text-secondary">Catálogo de productos del ERP.</p>
         </div>
-        <Button variant="primary" className="px-5 py-3 text-sm" href="/dashboard/products/new">
+        <Button variant="primary" size="sm" href="/dashboard/products/new">
           Nuevo producto
         </Button>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
         <Card>
-          <label className="block text-sm text-text-secondary">Buscar producto</label>
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => { setSearch(event.target.value); reset(); }}
-            placeholder="Nombre, SKU o código"
-            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-text-primary outline-none transition-all focus:border-accent focus:ring-1 focus:ring-accent/30"
-          />
-
-          <div className="mt-5">
-            <label className="block text-sm text-text-secondary">Buscar por código de barras</label>
-            <div className="mt-2 flex gap-3">
-              <input
+          <CardHeader title="Buscar" />
+          <div className="flex flex-col gap-4">
+            <Input
+              label="Por nombre o SKU"
+              type="search"
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); reset(); }}
+              placeholder="Nombre, SKU o código"
+            />
+            <div className="flex gap-3">
+              <Input
+                label="Por código de barras"
                 type="text"
                 value={barcodeLookup}
-                onChange={(event) => setBarcodeLookup(event.target.value)}
+                onChange={(e) => setBarcodeLookup(e.target.value)}
                 placeholder="Ingresá el código"
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-text-primary outline-none transition-all focus:border-accent focus:ring-1 focus:ring-accent/30"
+                className="flex-1"
               />
               <Button
                 variant="secondary"
-                className="px-5 py-3 text-sm"
+                size="sm"
+                className="self-end"
                 onClick={() => {
                   const code = barcodeLookup.trim();
                   if (!code) return;
@@ -194,7 +196,7 @@ export function ErpProductsView() {
             >
               Descargar template
             </Button>
-            <label className="inline-flex cursor-pointer items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-text-primary">
+            <label className="inline-flex cursor-pointer items-center rounded-lg border border-border bg-bg-elevated px-4 py-2.5 text-sm text-text-primary">
               <input
                 type="file"
                 accept=".xlsx,.xls"
@@ -228,86 +230,77 @@ export function ErpProductsView() {
       </div>
 
       <Card>
+        <CardHeader title="Catálogo" />
         {query.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-          </div>
+          <Table>
+            <Table.Loading rows={5} cols={6} />
+          </Table>
         ) : query.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar productos."}
           </p>
         ) : products.length === 0 ? (
-          <p className="text-sm text-text-secondary">
-            No hay productos ERP cargados todavía.
-          </p>
+          <Table>
+            <Table.Empty>No hay productos ERP cargados todavía.</Table.Empty>
+          </Table>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-text-secondary">
-                  <th className="py-3 pr-4 font-medium">Nombre</th>
-                  <th className="py-3 pr-4 font-medium">Categoría</th>
-                  <th className="py-3 pr-4 font-medium">Precio</th>
-                  <th className="py-3 pr-4 font-medium">Stock</th>
-                  <th className="py-3 pr-4 font-medium">Estado</th>
-                  <th className="py-3 font-medium text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {products.map((product) => (
-                  <tr key={product.id} className="border-b border-white/5 align-top last:border-b-0">
-                    <td className="py-4 pr-4">
-                      <p className="font-medium text-text-primary">{product.name}</p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        {product.sku || product.barcode || "Sin SKU/barcode"}
-                      </p>
-                    </td>
-                    <td className="py-4 pr-4 text-text-secondary">
-                      {product.category || "Sin categoría"}
-                    </td>
-                    <td className="py-4 pr-4 text-text-primary">{format(product.price)}</td>
-                    <td className="py-4 pr-4 text-text-primary">
-                      {product.stock ?? "-"} {product.unit}
-                    </td>
-                    <td className="py-4 pr-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          product.available
-                            ? "bg-accent/15 text-accent"
-                            : "bg-white/10 text-text-secondary"
-                        }`}
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>Nombre</Table.Th>
+                <Table.Th>Categoría</Table.Th>
+                <Table.Th>Precio</Table.Th>
+                <Table.Th>Stock</Table.Th>
+                <Table.Th>Estado</Table.Th>
+                <Table.Th className="text-right">Acciones</Table.Th>
+              </tr>
+            </Table.Head>
+            <Table.Body>
+              {products.map((product) => (
+                <Table.Row key={product.id}>
+                  <Table.Cell>
+                    <p className="font-medium text-text-primary">{product.name}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {product.sku || product.barcode || "Sin SKU"}
+                    </p>
+                  </Table.Cell>
+                  <Table.Cell className="text-text-secondary">
+                    {product.category || "—"}
+                  </Table.Cell>
+                  <Table.Cell className="text-text-primary">{format(product.price)}</Table.Cell>
+                  <Table.Cell className="text-text-primary">
+                    {product.stock ?? "—"} {product.unit}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge variant={product.available ? "success" : "neutral"}>
+                      {product.available ? "Disponible" : "Oculto"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
+                    <div className="inline-flex gap-3">
+                      <Link
+                        href={`/dashboard/products/${product.id}`}
+                        className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                       >
-                        {product.available ? "Disponible" : "Oculto"}
-                      </span>
-                    </td>
-                    <td className="py-4 text-right">
-                      <div className="inline-flex gap-3 text-sm">
-                        <Link
-                          href={`/dashboard/products/${product.id}`}
-                          className="text-text-secondary transition-colors hover:text-text-primary"
-                        >
-                          Editar
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (confirm(`Eliminar "${product.name}"?`)) {
-                              deleteMutation.mutate(product.id);
-                            }
-                          }}
-                          className="text-red-400 transition-colors hover:text-red-300"
-                        >
-                          Eliminar
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        Editar
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (confirm(`Eliminar "${product.name}"?`)) {
+                            deleteMutation.mutate(product.id);
+                          }
+                        }}
+                        className="text-sm text-danger hover:brightness-110 transition-colors"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
         )}
       </Card>
       <Pagination
