@@ -72,7 +72,7 @@ export function PosScreen({ onSessionExpired }: Props) {
 
     async function fetchCashAccounts() {
       try {
-        const accounts = await apiFetch<CashAccountResponse[]>("/erp/cash-accounts", {
+        const accounts = await apiFetch<CashAccountResponse[]>("/erp/finance/accounts", {
           baseUrl: API_URL,
           session: cashierSessionStore,
         });
