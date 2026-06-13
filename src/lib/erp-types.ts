@@ -120,6 +120,17 @@ export interface MovementResponse {
   created_at: string;
 }
 
+export interface ActivityItemResponse {
+  id: string;
+  action: string;
+  actor: string;
+  detail?: string | null;
+  module?: string | null;
+  entity_type?: string | null;
+  entity_id?: string | null;
+  created_at: string;
+}
+
 export interface PinSetResponse {
   pin: string;
 }
