@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -24,29 +24,6 @@ import type { TopProductItem, SalesByPeriodItem } from "@/lib/erp-types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-async function handleExport(path: string, filename: string) {
-  try {
-    const response = await apiRequest(path, {
-      baseUrl: API_URL,
-      session: getBrowserSessionStore(),
-      throwOnError: false,
-    });
-    if (!response.ok) {
-      toast.error("Error al exportar");
-      return;
-    }
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  } catch {
-    toast.error("Error al exportar");
-  }
-}
-
 export function ErpReportsView() {
   const router = useRouter();
 
@@ -55,6 +32,33 @@ export function ErpReportsView() {
   const [from, setFrom] = useState(firstOfMonth.toISOString().slice(0, 10));
   const [to, setTo] = useState(today.toISOString().slice(0, 10));
   const [showComparison, setShowComparison] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  async function handleExport(path: string, filename: string, key: string) {
+    setExporting(key);
+    try {
+      const response = await apiRequest(path, {
+        baseUrl: API_URL,
+        session: getBrowserSessionStore(),
+        throwOnError: false,
+      });
+      if (!response.ok) {
+        toast.error("Error al exportar");
+        return;
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error("Error al exportar");
+    } finally {
+      setExporting(null);
+    }
+  }
 
   const topProductsQuery = useQuery({
     queryKey: ["erp-top-products", { from, to }],
@@ -63,6 +67,7 @@ export function ErpReportsView() {
         baseUrl: API_URL,
         session: getBrowserSessionStore(),
       }),
+    enabled: from <= to,
   });
 
   const salesByPeriodQuery = useQuery({
@@ -72,6 +77,7 @@ export function ErpReportsView() {
         `/erp/reports/sales-by-period?from=${from}&to=${to}${showComparison ? "&compare=true" : ""}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
+    enabled: from <= to,
   });
 
   const marginQuery = useQuery({
@@ -81,6 +87,7 @@ export function ErpReportsView() {
         `/erp/reports/margin?from=${from}&to=${to}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
+    enabled: from <= to,
   });
 
   const clientsReportQuery = useQuery({
@@ -90,6 +97,7 @@ export function ErpReportsView() {
         `/erp/reports/clients?from=${from}&to=${to}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
+    enabled: from <= to,
   });
 
   const firstError =
@@ -98,23 +106,36 @@ export function ErpReportsView() {
     marginQuery.error ??
     clientsReportQuery.error;
 
-  if (firstError instanceof ApiError && firstError.status === 401) {
-    clearToken();
-    router.replace("/connect");
-    return null;
-  }
+  useEffect(() => {
+    if (firstError instanceof ApiError && firstError.status === 401) {
+      clearToken();
+      router.replace("/connect");
+    }
+  }, [firstError, router]);
+
+  const hasNonAuthError = [topProductsQuery, salesByPeriodQuery, marginQuery, clientsReportQuery]
+    .some((q) => q.error && !(q.error instanceof ApiError && q.error.status === 401));
 
   // Normalize and map to chart-compatible shapes
-  const topProductsChartData = normalizeTopProducts(topProductsQuery.data).map((p) => ({
-    name: p.label,
-    value: p.value,
-  }));
+  const topProductsChartData = useMemo(
+    () =>
+      normalizeTopProducts(topProductsQuery.data).map((p) => ({
+        name: p.label,
+        value: p.value,
+        total: p.secondary ?? 0,
+      })),
+    [topProductsQuery.data],
+  );
 
-  const salesSeriesChartData = normalizeSeries(salesByPeriodQuery.data).map((s) => ({
-    label: s.label,
-    value: s.value,
-    previous: s.secondary ?? undefined,
-  }));
+  const salesSeriesChartData = useMemo(
+    () =>
+      normalizeSeries(salesByPeriodQuery.data).map((s) => ({
+        label: s.label,
+        value: s.value,
+        previous: s.secondary,
+      })),
+    [salesByPeriodQuery.data],
+  );
 
   const grossMargin = marginQuery.data?.gross_margin ?? null;
   const grossMarginPct = marginQuery.data?.gross_margin_pct ?? null;
@@ -128,6 +149,12 @@ export function ErpReportsView() {
         <h1 className="text-2xl font-semibold">Reportes</h1>
       </div>
 
+      {hasNonAuthError && (
+        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-400 text-sm">
+          Error al cargar algunos reportes. Verificá tu conexión e intentá de nuevo.
+        </div>
+      )}
+
       {/* Date range + export controls */}
       <Card>
         <div className="flex flex-wrap items-center gap-4">
@@ -136,6 +163,7 @@ export function ErpReportsView() {
             <input
               type="date"
               value={from}
+              max={to}
               onChange={(e) => setFrom(e.target.value)}
               className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
             />
@@ -145,6 +173,7 @@ export function ErpReportsView() {
             <input
               type="date"
               value={to}
+              min={from}
               onChange={(e) => setTo(e.target.value)}
               className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
             />
@@ -162,18 +191,22 @@ export function ErpReportsView() {
             <button
               type="button"
               onClick={() =>
-                handleExport(`/erp/export/sales?from=${from}&to=${to}`, "ventas.csv")
+                handleExport(`/erp/export/sales?from=${from}&to=${to}`, "ventas.csv", "sales")
               }
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10"
+              disabled={exporting !== null}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
-              Exportar ventas
+              {exporting === "sales" ? "Exportando..." : "Exportar ventas"}
             </button>
             <button
               type="button"
-              onClick={() => handleExport("/erp/export/inventory", "inventario.csv")}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10"
+              onClick={() =>
+                handleExport("/erp/export/inventory", "inventario.csv", "inventory")
+              }
+              disabled={exporting !== null}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
-              Exportar inventario
+              {exporting === "inventory" ? "Exportando..." : "Exportar inventario"}
             </button>
             <button
               type="button"
@@ -181,11 +214,13 @@ export function ErpReportsView() {
                 handleExport(
                   `/erp/export/transactions?from=${from}&to=${to}`,
                   "transacciones.csv",
+                  "transactions",
                 )
               }
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10"
+              disabled={exporting !== null}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
-              Exportar transacciones
+              {exporting === "transactions" ? "Exportando..." : "Exportar transacciones"}
             </button>
           </div>
         </div>
@@ -195,7 +230,11 @@ export function ErpReportsView() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Margen bruto"
-          value={grossMargin !== null ? grossMargin.toLocaleString("es-AR", { maximumFractionDigits: 2 }) : null}
+          value={
+            grossMargin !== null
+              ? grossMargin.toLocaleString("es-AR", { maximumFractionDigits: 2 })
+              : null
+          }
           loading={marginQuery.isLoading}
         />
         <StatCard
