@@ -28,17 +28,21 @@ export function ProductSearch({ onAddToCart, onOpenScanner, baseUrl, onResultsCh
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
+    let abortController: AbortController;
     debounceRef.current = setTimeout(async () => {
+      abortController = new AbortController();
       setLoading(true);
       try {
         const params = new URLSearchParams({ search: query.trim(), limit: "20" });
         const data = await apiFetch<ErpProduct[]>(`/erp/products?${params.toString()}`, {
           baseUrl,
           session: cashierSessionStore,
+          signal: abortController.signal,
         });
         setResults(data);
         setOpen(true);
-      } catch {
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
         setResults([]);
       } finally {
         setLoading(false);
@@ -47,6 +51,7 @@ export function ProductSearch({ onAddToCart, onOpenScanner, baseUrl, onResultsCh
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      abortController?.abort();
     };
   }, [query, baseUrl]);
 

@@ -13,6 +13,11 @@ export function BarcodeScanner({ onScanned, onClose }: Props) {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualValue, setManualValue] = useState("");
 
+  const onScannedRef = useRef(onScanned);
+  useEffect(() => {
+    onScannedRef.current = onScanned;
+  });
+
   useEffect(() => {
     const reader = new BrowserMultiFormatReader();
     readerRef.current = reader;
@@ -21,7 +26,7 @@ export function BarcodeScanner({ onScanned, onClose }: Props) {
       .decodeFromVideoDevice(null, videoRef.current!, (result, err) => {
         if (result) {
           navigator.vibrate?.(100);
-          onScanned(result.getText());
+          onScannedRef.current(result.getText());
           reader.reset();
         }
         if (err) {
@@ -56,7 +61,7 @@ export function BarcodeScanner({ onScanned, onClose }: Props) {
     return () => {
       readerRef.current?.reset();
     };
-  }, [onScanned]);
+  }, []);
 
   function handleManualSubmit(e: React.FormEvent) {
     e.preventDefault();

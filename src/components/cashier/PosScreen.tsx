@@ -151,7 +151,7 @@ export function PosScreen({ onSessionExpired }: Props) {
   }
 
   // Confirm sale
-  async function handleConfirmSale() {
+  const handleConfirmSale = useCallback(async () => {
     if (!isOnline || confirming || cart.length === 0) return;
     setConfirming(true);
     try {
@@ -191,7 +191,7 @@ export function PosScreen({ onSessionExpired }: Props) {
     } finally {
       setConfirming(false);
     }
-  }
+  }, [paymentMethod, cashAccountId, cart, isOnline, confirming, onSessionExpired]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -229,13 +229,11 @@ export function PosScreen({ onSessionExpired }: Props) {
         setCart((prev) => {
           if (prev.length === 0) return prev;
           const last = prev[prev.length - 1];
-          const next = prev.map((i) =>
+          return prev.map((i) =>
             i.product_id === last.product_id
               ? { ...i, quantity: i.quantity + 1 }
               : i,
           );
-          saveCartToStorage(next);
-          return next;
         });
       }
       if (e.key === "-") {
@@ -243,24 +241,19 @@ export function PosScreen({ onSessionExpired }: Props) {
           if (prev.length === 0) return prev;
           const last = prev[prev.length - 1];
           const newQty = last.quantity - 1;
-          let next: CartItem[];
           if (newQty <= 0) {
-            next = prev.filter((i) => i.product_id !== last.product_id);
-          } else {
-            next = prev.map((i) =>
-              i.product_id === last.product_id ? { ...i, quantity: newQty } : i,
-            );
+            return prev.filter((i) => i.product_id !== last.product_id);
           }
-          saveCartToStorage(next);
-          return next;
+          return prev.map((i) =>
+            i.product_id === last.product_id ? { ...i, quantity: newQty } : i,
+          );
         });
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnline, confirming, cart, firstSearchResult]);
+  }, [handleConfirmSale, addToCart, firstSearchResult, setCart]);
 
   const total = cart.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
 

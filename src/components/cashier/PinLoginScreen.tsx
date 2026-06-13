@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { apiFetch } from "@/lib/api-client";
+import { apiFetch, ApiError } from "@/lib/api-client";
 import { setCashierToken, cashierSessionStore } from "@/lib/cashier-session";
 import type { PinLoginResponse } from "@/lib/erp-types";
 
@@ -29,10 +29,14 @@ export function PinLoginScreen({ onLoginSuccess }: Props) {
       });
       setCashierToken(data.access_token, data.expires_in);
       onLoginSuccess();
-    } catch {
+    } catch (err) {
       navigator.vibrate?.([200, 100, 200]);
       setDigits("");
-      setError("PIN incorrecto");
+      if (err instanceof ApiError && err.status >= 400 && err.status < 500) {
+        setError("PIN incorrecto");
+      } else {
+        setError("Error de conexión. Intenta de nuevo.");
+      }
     } finally {
       setLoading(false);
     }
