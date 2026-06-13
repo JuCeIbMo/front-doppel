@@ -135,3 +135,15 @@ export interface CartItem {
   unit_price: number;
   quantity: number;
 }
+
+export interface TopProductItem {
+  product_name: string;
+  quantity: number;
+  total: number;
+}
+
+export interface SalesByPeriodItem {
+  label: string;
+  value: number;
+  previous?: number;
+}
