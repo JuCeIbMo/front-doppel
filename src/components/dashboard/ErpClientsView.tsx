@@ -7,6 +7,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { CardHeader } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
@@ -115,61 +118,70 @@ export function ErpClientsView() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Clientes</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Base actual de clientes del ERP.
-          </p>
+          <h1 className="text-xl font-semibold">Clientes</h1>
+          <p className="mt-0.5 text-sm text-text-secondary">Base de clientes del ERP.</p>
         </div>
-        <Button variant="primary" className="px-5 py-3 text-sm" onClick={openCreateModal}>
+        <Button variant="primary" size="sm" onClick={openCreateModal}>
           Nuevo cliente
         </Button>
       </div>
 
       <Card>
+        <CardHeader title="Clientes" />
         {query.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-          </div>
+          <Table>
+            <Table.Loading rows={5} cols={5} />
+          </Table>
         ) : query.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar clientes."}
           </p>
         ) : clients.length === 0 ? (
-          <p className="text-sm text-text-secondary">Todavía no hay clientes registrados.</p>
+          <Table>
+            <Table.Empty>Todavía no hay clientes registrados.</Table.Empty>
+          </Table>
         ) : (
-          <div className="space-y-3">
-            {clients.map((client) => (
-              <div key={client.id} className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4">
-                <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <Link href={`/dashboard/clients/${client.id}`} className="font-medium hover:text-accent">
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>Nombre</Table.Th>
+                <Table.Th>Contacto</Table.Th>
+                <Table.Th>Compras</Table.Th>
+                <Table.Th>Total</Table.Th>
+                <Table.Th className="text-right">Acciones</Table.Th>
+              </tr>
+            </Table.Head>
+            <Table.Body>
+              {clients.map((client) => (
+                <Table.Row key={client.id}>
+                  <Table.Cell>
+                    <Link
+                      href={`/dashboard/clients/${client.id}`}
+                      className="font-medium text-text-primary hover:text-accent transition-colors"
+                    >
                       {client.name}
                     </Link>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {client.phone || "Sin teléfono"} {client.email ? `· ${client.email}` : ""}
-                    </p>
-                    <p className="mt-2 text-sm text-text-secondary">
-                      {client.purchase_count} compras · última{" "}
-                      {client.last_purchase_at
-                        ? new Date(client.last_purchase_at).toLocaleDateString()
-                        : "sin compras"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-lg font-semibold">{format(client.total_purchases)}</p>
+                  </Table.Cell>
+                  <Table.Cell className="text-text-secondary text-xs">
+                    {client.phone || "—"}{client.email ? ` · ${client.email}` : ""}
+                  </Table.Cell>
+                  <Table.Cell className="text-text-secondary">{client.purchase_count}</Table.Cell>
+                  <Table.Cell className="text-text-primary font-semibold">
+                    {format(client.total_purchases)}
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
                     <button
                       type="button"
                       onClick={() => openEditModal(client)}
-                      className="mt-3 text-sm text-text-secondary hover:text-text-primary"
+                      className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                     >
                       Editar
                     </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
         )}
       </Card>
       <Pagination
@@ -186,11 +198,11 @@ export function ErpClientsView() {
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-3xl border border-white/10 bg-bg-primary p-6"
+            className="w-full max-w-2xl rounded-xl border border-border bg-bg-secondary p-6"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-base font-semibold text-text-primary">
                 {editingId ? "Editar cliente" : "Nuevo cliente"}
               </h2>
               <button
@@ -202,46 +214,46 @@ export function ErpClientsView() {
               </button>
             </div>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {[
-                ["name", "Nombre"],
-                ["phone", "Teléfono"],
-                ["email", "Email"],
-                ["address", "Dirección"],
-                ["tags", "Tags (coma separada)"],
-                ["whatsapp_id", "WhatsApp ID"],
-              ].map(([field, label]) => (
-                <div key={field}>
-                  <label className="block text-sm text-text-secondary">{label}</label>
-                  <input
-                    value={draft[field as keyof ClientDraftInput] as string}
-                    onChange={(event) =>
-                      setDraft((current) => ({ ...current, [field]: event.target.value }))
-                    }
-                    className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
-                  />
-                </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {(
+                [
+                  ["name", "Nombre"],
+                  ["phone", "Teléfono"],
+                  ["email", "Email"],
+                  ["address", "Dirección"],
+                  ["tags", "Tags (coma separada)"],
+                  ["whatsapp_id", "WhatsApp ID"],
+                ] as [keyof ClientDraftInput, string][]
+              ).map(([field, label]) => (
+                <Input
+                  key={field}
+                  label={label}
+                  value={draft[field] as string}
+                  onChange={(e) => setDraft((c) => ({ ...c, [field]: e.target.value }))}
+                />
               ))}
-              <div className="md:col-span-2">
-                <label className="block text-sm text-text-secondary">Notas</label>
+              <div className="md:col-span-2 flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">
+                  Notas
+                </label>
                 <textarea
                   value={draft.notes}
-                  onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
+                  onChange={(e) => setDraft((c) => ({ ...c, notes: e.target.value }))}
                   rows={3}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
                 />
               </div>
             </div>
 
-            {formError ? <p className="mt-4 text-sm text-red-400">{formError}</p> : null}
+            {formError ? <p className="mt-4 text-sm text-danger">{formError}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" className="px-5 py-3 text-sm" onClick={() => setModalOpen(false)}>
+              <Button variant="ghost" size="sm" onClick={() => setModalOpen(false)}>
                 Cancelar
               </Button>
               <Button
                 variant="primary"
-                className="px-5 py-3 text-sm"
+                size="sm"
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
               >
