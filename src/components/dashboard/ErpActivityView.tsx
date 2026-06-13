@@ -14,14 +14,14 @@ import { normalizeActivityItems } from "@/lib/erp-insights";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 async function getActivity(limit: number, offset: number) {
-  return apiFetch<unknown>(`/erp/activity?limit=${limit}&offset=${offset}`, {
+  return apiFetch<unknown[]>(`/erp/activity?limit=${limit}&offset=${offset}`, {
     baseUrl: API_URL,
     session: getBrowserSessionStore(),
   });
 }
 
 async function getAiActivity(limit: number, offset: number) {
-  return apiFetch<unknown>(`/erp/activity/ai?limit=${limit}&offset=${offset}`, {
+  return apiFetch<unknown[]>(`/erp/activity/ai?limit=${limit}&offset=${offset}`, {
     baseUrl: API_URL,
     session: getBrowserSessionStore(),
   });
@@ -35,10 +35,12 @@ export function ErpActivityView() {
   const activityQuery = useQuery({
     queryKey: ["erp-activity", { offset, limit }],
     queryFn: () => getActivity(limit, offset),
+    enabled: mode === "all",
   });
   const aiActivityQuery = useQuery({
     queryKey: ["erp-activity-ai", { offset, limit }],
     queryFn: () => getAiActivity(limit, offset),
+    enabled: mode === "ai",
   });
 
   const activeQuery = mode === "all" ? activityQuery : aiActivityQuery;
@@ -49,8 +51,7 @@ export function ErpActivityView() {
   }
 
   const items = normalizeActivityItems(activeQuery.data);
-  const rawData = (mode === "all" ? activityQuery.data : aiActivityQuery.data) as unknown[] | undefined;
-  const hasMore = (rawData?.length ?? 0) === limit;
+  const hasMore = (activeQuery.data?.length ?? 0) === limit;
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,7 +132,6 @@ export function ErpActivityView() {
         page={page}
         onPrev={prevPage}
         onNext={nextPage}
-        hasPrev={page > 0}
         hasMore={hasMore}
         isLoading={activeQuery.isLoading}
       />

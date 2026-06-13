@@ -21,12 +21,13 @@ async function getInventoryProducts() {
   });
 }
 
-async function getMovements(productId: string, limit: number, offset: number) {
+async function getMovements(productId: string, typeFilter: string, limit: number, offset: number) {
   return apiFetch<MovementResponse[]>(
     buildMovementQuery({
       productId,
       limit,
       offset,
+      type: typeFilter || undefined,
     }),
     {
       baseUrl: API_URL,
@@ -47,8 +48,8 @@ export function ErpInventoryMovementsView({ initialProductId = "" }: { initialPr
   });
 
   const movementsQuery = useQuery({
-    queryKey: ["erp-movements", productId, { offset, limit }],
-    queryFn: () => getMovements(productId, limit, offset),
+    queryKey: ["erp-movements", productId, typeFilter, { offset, limit }],
+    queryFn: () => getMovements(productId, typeFilter, limit, offset),
   });
 
   const error = inventoryQuery.error ?? movementsQuery.error;
@@ -59,9 +60,7 @@ export function ErpInventoryMovementsView({ initialProductId = "" }: { initialPr
   }
 
   const rows = inventoryQuery.data ?? [];
-  const movements = (movementsQuery.data ?? []).filter((movement) =>
-    typeFilter ? movement.type === typeFilter : true,
-  );
+  const movements = movementsQuery.data ?? [];
   const hasMore = (movementsQuery.data?.length ?? 0) === limit;
 
   return (
@@ -100,7 +99,7 @@ export function ErpInventoryMovementsView({ initialProductId = "" }: { initialPr
             <label className="block text-sm text-text-secondary">Tipo</label>
             <select
               value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
+              onChange={(event) => { setTypeFilter(event.target.value); reset(); }}
               className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
             >
               <option value="">Todos</option>
@@ -165,7 +164,6 @@ export function ErpInventoryMovementsView({ initialProductId = "" }: { initialPr
         page={page}
         onPrev={prevPage}
         onNext={nextPage}
-        hasPrev={page > 0}
         hasMore={hasMore}
         isLoading={movementsQuery.isLoading}
       />

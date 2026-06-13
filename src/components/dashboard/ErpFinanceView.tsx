@@ -268,7 +268,6 @@ export function ErpFinanceView() {
         page={page}
         onPrev={prevPage}
         onNext={nextPage}
-        hasPrev={page > 0}
         hasMore={hasMore}
         isLoading={transactionsQuery.isLoading}
       />

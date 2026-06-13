@@ -2,12 +2,12 @@ interface PaginationProps {
   page: number;
   onPrev: () => void;
   onNext: () => void;
-  hasPrev: boolean;
   hasMore: boolean;
   isLoading: boolean;
 }
 
-export function Pagination({ page, onPrev, onNext, hasPrev, hasMore, isLoading }: PaginationProps) {
+export function Pagination({ page, onPrev, onNext, hasMore, isLoading }: PaginationProps) {
+  const hasPrev = page > 0;
   return (
     <div className="flex items-center gap-3 pt-2">
       <button

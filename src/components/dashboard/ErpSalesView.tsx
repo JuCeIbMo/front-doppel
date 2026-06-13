@@ -146,7 +146,6 @@ export function ErpSalesView() {
         page={page}
         onPrev={prevPage}
         onNext={nextPage}
-        hasPrev={page > 0}
         hasMore={hasMore}
         isLoading={query.isLoading}
       />
