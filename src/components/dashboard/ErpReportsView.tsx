@@ -63,10 +63,10 @@ export function ErpReportsView() {
   const topProductsQuery = useQuery({
     queryKey: ["erp-top-products", { from, to }],
     queryFn: () =>
-      apiFetch<{ items: TopProductItem[] }>(`/erp/reports/top-products?from=${from}&to=${to}`, {
-        baseUrl: API_URL,
-        session: getBrowserSessionStore(),
-      }),
+      apiFetch<{ items: TopProductItem[] }>(
+        `/erp/reports/top-products?date_from=${from}&date_to=${to}`,
+        { baseUrl: API_URL, session: getBrowserSessionStore() },
+      ),
     enabled: from <= to,
   });
 
@@ -74,7 +74,7 @@ export function ErpReportsView() {
     queryKey: ["erp-sales-by-period", { from, to, showComparison }],
     queryFn: () =>
       apiFetch<{ data: SalesByPeriodItem[] }>(
-        `/erp/reports/sales-by-period?from=${from}&to=${to}${showComparison ? "&compare=true" : ""}`,
+        `/erp/reports/sales-by-period?date_from=${from}&date_to=${to}${showComparison ? "&compare=true" : ""}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
     enabled: from <= to,
@@ -84,7 +84,7 @@ export function ErpReportsView() {
     queryKey: ["erp-margin", { from, to }],
     queryFn: () =>
       apiFetch<{ gross_margin: number; gross_margin_pct: number }>(
-        `/erp/reports/margin?from=${from}&to=${to}`,
+        `/erp/reports/margin?date_from=${from}&date_to=${to}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
     enabled: from <= to,
@@ -94,7 +94,7 @@ export function ErpReportsView() {
     queryKey: ["erp-clients-report", { from, to }],
     queryFn: () =>
       apiFetch<{ new_clients: number; returning_clients: number }>(
-        `/erp/reports/clients?from=${from}&to=${to}`,
+        `/erp/reports/clients?date_from=${from}&date_to=${to}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
       ),
     enabled: from <= to,
@@ -191,7 +191,7 @@ export function ErpReportsView() {
             <button
               type="button"
               onClick={() =>
-                handleExport(`/erp/export/sales?from=${from}&to=${to}`, "ventas.csv", "sales")
+                handleExport(`/erp/export/sales?date_from=${from}&date_to=${to}`, "ventas.csv", "sales")
               }
               disabled={exporting !== null}
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
@@ -212,7 +212,7 @@ export function ErpReportsView() {
               type="button"
               onClick={() =>
                 handleExport(
-                  `/erp/export/transactions?from=${from}&to=${to}`,
+                  `/erp/export/transactions?date_from=${from}&date_to=${to}`,
                   "transacciones.csv",
                   "transactions",
                 )

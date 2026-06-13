@@ -56,13 +56,13 @@ async function getAccounts() {
 }
 
 async function getTransactions(limit: number, offset: number, fromDate: string, toDate: string) {
-  return apiFetch<TransactionResponse[]>(
-    `/erp/finance/transactions?limit=${limit}&offset=${offset}&from=${fromDate}&to=${toDate}`,
-    {
-      baseUrl: API_URL,
-      session: getBrowserSessionStore(),
-    },
-  );
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (fromDate) params.set("date_from", fromDate);
+  if (toDate) params.set("date_to", toDate);
+  return apiFetch<TransactionResponse[]>(`/erp/finance/transactions?${params}`, {
+    baseUrl: API_URL,
+    session: getBrowserSessionStore(),
+  });
 }
 
 async function getCategories() {
@@ -111,11 +111,15 @@ export function ErpFinanceView() {
 
   const cashflowQuery = useQuery({
     queryKey: ["erp-cashflow", { fromDate, toDate }],
-    queryFn: () =>
-      apiFetch<{ items: CashflowItem[] }>(
-        `/erp/finance/cashflow?period=month&from=${fromDate}&to=${toDate}`,
+    queryFn: () => {
+      const params = new URLSearchParams({ group_by: "day" });
+      if (fromDate) params.set("date_from", fromDate);
+      if (toDate) params.set("date_to", toDate);
+      return apiFetch<{ items: CashflowItem[] }>(
+        `/erp/finance/cashflow?${params}`,
         { baseUrl: API_URL, session: getBrowserSessionStore() },
-      ),
+      );
+    },
     enabled: fromDate <= toDate,
   });
 

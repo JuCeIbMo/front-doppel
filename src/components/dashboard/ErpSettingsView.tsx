@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
@@ -20,16 +20,12 @@ async function getCategories() {
 
 export function ErpSettingsView() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-
   // PIN state
   const [generatedPin, setGeneratedPin] = useState<string | null>(null);
   const [pinCopied, setPinCopied] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const [confirmDisablePinOpen, setConfirmDisablePinOpen] = useState(false);
 
-  // Categories state
-  const [newCategory, setNewCategory] = useState("");
 
   // Ref for focusing the copy button when the PIN modal opens
   const copyBtnRef = useRef<HTMLButtonElement>(null);
@@ -95,46 +91,6 @@ export function ErpSettingsView() {
     },
   });
 
-  // Add category mutation
-  const addCategoryMutation = useMutation({
-    mutationFn: async () => {
-      const name = newCategory.trim();
-      if (!name) throw new Error("El nombre de la categoría no puede estar vacío.");
-      return apiFetch<{ name: string }>("/erp/finance/categories", {
-        baseUrl: API_URL,
-        session: getBrowserSessionStore(),
-        method: "POST",
-        body: JSON.stringify({ name }),
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["settings-categories"] });
-      await queryClient.invalidateQueries({ queryKey: ["erp-categories"] });
-      setNewCategory("");
-      toast.success("Categoría agregada");
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "No se pudo agregar la categoría.");
-    },
-  });
-
-  // Delete category mutation
-  const deleteCategoryMutation = useMutation({
-    mutationFn: async (name: string) => {
-      return apiFetch<void>(`/erp/finance/categories/${encodeURIComponent(name)}`, {
-        baseUrl: API_URL,
-        session: getBrowserSessionStore(),
-        method: "DELETE",
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["settings-categories"] });
-      await queryClient.invalidateQueries({ queryKey: ["erp-categories"] });
-    },
-    onError: (error) => {
-      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la categoría.");
-    },
-  });
 
   if (categoriesQuery.error instanceof ApiError && categoriesQuery.error.status === 401) {
     clearToken();
@@ -196,52 +152,23 @@ export function ErpSettingsView() {
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-lg font-semibold">Categorías financieras</h2>
         <p className="mt-2 text-sm text-text-secondary">
-          Categorías disponibles para clasificar transacciones.
+          Las categorías se generan automáticamente a partir de las transacciones registradas.
         </p>
-
-        <div className="mt-4 flex gap-3">
-          <input
-            value={newCategory}
-            onChange={(event) => setNewCategory(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !addCategoryMutation.isPending && newCategory.trim()) {
-                addCategoryMutation.mutate();
-              }
-            }}
-            placeholder="Nueva categoría"
-            className="flex-1 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
-          />
-          <Button
-            variant="primary"
-            className="px-5 py-3 text-sm"
-            onClick={() => addCategoryMutation.mutate()}
-            disabled={addCategoryMutation.isPending || !newCategory.trim()}
-          >
-            {addCategoryMutation.isPending ? "Agregando..." : "Agregar"}
-          </Button>
-        </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
           {categoriesQuery.isLoading ? (
             <p className="text-sm text-text-secondary">Cargando...</p>
           ) : categories.length === 0 ? (
-            <p className="text-sm text-text-secondary">Sin categorías registradas.</p>
+            <p className="text-sm text-text-secondary">
+              Sin categorías. Se crean al registrar transacciones.
+            </p>
           ) : (
             categories.map((category) => (
               <span
                 key={category}
-                className="flex items-center gap-2 rounded-full bg-white/8 px-3 py-1 text-xs text-text-secondary"
+                className="rounded-full bg-white/8 px-3 py-1 text-xs text-text-secondary"
               >
                 {category}
-                <button
-                  type="button"
-                  className="text-text-secondary transition-colors hover:text-red-400 disabled:opacity-50"
-                  onClick={() => deleteCategoryMutation.mutate(category)}
-                  disabled={deleteCategoryMutation.isPending}
-                  aria-label={`Eliminar ${category}`}
-                >
-                  ×
-                </button>
               </span>
             ))
           )}

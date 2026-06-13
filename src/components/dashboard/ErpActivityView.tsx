@@ -16,15 +16,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 function buildActivityUrl(limit: number, offset: number, from: string, to: string): string {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (from) params.set("from", from);
-  if (to) params.set("to", to);
+  if (from) params.set("date_from", from);
+  if (to) params.set("date_to", to);
   return `/erp/activity?${params}`;
 }
 
 function buildAiActivityUrl(limit: number, offset: number, from: string, to: string): string {
   const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
-  if (from) params.set("from", from);
-  if (to) params.set("to", to);
+  if (from) params.set("date_from", from);
+  if (to) params.set("date_to", to);
   return `/erp/activity/ai?${params}`;
 }
 
