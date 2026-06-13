@@ -4,7 +4,10 @@ import Link from "next/link";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
@@ -97,100 +100,93 @@ export function ErpActivityView() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Bitácora</h1>
+          <h1 className="text-xl font-semibold">Bitácora</h1>
           <p className="mt-1 text-sm text-text-secondary">
             Feed defensivo de actividad humana y de IA.
           </p>
         </div>
         <div className="flex gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setMode("all");
               reset();
             }}
-            className={`rounded-2xl px-4 py-2 text-sm ${mode === "all" ? "bg-accent/15 text-accent" : "text-text-secondary hover:text-text-primary"}`}
+            className={mode === "all" ? "text-accent bg-accent/10" : ""}
           >
             Todo
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => {
               setMode("ai");
               reset();
             }}
-            className={`rounded-2xl px-4 py-2 text-sm ${mode === "ai" ? "bg-accent/15 text-accent" : "text-text-secondary hover:text-text-primary"}`}
+            className={mode === "ai" ? "text-accent bg-accent/10" : ""}
           >
             Solo IA
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap items-end gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-text-secondary">Desde</label>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => {
-              setFromDate(e.target.value);
-              reset();
-            }}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-text-secondary">Hasta</label>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => {
-              setToDate(e.target.value);
-              reset();
-            }}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
-          />
-        </div>
+        <Input
+          label="Desde"
+          type="date"
+          value={fromDate}
+          onChange={(e) => {
+            setFromDate(e.target.value);
+            reset();
+          }}
+          className="py-1"
+        />
+        <Input
+          label="Hasta"
+          type="date"
+          value={toDate}
+          onChange={(e) => {
+            setToDate(e.target.value);
+            reset();
+          }}
+          className="py-1"
+        />
         {allModules.length > 0 && (
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-text-secondary">Módulo</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Módulo</label>
             <select
               value={moduleFilter}
               onChange={(e) => {
                 setModuleFilter(e.target.value);
                 reset();
               }}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent"
+              className="rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
             >
               <option value="">Todos los módulos</option>
               {allModules.map((mod) => (
-                <option key={mod} value={mod}>
-                  {mod}
-                </option>
+                <option key={mod} value={mod}>{mod}</option>
               ))}
             </select>
           </div>
         )}
         {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={handleResetFilters}
-            className="rounded-xl border border-white/10 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
-          >
+          <Button variant="ghost" size="sm" onClick={handleResetFilters}>
             Limpiar filtros
-          </button>
+          </Button>
         )}
       </div>
 
       <Card>
+        <CardHeader title="Actividad" />
         {activeQuery.isLoading ? (
           <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
+            <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
           </div>
         ) : activeQuery.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {activeQuery.error instanceof Error
               ? activeQuery.error.message
               : "No se pudo cargar la bitácora."}
@@ -204,7 +200,7 @@ export function ErpActivityView() {
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4"
+                  className="rounded-lg border border-border bg-bg-elevated/40 px-4 py-3"
                 >
                   <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                     <div className="flex items-start gap-2">
@@ -212,16 +208,21 @@ export function ErpActivityView() {
                         {item.isAi ? "🤖" : "👤"}
                       </span>
                       <div>
-                        {href ? (
-                          <Link
-                            href={href}
-                            className="font-medium transition-colors hover:text-accent"
-                          >
-                            {item.title}
-                          </Link>
-                        ) : (
-                          <p className="font-medium">{item.title}</p>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {href ? (
+                            <Link
+                              href={href}
+                              className="font-medium transition-colors hover:text-accent"
+                            >
+                              {item.title}
+                            </Link>
+                          ) : (
+                            <p className="font-medium">{item.title}</p>
+                          )}
+                          {item.module && (
+                            <Badge variant="neutral" className="text-[10px]">{item.module}</Badge>
+                          )}
+                        </div>
                         {item.subtitle && (
                           <p className="mt-1 text-sm text-text-secondary">{item.subtitle}</p>
                         )}
@@ -240,7 +241,7 @@ export function ErpActivityView() {
             <p className="text-sm text-text-secondary">
               Sin shape reconocible. Se muestra el payload crudo para diagnóstico.
             </p>
-            <pre className="mt-3 overflow-auto rounded-2xl bg-white/5 p-4 text-xs text-text-secondary">
+            <pre className="mt-3 overflow-auto rounded-lg bg-bg-elevated p-4 text-xs text-text-secondary">
               {JSON.stringify(activeQuery.data ?? null, null, 2)}
             </pre>
           </div>
