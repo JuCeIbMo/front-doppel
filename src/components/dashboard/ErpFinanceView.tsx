@@ -4,6 +4,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import {
+  ResponsiveContainer,
+  ComposedChart,
+  Bar,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
@@ -11,7 +22,7 @@ import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { useCurrency } from "@/hooks/useCurrency";
 import { usePagination } from "@/hooks/usePagination";
-import type { CashAccountResponse, TransactionResponse } from "@/lib/erp-types";
+import type { CashAccountResponse, CashflowItem, TransactionResponse } from "@/lib/erp-types";
 import {
   buildCashAccountPayload,
   buildTransactionPayload,
@@ -44,11 +55,14 @@ async function getAccounts() {
   });
 }
 
-async function getTransactions(limit: number, offset: number) {
-  return apiFetch<TransactionResponse[]>(`/erp/finance/transactions?limit=${limit}&offset=${offset}`, {
-    baseUrl: API_URL,
-    session: getBrowserSessionStore(),
-  });
+async function getTransactions(limit: number, offset: number, fromDate: string, toDate: string) {
+  return apiFetch<TransactionResponse[]>(
+    `/erp/finance/transactions?limit=${limit}&offset=${offset}&from=${fromDate}&to=${toDate}`,
+    {
+      baseUrl: API_URL,
+      session: getBrowserSessionStore(),
+    },
+  );
 }
 
 async function getCategories() {
@@ -62,7 +76,14 @@ export function ErpFinanceView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { format } = useCurrency();
-  const { page, limit, offset, nextPage, prevPage } = usePagination();
+  const { page, limit, offset, nextPage, prevPage, reset } = usePagination();
+
+  const today = new Date();
+  const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const [fromDate, setFromDate] = useState(firstOfMonth.toISOString().slice(0, 10));
+  const [toDate, setToDate] = useState(today.toISOString().slice(0, 10));
+  const [drillDate, setDrillDate] = useState<string | null>(null);
+
   const [accountDraft, setAccountDraft] = useState<CashAccountDraftInput>(emptyAccountDraft);
   const [transactionDraft, setTransactionDraft] =
     useState<TransactionDraftInput>(emptyTransactionDraft);
@@ -79,13 +100,23 @@ export function ErpFinanceView() {
   });
 
   const transactionsQuery = useQuery({
-    queryKey: ["erp-transactions", { offset, limit }],
-    queryFn: () => getTransactions(limit, offset),
+    queryKey: ["erp-transactions", { offset, limit, fromDate, toDate }],
+    queryFn: () => getTransactions(limit, offset, fromDate, toDate),
   });
 
   const categoriesQuery = useQuery({
     queryKey: ["erp-categories"],
     queryFn: getCategories,
+  });
+
+  const cashflowQuery = useQuery({
+    queryKey: ["erp-cashflow", { fromDate, toDate }],
+    queryFn: () =>
+      apiFetch<{ items: CashflowItem[] }>(
+        `/erp/finance/cashflow?period=month&from=${fromDate}&to=${toDate}`,
+        { baseUrl: API_URL, session: getBrowserSessionStore() },
+      ),
+    enabled: fromDate <= toDate,
   });
 
   const createAccountMutation = useMutation({
@@ -172,6 +203,10 @@ export function ErpFinanceView() {
   const categories = categoriesQuery.data ?? [];
   const hasMore = transactions.length === limit;
 
+  const displayedTransactions = drillDate
+    ? transactions.filter((t) => t.date?.startsWith(drillDate))
+    : transactions;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
@@ -224,7 +259,93 @@ export function ErpFinanceView() {
             ))}
       </div>
 
+      {/* Cashflow Chart Card */}
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-lg font-semibold">Flujo de caja</p>
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={fromDate}
+              max={toDate}
+              onChange={(e) => {
+                setFromDate(e.target.value);
+                setDrillDate(null);
+                reset();
+              }}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-text-primary"
+            />
+            <input
+              type="date"
+              value={toDate}
+              min={fromDate}
+              onChange={(e) => {
+                setToDate(e.target.value);
+                setDrillDate(null);
+                reset();
+              }}
+              className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-text-primary"
+            />
+          </div>
+        </div>
+
+        {cashflowQuery.isLoading && (
+          <div className="h-60 animate-pulse rounded-xl bg-white/5" />
+        )}
+
+        {cashflowQuery.data?.items && cashflowQuery.data.items.length > 0 && (
+          <ResponsiveContainer width="100%" height={240}>
+            <ComposedChart
+              data={cashflowQuery.data.items}
+              margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              onClick={(data) => {
+                const label = data?.activeLabel;
+                if (typeof label === "string" && label) setDrillDate(label);
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <XAxis dataKey="label" tick={{ fill: "#9ca3af", fontSize: 12 }} />
+              <YAxis tick={{ fill: "#9ca3af", fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
+                labelStyle={{ color: "#fff" }}
+              />
+              <Legend />
+              <Bar dataKey="income" fill="#25d366" name="Ingresos" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="expense" fill="#ef4444" name="Egresos" radius={[4, 4, 0, 0]} />
+              <Line
+                type="monotone"
+                dataKey="net"
+                stroke="#ffffff"
+                strokeWidth={2}
+                dot={false}
+                name="Neto"
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
+
+        {cashflowQuery.data?.items?.length === 0 && (
+          <p className="text-sm text-text-secondary text-center py-8">
+            No hay datos para el período seleccionado.
+          </p>
+        )}
+      </div>
+
       <Card>
+        {drillDate && (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-sm text-text-secondary">Mostrando: {drillDate}</span>
+            <button
+              type="button"
+              onClick={() => setDrillDate(null)}
+              className="text-xs text-accent hover:text-accent/80"
+            >
+              ✕ Limpiar filtro
+            </button>
+          </div>
+        )}
+
         {transactionsQuery.isLoading ? (
           <div className="space-y-3">
             <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
@@ -234,11 +355,11 @@ export function ErpFinanceView() {
           <p className="text-sm text-red-400">
             {error instanceof Error ? error.message : "No se pudo cargar finanzas."}
           </p>
-        ) : transactions.length === 0 ? (
+        ) : displayedTransactions.length === 0 ? (
           <p className="text-sm text-text-secondary">No hay transacciones registradas todavía.</p>
         ) : (
           <div className="space-y-3">
-            {transactions.map((transaction) => (
+            {displayedTransactions.map((transaction) => (
               <div key={transaction.id} className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4">
                 <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                   <div>

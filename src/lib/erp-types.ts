@@ -158,3 +158,10 @@ export interface SalesByPeriodItem {
   value: number;
   previous?: number;
 }
+
+export interface CashflowItem {
+  label: string;
+  income: number;
+  expense: number;
+  net: number;
+}
