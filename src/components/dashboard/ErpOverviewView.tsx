@@ -2,8 +2,11 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { StatCard } from "@/components/ui/StatCard";
+import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -151,115 +154,123 @@ export function ErpOverviewView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Resumen operativo</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Primer corte del ERP sobre backend real. Acá vive la operación del dueño.
-        </p>
+        <h1 className="text-xl font-semibold">Resumen operativo</h1>
+        <p className="mt-0.5 text-sm text-text-secondary">Vista operativa del negocio.</p>
       </div>
 
       {showOnboarding && (
         <OnboardingChecklist steps={onboardingSteps} onDismiss={dismissOnboarding} />
       )}
 
+      {/* KPI cards */}
       {dashboardQuery.isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={index} className="h-32 animate-pulse bg-white/4">
-              <span className="sr-only">Cargando</span>
-            </Card>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-28 animate-pulse rounded-xl bg-bg-secondary border border-border" />
           ))}
         </div>
       ) : error ? (
         <Card>
-          <h2 className="text-lg font-medium">No se pudo cargar el dashboard ERP</h2>
-          <p className="mt-2 text-sm text-text-secondary">
-            {error instanceof Error ? error.message : "Error desconocido."}
+          <p className="text-sm text-danger">
+            {error instanceof Error ? error.message : "No se pudo cargar el dashboard."}
           </p>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {cards.map((card) => (
-            <Card key={card.label}>
-              <p className="text-sm text-text-secondary">{card.label}</p>
-              <p className="mt-3 text-2xl font-semibold">{card.value}</p>
-            </Card>
+            <StatCard key={card.label} label={card.label} value={card.value} />
           ))}
         </div>
       )}
 
       <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
+        {/* Low stock table */}
         <Card>
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-medium">Alertas de stock bajo</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Esta vista ya consume inventario ERP real.
-              </p>
-            </div>
-            <Button href="/dashboard/products" variant="secondary" className="px-5 py-2 text-sm">
-              Ver catálogo
-            </Button>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3">
+          <CardHeader
+            title="Alertas de stock bajo"
+            action={
+              <Button href="/dashboard/products" variant="secondary" size="sm">
+                Ver catálogo
+              </Button>
+            }
+          />
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>Producto</Table.Th>
+                <Table.Th>Categoría</Table.Th>
+                <Table.Th>Stock</Table.Th>
+                <Table.Th>Umbral</Table.Th>
+                <Table.Th>{""}</Table.Th>
+              </tr>
+            </Table.Head>
             {lowStockQuery.isLoading ? (
-              <div className="space-y-3">
-                <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-                <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-              </div>
-            ) : lowStockItems.length === 0 ? (
-              <p className="text-sm text-text-secondary">
-                No hay productos por debajo del umbral de stock.
-              </p>
+              <Table.Loading rows={3} cols={5} />
             ) : visibleLowStock.length === 0 ? (
-              <p className="text-sm text-text-secondary">
-                Todas las alertas están ignoradas temporalmente.
-              </p>
+              <Table.Empty>
+                {lowStockItems.length === 0
+                  ? "Sin alertas de stock."
+                  : "Todas las alertas están ignoradas."}
+              </Table.Empty>
             ) : (
-              visibleLowStock.slice(0, 6).map((row) => (
-                <div
-                  key={`${row.product_id}-${row.variant_id ?? "base"}`}
-                  className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{row.product_name}</p>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        {row.category || "Sin categoría"} · {row.unit}
-                      </p>
-                    </div>
-                    <div className="text-right flex flex-col items-end gap-1">
-                      <p className="font-medium">{row.quantity}</p>
-                      <p className="text-xs text-text-secondary">
-                        Umbral {row.low_stock_threshold}
-                      </p>
+              <Table.Body>
+                {visibleLowStock.slice(0, 6).map((row) => (
+                  <Table.Row key={`${row.product_id}-${row.variant_id ?? "base"}`}>
+                    <Table.Cell>
+                      <span className="font-medium text-text-primary">{row.product_name}</span>
+                    </Table.Cell>
+                    <Table.Cell className="text-text-secondary">
+                      {row.category || "Sin categoría"}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Badge variant={row.quantity === 0 ? "danger" : "warning"}>
+                        {row.quantity} {row.unit}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell className="text-text-secondary">{row.low_stock_threshold}</Table.Cell>
+                    <Table.Cell>
                       <button
                         type="button"
                         onClick={() => ignoreProduct(row.product_id)}
-                        className="text-xs text-text-secondary hover:text-text-primary ml-auto"
+                        className="text-xs text-text-secondary hover:text-text-primary transition-colors"
                       >
-                        Ignorar 7 días
+                        Ignorar 7d
                       </button>
-                    </div>
-                  </div>
-                </div>
-              ))
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
             )}
-          </div>
+          </Table>
         </Card>
 
+        {/* Onboarding status */}
         <Card>
-          <h2 className="text-lg font-medium">Estado de despliegue</h2>
-          <p className="mt-2 text-sm text-text-secondary">
-            Reportes, actividad y caja siguen bloqueados hasta que el backend cierre contrato.
-          </p>
-
-          <ul className="mt-5 space-y-3 text-sm text-text-secondary">
-            <li>Productos ERP integrados</li>
-            <li>Inventario ERP integrado</li>
-            <li>Automatización migrada al nuevo shell</li>
-            <li>Caja y reportes pendientes de endpoints productivos</li>
-          </ul>
+          <CardHeader title="Primeros pasos" />
+          {hasData ? (
+            <ul className="space-y-3">
+              {onboardingSteps.map((step) => (
+                <li key={step.href} className="flex items-center gap-3 text-sm">
+                  <span
+                    className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold ${
+                      step.done ? "bg-accent text-black" : "border border-border"
+                    }`}
+                  >
+                    {step.done ? "✓" : ""}
+                  </span>
+                  <span className={step.done ? "text-text-muted line-through" : "text-text-secondary"}>
+                    {step.label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-5 animate-pulse rounded bg-bg-elevated" />
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
