@@ -5,7 +5,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { Table } from "@/components/ui/Table";
+import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
@@ -62,84 +64,83 @@ export function ErpSalesView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold">Ventas</h1>
-        <p className="mt-1 text-sm text-text-secondary">
-          Historial operativo actual sobre `/erp/sales`.
-        </p>
+        <h1 className="text-xl font-semibold">Ventas</h1>
+        <p className="mt-0.5 text-sm text-text-secondary">Historial de ventas del ERP.</p>
       </div>
 
       <Card>
+        <CardHeader title="Ventas" />
         {query.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-          </div>
+          <Table>
+            <Table.Loading rows={5} cols={6} />
+          </Table>
         ) : query.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar ventas."}
           </p>
         ) : sales.length === 0 ? (
-          <p className="text-sm text-text-secondary">Todavía no hay ventas registradas.</p>
+          <Table>
+            <Table.Empty>Todavía no hay ventas registradas.</Table.Empty>
+          </Table>
         ) : (
-          <div className="space-y-3">
-            {sales.map((sale) => (
-              <div key={sale.id} className="rounded-2xl border border-white/8 bg-white/4 px-4 py-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <p className="font-medium">Venta #{sale.id.slice(0, 8)}</p>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          sale.status === "completed"
-                            ? "bg-accent/15 text-accent"
-                            : "bg-red-500/15 text-red-300"
-                        }`}
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>ID</Table.Th>
+                <Table.Th>Fecha</Table.Th>
+                <Table.Th>Actor</Table.Th>
+                <Table.Th>Total</Table.Th>
+                <Table.Th>Estado</Table.Th>
+                <Table.Th className="text-right">Acciones</Table.Th>
+              </tr>
+            </Table.Head>
+            <Table.Body>
+              {sales.map((sale) => (
+                <Table.Row key={sale.id}>
+                  <Table.Cell className="text-text-muted font-mono text-xs">
+                    #{sale.id.slice(0, 8)}
+                  </Table.Cell>
+                  <Table.Cell className="text-text-secondary text-xs">
+                    {new Date(sale.created_at).toLocaleString()}
+                  </Table.Cell>
+                  <Table.Cell className="text-text-secondary">{sale.actor}</Table.Cell>
+                  <Table.Cell className="text-text-primary font-semibold">
+                    {format(sale.total)}
+                    {sale.discount > 0 && (
+                      <span className="ml-1 text-xs text-text-muted">-{format(sale.discount)}</span>
+                    )}
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Badge variant={sale.status === "completed" ? "success" : "danger"}>
+                      {sale.status === "completed" ? "Completada" : "Cancelada"}
+                    </Badge>
+                  </Table.Cell>
+                  <Table.Cell className="text-right">
+                    <div className="inline-flex gap-3">
+                      <Link
+                        href={`/dashboard/sales/${sale.id}`}
+                        className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                       >
-                        {sale.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      {sale.actor} · {new Date(sale.created_at).toLocaleString()}
-                    </p>
-                    <p className="mt-2 text-sm text-text-secondary">
-                      {sale.items.length} ítems · pago {sale.payment_method}
-                    </p>
-                  </div>
-
-                    <div className="text-left md:text-right">
-                      <p className="text-lg font-semibold">{format(sale.total)}</p>
-                      {sale.discount > 0 ? (
-                      <p className="mt-1 text-xs text-text-secondary">
-                        Descuento {format(sale.discount)}
-                      </p>
-                        ) : null}
-                      <div className="mt-3 flex items-center gap-3 md:justify-end">
-                        <Link
-                          href={`/dashboard/sales/${sale.id}`}
-                          className="text-sm text-text-secondary hover:text-text-primary"
+                        Ver
+                      </Link>
+                      {sale.status === "completed" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("¿Cancelar esta venta?")) cancelMutation.mutate(sale.id);
+                          }}
+                          className="text-sm text-danger hover:brightness-110 transition-colors"
+                          disabled={cancelMutation.isPending}
                         >
-                          Ver detalle
-                        </Link>
-                        {sale.status === "completed" ? (
-                          <Button
-                            variant="ghost"
-                            className="px-0 py-0 text-sm text-red-400 hover:text-red-300"
-                            onClick={() => {
-                              if (confirm("¿Cancelar esta venta?")) {
-                                cancelMutation.mutate(sale.id);
-                              }
-                            }}
-                            disabled={cancelMutation.isPending}
-                          >
-                            Cancelar
-                          </Button>
-                        ) : null}
-                      </div>
+                          Cancelar
+                        </button>
+                      )}
                     </div>
-                  </div>
-                </div>
-            ))}
-          </div>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table>
         )}
       </Card>
       <Pagination
