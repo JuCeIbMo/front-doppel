@@ -12,6 +12,10 @@ import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { usePagination } from "@/hooks/usePagination";
 import type { InventoryRow } from "@/lib/erp-types";
+import { Input } from "@/components/ui/Input";
+import { Table } from "@/components/ui/Table";
+import { Badge } from "@/components/ui/Badge";
+import { CardHeader } from "@/components/ui/Card";
 import {
   buildInventoryAdjustmentPayload,
   type InventoryAdjustmentDraft,
@@ -95,77 +99,91 @@ export function ErpInventoryView() {
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Inventario</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Stock actual sobre `/erp/inventory`.
-          </p>
+          <h1 className="text-xl font-semibold">Inventario</h1>
+          <p className="mt-0.5 text-sm text-text-secondary">Control de stock del ERP.</p>
         </div>
-        <Button variant="secondary" className="px-5 py-3 text-sm" href="/dashboard/inventory/movements">
+        <Button variant="secondary" size="sm" href="/dashboard/inventory/movements">
           Ver movimientos
         </Button>
       </div>
 
       <Card>
+        <CardHeader
+          title="Stock"
+          action={
+            <Button variant="secondary" size="sm" onClick={() => { setDraft(emptyAdjustment); setFormError(null); setModalOpen(true); }}>
+              Ajustar stock
+            </Button>
+          }
+        />
         {query.isLoading ? (
-          <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-16 animate-pulse rounded-2xl bg-white/5" />
-          </div>
+          <Table>
+            <Table.Loading rows={6} cols={6} />
+          </Table>
         ) : query.error ? (
-          <p className="text-sm text-red-400">
+          <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar inventario."}
           </p>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-text-secondary">No hay registros de inventario todavía.</p>
+          <Table>
+            <Table.Empty>No hay registros de inventario todavía.</Table.Empty>
+          </Table>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-white/10 text-text-secondary">
-                  <th className="py-3 pr-4 font-medium">Producto</th>
-                  <th className="py-3 pr-4 font-medium">Categoría</th>
-                  <th className="py-3 pr-4 font-medium">Cantidad</th>
-                  <th className="py-3 pr-4 font-medium">Unidad</th>
-                  <th className="py-3 pr-4 font-medium">Umbral</th>
-                  <th className="py-3 font-medium text-right">Ajuste</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={`${row.product_id}-${row.variant_id ?? "base"}`} className="border-b border-white/5 last:border-b-0">
-                    <td className="py-4 pr-4">
-                      <p className="font-medium text-text-primary">{row.product_name}</p>
-                      {row.variant_name ? (
-                        <p className="mt-1 text-xs text-text-secondary">{row.variant_name}</p>
-                      ) : null}
-                    </td>
-                    <td className="py-4 pr-4 text-text-secondary">{row.category || "Sin categoría"}</td>
-                    <td className="py-4 pr-4 text-text-primary">{row.quantity}</td>
-                    <td className="py-4 pr-4 text-text-secondary">{row.unit}</td>
-                    <td className="py-4 pr-4 text-text-primary">{row.low_stock_threshold}</td>
-                    <td className="py-4 text-right">
-                      <div className="inline-flex gap-3 text-sm">
+          <Table>
+            <Table.Head>
+              <tr>
+                <Table.Th>Producto</Table.Th>
+                <Table.Th>Categoría</Table.Th>
+                <Table.Th>Cantidad</Table.Th>
+                <Table.Th>Umbral</Table.Th>
+                <Table.Th>Estado</Table.Th>
+                <Table.Th className="text-right">Acciones</Table.Th>
+              </tr>
+            </Table.Head>
+            <Table.Body>
+              {rows.map((row) => {
+                const isOut = row.quantity === 0;
+                const isLow = row.quantity <= row.low_stock_threshold;
+                return (
+                  <Table.Row key={`${row.product_id}-${row.variant_id ?? "base"}`}>
+                    <Table.Cell>
+                      <span className="font-medium text-text-primary">{row.product_name}</span>
+                      {row.variant_name && (
+                        <p className="text-xs text-text-muted mt-0.5">{row.variant_name}</p>
+                      )}
+                    </Table.Cell>
+                    <Table.Cell className="text-text-secondary">{row.category || "Sin categoría"}</Table.Cell>
+                    <Table.Cell className="text-text-primary font-medium">
+                      {row.quantity} {row.unit}
+                    </Table.Cell>
+                    <Table.Cell className="text-text-muted">{row.low_stock_threshold}</Table.Cell>
+                    <Table.Cell>
+                      <Badge variant={isOut ? "danger" : isLow ? "warning" : "success"}>
+                        {isOut ? "Sin stock" : isLow ? "Stock bajo" : "OK"}
+                      </Badge>
+                    </Table.Cell>
+                    <Table.Cell className="text-right">
+                      <div className="inline-flex gap-3">
                         <Link
                           href={`/dashboard/inventory/movements?product_id=${encodeURIComponent(row.product_id)}`}
-                          className="text-text-secondary transition-colors hover:text-text-primary"
+                          className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                         >
                           Historial
                         </Link>
                         <button
                           type="button"
                           onClick={() => openAdjustment(row)}
-                          className="text-text-secondary transition-colors hover:text-text-primary"
+                          className="text-sm text-text-secondary hover:text-text-primary transition-colors"
                         >
                           Ajustar
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </Table.Cell>
+                  </Table.Row>
+                );
+              })}
+            </Table.Body>
+          </Table>
         )}
       </Card>
       <Pagination
@@ -182,11 +200,11 @@ export function ErpInventoryView() {
           onClick={() => setModalOpen(false)}
         >
           <div
-            className="w-full max-w-xl rounded-3xl border border-white/10 bg-bg-primary p-6"
+            className="w-full max-w-xl rounded-xl border border-border bg-bg-secondary p-6"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-semibold">Ajuste manual de stock</h2>
+            <div className="flex items-center justify-between gap-4 mb-5">
+              <h2 className="text-base font-semibold text-text-primary">Ajuste manual de stock</h2>
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
@@ -196,9 +214,9 @@ export function ErpInventoryView() {
               </button>
             </div>
 
-            <div className="mt-6 grid gap-4">
-              <div>
-                <label className="block text-sm text-text-secondary">Modo</label>
+            <div className="grid gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Modo</label>
                 <select
                   value={draft.mode}
                   onChange={(event) =>
@@ -207,27 +225,22 @@ export function ErpInventoryView() {
                       mode: event.target.value as "set" | "delta",
                     }))
                   }
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
                 >
                   <option value="delta">Sumar / restar unidades</option>
                   <option value="set">Definir cantidad exacta</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-sm text-text-secondary">
-                  {draft.mode === "set" ? "Nueva cantidad" : "Delta"}
-                </label>
-                <input
-                  value={draft.quantity}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, quantity: event.target.value }))
-                  }
-                  placeholder={draft.mode === "set" ? "18" : "-2 o 5"}
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-text-secondary">Nota obligatoria</label>
+              <Input
+                label={draft.mode === "set" ? "Nueva cantidad" : "Delta"}
+                value={draft.quantity}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, quantity: event.target.value }))
+                }
+                placeholder={draft.mode === "set" ? "18" : "-2 o 5"}
+              />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-text-muted uppercase tracking-wide">Nota obligatoria</label>
                 <textarea
                   value={draft.note}
                   onChange={(event) =>
@@ -235,24 +248,24 @@ export function ErpInventoryView() {
                   }
                   rows={3}
                   placeholder="Motivo del ajuste"
-                  className="mt-2 w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none focus:border-accent focus:ring-1 focus:ring-accent/30"
+                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
                 />
               </div>
             </div>
 
-            {formError ? <p className="mt-4 text-sm text-red-400">{formError}</p> : null}
+            {formError ? <p className="mt-4 text-sm text-danger">{formError}</p> : null}
 
             <div className="mt-6 flex justify-end gap-3">
               <Button
                 variant="ghost"
-                className="px-5 py-3 text-sm"
+                size="sm"
                 onClick={() => setModalOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
                 variant="primary"
-                className="px-5 py-3 text-sm"
+                size="sm"
                 onClick={() => adjustMutation.mutate()}
                 disabled={adjustMutation.isPending}
               >
