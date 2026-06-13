@@ -16,7 +16,10 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import { Card } from "@/components/ui/Card";
+import { Card, CardHeader } from "@/components/ui/Card";
+import { StatCard } from "@/components/ui/StatCard";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { apiFetch, apiRequest, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { normalizeTopProducts, normalizeSeries } from "@/lib/erp-insights";
@@ -146,11 +149,12 @@ export function ErpReportsView() {
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold">Reportes</h1>
+        <h1 className="text-xl font-semibold">Reportes</h1>
+        <p className="mt-0.5 text-sm text-text-secondary">Métricas del período.</p>
       </div>
 
       {hasNonAuthError && (
-        <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-400 text-sm">
+        <div className="rounded-xl border border-danger/30 bg-danger/10 p-4 text-danger text-sm">
           Error al cargar algunos reportes. Verificá tu conexión e intentá de nuevo.
         </div>
       )}
@@ -158,26 +162,22 @@ export function ErpReportsView() {
       {/* Date range + export controls */}
       <Card>
         <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-text-secondary">Desde</label>
-            <input
-              type="date"
-              value={from}
-              max={to}
-              onChange={(e) => setFrom(e.target.value)}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-sm text-text-secondary">Hasta</label>
-            <input
-              type="date"
-              value={to}
-              min={from}
-              onChange={(e) => setTo(e.target.value)}
-              className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
-            />
-          </div>
+          <Input
+            label="Desde"
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => setFrom(e.target.value)}
+            className="py-1"
+          />
+          <Input
+            label="Hasta"
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            className="py-1"
+          />
           <label className="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
             <input
               type="checkbox"
@@ -188,28 +188,29 @@ export function ErpReportsView() {
             Comparar período anterior
           </label>
           <div className="ml-auto flex flex-wrap gap-3">
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() =>
                 handleExport(`/erp/export/sales?date_from=${from}&date_to=${to}`, "ventas.csv", "sales")
               }
               disabled={exporting !== null}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               {exporting === "sales" ? "Exportando..." : "Exportar ventas"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() =>
                 handleExport("/erp/export/inventory", "inventario.csv", "inventory")
               }
               disabled={exporting !== null}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               {exporting === "inventory" ? "Exportando..." : "Exportar inventario"}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() =>
                 handleExport(
                   `/erp/export/transactions?date_from=${from}&date_to=${to}`,
@@ -218,49 +219,58 @@ export function ErpReportsView() {
                 )
               }
               disabled={exporting !== null}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-text-primary transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               {exporting === "transactions" ? "Exportando..." : "Exportar transacciones"}
-            </button>
+            </Button>
           </div>
         </div>
       </Card>
 
       {/* Stats row */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Margen bruto"
-          value={
-            grossMargin !== null
-              ? grossMargin.toLocaleString("es-AR", { maximumFractionDigits: 2 })
-              : null
-          }
-          loading={marginQuery.isLoading}
-        />
-        <StatCard
-          label="Margen bruto %"
-          value={grossMarginPct !== null ? `${grossMarginPct.toFixed(1)}%` : null}
-          loading={marginQuery.isLoading}
-        />
-        <StatCard
-          label="Clientes nuevos"
-          value={newClients !== null ? String(newClients) : null}
-          loading={clientsReportQuery.isLoading}
-        />
-        <StatCard
-          label="Clientes recurrentes"
-          value={returningClients !== null ? String(returningClients) : null}
-          loading={clientsReportQuery.isLoading}
-        />
+        {marginQuery.isLoading ? (
+          <>
+            <div className="h-28 animate-pulse rounded-xl border border-border bg-bg-secondary" />
+            <div className="h-28 animate-pulse rounded-xl border border-border bg-bg-secondary" />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Margen bruto"
+              value={grossMargin !== null ? grossMargin.toLocaleString("es-AR", { maximumFractionDigits: 2 }) : "—"}
+            />
+            <StatCard
+              label="Margen bruto %"
+              value={grossMarginPct !== null ? `${grossMarginPct.toFixed(1)}%` : "—"}
+            />
+          </>
+        )}
+        {clientsReportQuery.isLoading ? (
+          <>
+            <div className="h-28 animate-pulse rounded-xl border border-border bg-bg-secondary" />
+            <div className="h-28 animate-pulse rounded-xl border border-border bg-bg-secondary" />
+          </>
+        ) : (
+          <>
+            <StatCard
+              label="Clientes nuevos"
+              value={newClients !== null ? String(newClients) : "—"}
+            />
+            <StatCard
+              label="Clientes recurrentes"
+              value={returningClients !== null ? String(returningClients) : "—"}
+            />
+          </>
+        )}
       </div>
 
       {/* Charts */}
       <div className="grid gap-6 xl:grid-cols-2">
         {/* Top productos */}
         <Card>
-          <h2 className="mb-4 text-lg font-medium">Top productos</h2>
+          <CardHeader title="Top productos" />
           {topProductsQuery.isLoading ? (
-            <div className="h-60 animate-pulse rounded-xl bg-white/5" />
+            <div className="h-60 animate-pulse rounded-xl bg-bg-elevated" />
           ) : topProductsChartData.length === 0 ? (
             <p className="text-sm text-text-secondary">
               No hay datos para el período seleccionado
@@ -293,9 +303,9 @@ export function ErpReportsView() {
 
         {/* Ventas por período */}
         <Card>
-          <h2 className="mb-4 text-lg font-medium">Ventas por período</h2>
+          <CardHeader title="Ventas por período" />
           {salesByPeriodQuery.isLoading ? (
-            <div className="h-60 animate-pulse rounded-xl bg-white/5" />
+            <div className="h-60 animate-pulse rounded-xl bg-bg-elevated" />
           ) : salesSeriesChartData.length === 0 ? (
             <p className="text-sm text-text-secondary">
               No hay datos para el período seleccionado
@@ -342,26 +352,5 @@ export function ErpReportsView() {
         </Card>
       </div>
     </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  loading,
-}: {
-  label: string;
-  value: string | null;
-  loading: boolean;
-}) {
-  return (
-    <Card>
-      <p className="text-sm text-text-secondary">{label}</p>
-      {loading ? (
-        <div className="mt-2 h-8 animate-pulse rounded-xl bg-white/5" />
-      ) : (
-        <p className="mt-2 text-2xl font-semibold">{value ?? "—"}</p>
-      )}
-    </Card>
   );
 }
