@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
+import { useHasSession } from "@/hooks/useHasSession";
 
 const navLinks = [
   { label: "Inicio", href: "/" },
@@ -11,9 +12,49 @@ const navLinks = [
   { label: "Features", href: "#features" },
 ];
 
+/**
+ * Auth call-to-action. With a session it collapses to a single "Ir al dashboard";
+ * otherwise it offers "Iniciar sesión" (returning users) alongside the "Conectar
+ * WhatsApp" signup CTA. Both go to /connect — auth is passwordless OTP, so the
+ * single flow handles login and signup. `null` (session unknown pre-mount) renders
+ * the logged-out view, matching the common landing case.
+ */
+function AuthCta({
+  hasSession,
+  mobile = false,
+}: {
+  hasSession: boolean | null;
+  mobile?: boolean;
+}) {
+  const loginClass = mobile
+    ? "text-2xl font-medium text-text-secondary hover:text-text-primary transition-colors duration-200"
+    : "text-sm text-text-secondary hover:text-text-primary transition-colors duration-200";
+  const buttonClass = mobile ? "!px-8 !py-3 !text-base" : "!px-6 !py-2.5 !text-sm !rounded-xl";
+
+  if (hasSession) {
+    return (
+      <Button variant="primary" href="/dashboard" className={buttonClass}>
+        Ir al dashboard →
+      </Button>
+    );
+  }
+
+  return (
+    <div className={mobile ? "flex flex-col items-center gap-6" : "flex items-center gap-5"}>
+      <Link href="/connect" className={loginClass}>
+        Iniciar sesión
+      </Link>
+      <Button variant="primary" href="/connect" className={buttonClass}>
+        Conectar WhatsApp
+      </Button>
+    </div>
+  );
+}
+
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const hasSession = useHasSession();
 
   /* ── Scroll detection ── */
   useEffect(() => {
@@ -99,9 +140,7 @@ export function Navbar() {
 
           {/* ── Desktop CTA (hidden below md) ── */}
           <div className="hidden md:block">
-            <Button variant="primary" href="/connect" className="!px-6 !py-2.5 !text-sm !rounded-xl">
-              Conectar WhatsApp
-            </Button>
+            <AuthCta hasSession={hasSession} />
           </div>
 
           {/* ── Mobile hamburger (visible below md) ── */}
@@ -162,9 +201,7 @@ export function Navbar() {
               exit={{ opacity: 0, y: 20 }}
               transition={{ delay: navLinks.length * 0.05, duration: 0.3, ease: "easeOut" }}
             >
-              <Button variant="primary" href="/connect" className="!px-8 !py-3 !text-base">
-                Conectar WhatsApp
-              </Button>
+              <AuthCta hasSession={hasSession} mobile />
             </motion.div>
           </motion.div>
         )}
