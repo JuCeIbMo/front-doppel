@@ -7,7 +7,6 @@ const enabledFeatures = {
   settings: true,
   reports: true,
   activity: true,
-  cashier: true,
   demo: false,
 } as const;
 

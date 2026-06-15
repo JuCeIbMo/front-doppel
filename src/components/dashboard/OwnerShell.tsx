@@ -13,7 +13,6 @@ import {
   Activity,
   Bot,
   Settings,
-  Scan,
   LogOut,
 } from "lucide-react";
 import { clearToken } from "@/lib/auth";
@@ -106,7 +105,6 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
   const filteredCore = coreLinks.filter((l) => (l.feature ? flags[l.feature] : true));
   const filteredTools = toolLinks.filter((l) => (l.feature ? flags[l.feature] : true));
-  const showCashier = flags.cashier;
 
   async function handleLogout() {
     await authenticatedFetch("/auth/logout", { method: "POST" }).catch(() => null);
@@ -144,16 +142,6 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
             {filteredTools.map((link) => (
               <NavItem key={link.href} {...link} active={isActive(link.href)} />
             ))}
-
-            {showCashier && (
-              <Link
-                href="/cashier"
-                className="flex items-center gap-3 py-2.5 pr-4 pl-4 text-sm rounded-r-lg transition-colors text-accent hover:bg-accent-dim"
-              >
-                <Scan size={16} strokeWidth={1.75} />
-                <span>Modo caja</span>
-              </Link>
-            )}
           </nav>
 
           {/* Sidebar footer — logout */}

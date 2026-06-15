@@ -131,22 +131,6 @@ export interface ActivityItemResponse {
   created_at: string;
 }
 
-export interface PinSetResponse {
-  pin: string;
-}
-
-export interface PinLoginResponse {
-  access_token: string;
-  expires_in: number;
-}
-
-export interface CartItem {
-  product_id: string;
-  product_name: string;
-  unit_price: number;
-  quantity: number;
-}
-
 export interface TopProductItem {
   product_name: string;
   quantity: number;

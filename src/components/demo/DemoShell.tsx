@@ -64,23 +64,6 @@ export function DemoShell() {
           </div>
         )}
 
-        {/* Cashier mode button */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold">Modo caja</p>
-              <p className="text-sm text-text-secondary mt-1">Tu cajero cobra desde acá, sin ver datos financieros.</p>
-            </div>
-            <button
-              type="button"
-              className="demo-cashier-btn bg-accent text-black px-4 py-2 rounded-xl font-semibold text-sm"
-              onClick={() => alert("Demo: en producción abre el modo caja con PIN de cajero.")}
-            >
-              Abrir modo caja
-            </button>
-          </div>
-        </div>
-
         {/* Cashflow chart placeholder */}
         <div className="demo-cashflow-chart rounded-2xl border border-white/10 bg-white/5 p-6 mb-6">
           <p className="font-semibold mb-4">Flujo de caja (demo)</p>

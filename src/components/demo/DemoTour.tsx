@@ -34,14 +34,6 @@ export function DemoTour() {
             },
           },
           {
-            element: ".demo-cashier-btn",
-            popover: {
-              title: "Modo caja",
-              description: "Tu cajero cobra desde acá, sin ver datos financieros.",
-              side: "left",
-            },
-          },
-          {
             element: ".demo-cashflow-chart",
             popover: {
               title: "Flujo de caja",
