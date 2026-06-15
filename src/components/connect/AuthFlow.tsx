@@ -8,6 +8,7 @@ import { OTPInput } from "@/components/connect/OTPInput";
 import { EmbeddedSignup } from "@/components/connect/EmbeddedSignup";
 import { getToken, setToken, setRefreshToken, clearToken } from "@/lib/auth";
 import { authenticatedFetch } from "@/lib/api";
+import { isOnboarded } from "@/lib/onboarding";
 
 type Step = "email" | "otp" | "connect";
 
@@ -28,7 +29,8 @@ export function AuthFlow() {
   const [otpError, setOtpError] = useState(false);
   const [checking, setChecking] = useState(true);
 
-  // On mount: check if there's already a valid token
+  // On mount: if there's already a valid session, skip straight to where the user
+  // belongs — the dashboard if their business is connected, otherwise the connect step.
   useEffect(() => {
     const token = getToken();
     if (!token) {
@@ -37,16 +39,15 @@ export function AuthFlow() {
     }
     authenticatedFetch("/auth/me")
       .then(async (res) => {
-        if (res.ok) {
-          const tenantRes = await authenticatedFetch("/me/tenant");
-          if (tenantRes.ok) {
-            router.replace("/dashboard");
-            return;
-          }
-          setStep("connect");
-        } else {
+        if (!res.ok) {
           clearToken();
+          return;
         }
+        if (await isOnboarded()) {
+          router.replace("/dashboard");
+          return;
+        }
+        setStep("connect");
       })
       .catch(() => {
         clearToken();
@@ -107,6 +108,13 @@ export function AuthFlow() {
         const data = await res.json();
         setToken(data.access_token);
         if (data.refresh_token) setRefreshToken(data.refresh_token);
+
+        // Returning users who already connected their business go straight to the
+        // dashboard. Only first-timers (no tenant yet) see the connect step.
+        if (await isOnboarded()) {
+          router.replace("/dashboard");
+          return;
+        }
         setStep("connect");
       } catch {
         setOtpError(true);
@@ -115,7 +123,7 @@ export function AuthFlow() {
         setLoading(false);
       }
     },
-    [email],
+    [email, router],
   );
 
   const currentStepIndex = steps.findIndex((s) => s.key === step);
