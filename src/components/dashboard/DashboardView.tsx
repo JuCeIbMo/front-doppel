@@ -97,13 +97,18 @@ export function DashboardView() {
     const tenantData: Tenant = await tenantRes.json();
     const whatsappData: WhatsAppAccount[] = await whatsappRes.json();
     setTenant(tenantData);
-    setWhatsapp(whatsappData[0] ?? null);
+    // Prefer the connected account over whatever happens to come first — a tenant can
+    // have a stale row alongside the live one, so picking [0] blindly can show the
+    // wrong (disconnected) account.
+    const account =
+      whatsappData.find((a) => a.status === "connected") ?? whatsappData[0] ?? null;
+    setWhatsapp(account);
 
-    if (adminPhonesRes.ok && whatsappData[0]?.status === "connected") {
+    if (adminPhonesRes.ok && account?.status === "connected") {
       const adminPhones: AdminPhonesPayload = await adminPhonesRes.json();
       if ((adminPhones.phones || []).length === 0) {
         const params = new URLSearchParams();
-        if (whatsappData[0]?.display_phone) params.set("phone", whatsappData[0].display_phone);
+        if (account?.display_phone) params.set("phone", account.display_phone);
         if (tenantData.business_name) params.set("business", tenantData.business_name);
         router.replace(`/connect/manager?${params.toString()}`);
         return;
