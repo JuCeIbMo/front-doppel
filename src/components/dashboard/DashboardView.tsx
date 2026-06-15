@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
 import { clearToken } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 
 interface Tenant {
   id: string;
@@ -206,6 +207,8 @@ export function DashboardView() {
       </div>
 
       <DashboardNav />
+
+      {!isConnected && <WhatsAppDisconnectedNotice />}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <div className="flex flex-col gap-6">
