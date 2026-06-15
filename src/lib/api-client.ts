@@ -129,7 +129,18 @@ export async function apiRequest(path: string, options: ApiRequestOptions): Prom
     ...init
   } = options;
 
-  const accessToken = skipAuth ? null : await session.getAccessToken();
+  let accessToken = skipAuth ? null : await session.getAccessToken();
+
+  // No access token but a refresh token on hand: refresh up front instead of
+  // firing a guaranteed-401 request. The API returns 401 for a missing token,
+  // but skipping the wasted round-trip keeps logs clean and the UX snappier.
+  if (!accessToken && !skipAuth) {
+    const refreshToken = await session.getRefreshToken();
+    if (refreshToken) {
+      accessToken = await refreshAccessToken(baseUrl, fetcher, session);
+    }
+  }
+
   let response = await fetcher(`${baseUrl}${path}`, withDefaultHeaders(init, accessToken));
 
   if (response.status === 401 && !skipAuth) {

@@ -57,6 +57,63 @@ describe("apiFetch", () => {
     ).toBe("Bearer new-access");
   });
 
+  it("refreshes proactively when there is no access token but a refresh token exists", async () => {
+    const session = createSessionStore({
+      getAccessToken: async () => null,
+      getRefreshToken: async () => "refresh-token",
+    });
+
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        Response.json({
+          access_token: "new-access",
+          refresh_token: "new-refresh",
+          expires_in: 3600,
+        }),
+      )
+      .mockResolvedValueOnce(
+        Response.json({
+          ok: true,
+        }),
+      );
+
+    const payload = await apiFetch<{ ok: boolean }>("/erp/reports/dashboard", {
+      baseUrl: "https://api.example.com",
+      fetcher,
+      session,
+    });
+
+    expect(payload).toEqual({ ok: true });
+    // No wasted unauthenticated round-trip: refresh first, then the real call.
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(fetcher.mock.calls[0]?.[0]).toBe("https://api.example.com/auth/token/refresh");
+    const secondCall = fetcher.mock.calls[1];
+    expect(secondCall?.[0]).toBe("https://api.example.com/erp/reports/dashboard");
+    expect(
+      new Headers((secondCall?.[1] as RequestInit | undefined)?.headers).get("Authorization"),
+    ).toBe("Bearer new-access");
+  });
+
+  it("makes one unauthenticated attempt when there is no token at all", async () => {
+    const session = createSessionStore();
+    const fetcher = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(new Response(null, { status: 401 }));
+
+    await expect(
+      apiFetch("/erp/reports/dashboard", {
+        baseUrl: "https://api.example.com",
+        fetcher,
+        session,
+      }),
+    ).rejects.toMatchObject({ status: 401 });
+
+    // No refresh token -> no refresh endpoint call; just the single attempt.
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(session.clear).toHaveBeenCalled();
+  });
+
   it("throws a normalized ApiError with backend metadata", async () => {
     const session = createSessionStore();
     const fetcher = vi.fn<typeof fetch>().mockResolvedValue(

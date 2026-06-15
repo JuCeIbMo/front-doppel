@@ -18,6 +18,7 @@ import {
 import { clearToken } from "@/lib/auth";
 import { authenticatedFetch } from "@/lib/api";
 import { getFeatureFlags } from "@/lib/features";
+import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type NavLink = {
   href: string;
@@ -99,6 +100,7 @@ function MobileNav({
 }
 
 export function OwnerShell({ children }: { children: React.ReactNode }) {
+  useRequireAuth();
   const pathname = usePathname();
   const router = useRouter();
   const flags = getFeatureFlags();
