@@ -396,12 +396,22 @@ export function DashboardView() {
         </div>
       </div>
 
-      <DashboardNav />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <DashboardNav />
+        <div className="hidden lg:flex items-center gap-2 text-xs text-text-secondary">
+          <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
+            Inbox primero
+          </span>
+          <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
+            Pipeline secundario
+          </span>
+        </div>
+      </div>
 
       {!isConnected && <WhatsAppDisconnectedNotice />}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[18rem_minmax(0,1fr)_22rem]">
-        <Card className="p-0 overflow-hidden">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[17.5rem_minmax(0,1.15fr)_20rem] 2xl:grid-cols-[18.5rem_minmax(0,1.25fr)_21rem]">
+        <Card className="overflow-hidden p-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)]">
           <div className="border-b border-white/8 px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -453,7 +463,7 @@ export function DashboardView() {
             </div>
           </div>
 
-          <div className="max-h-[42rem] overflow-auto p-2">
+          <div className="max-h-[42rem] overflow-auto p-2 xl:max-h-[calc(100vh-13rem)]">
             {visibleConversations.length === 0 ? (
               <div className="rounded-[24px] border border-dashed border-white/10 bg-white/3 px-4 py-10 text-center">
                 <p className="text-sm font-medium text-text-primary">Aún no hay conversaciones registradas</p>
@@ -509,11 +519,11 @@ export function DashboardView() {
           </div>
         </Card>
 
-        <Card className="min-h-[42rem] p-0">
+        <Card className="min-h-[42rem] p-0 xl:max-h-[calc(100vh-7rem)] xl:overflow-hidden">
           {selectedConversation ? (
             <div className="flex h-full flex-col">
               <div className="border-b border-white/8 px-5 py-5">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
                     <div className="flex items-center gap-3">
                       <h2 className="text-xl font-semibold text-text-primary">
@@ -535,7 +545,7 @@ export function DashboardView() {
                     <p className="mt-1 text-sm text-text-secondary">{selectedConversation.phone}</p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 text-xs text-text-secondary">
+                  <div className="flex flex-wrap gap-2 text-xs text-text-secondary xl:max-w-[19rem] xl:justify-end">
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
                       Último inbound {formatRelativeTime(selectedConversation.lastMessageAt)}
                     </span>
@@ -549,7 +559,7 @@ export function DashboardView() {
                 </div>
               </div>
 
-              <div className="flex-1 space-y-6 overflow-auto px-5 py-5">
+              <div className="flex-1 space-y-6 overflow-auto px-5 py-5 xl:min-h-0">
                 {groupMessagesByDay(selectedConversation.messages).map(([day, group]) => (
                   <div key={day}>
                     <div className="mb-4 flex items-center justify-center">
@@ -606,7 +616,7 @@ export function DashboardView() {
           )}
         </Card>
 
-        <div className="flex flex-col gap-6 lg:col-span-2 xl:col-span-1">
+        <div className="flex flex-col gap-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)] xl:overflow-auto">
           <Card>
             <CardHeader title="Ficha comercial" />
             {selectedConversation ? (
@@ -635,7 +645,7 @@ export function DashboardView() {
                       </p>
                       <p className="mt-2 text-sm text-text-primary">{selectedConversation.phone}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
                       <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
                         <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
                           Primer seen
@@ -711,7 +721,7 @@ export function DashboardView() {
                   />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Inbound</p>
                     <p className="mt-2 text-lg font-semibold text-text-primary">
@@ -776,7 +786,7 @@ export function DashboardView() {
               Sin configuración disponible. Reconecta tu cuenta para inicializarla.
             </p>
           ) : (
-            <div className="grid grid-cols-1 gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+            <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[0.82fr_1.18fr]">
               <div className="space-y-4">
                 <div className="rounded-[24px] border border-white/8 bg-white/4 p-4">
                   <div className="flex items-center justify-between gap-4">
