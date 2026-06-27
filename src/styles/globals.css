@@ -25,3 +25,71 @@
   60% { transform: translateX(-4px); }
   80% { transform: translateX(4px); }
 }
+
+/* ── Meridian ERP design tokens ── */
+.meridian-theme {
+  --m-serif:      var(--font-cormorant, 'Cormorant Garamond', Georgia, serif);
+  --m-sans:       var(--font-hanken, 'Hanken Grotesk', system-ui, sans-serif);
+  --m-mono:       var(--font-jetbrains, 'JetBrains Mono', ui-monospace, monospace);
+
+  --m-accent:     #c79a5e;
+  --m-accent-ink: #2a2014;
+  --m-accent-soft:rgba(199,154,94,0.14);
+
+  --m-pos:  oklch(0.72 0.10 150);
+  --m-neg:  oklch(0.62 0.13 32);
+  --m-warn: oklch(0.74 0.11 75);
+
+  --m-r-sm:  6px;
+  --m-r:     12px;
+  --m-r-lg:  20px;
+  --m-r-pill:999px;
+
+  --m-bg:          #14110d;
+  --m-bg-grad-a:   #2a211a;
+  --m-bg-grad-b:   #14110d;
+  --m-panel:       #1b1712;
+  --m-surface:     #211c16;
+  --m-surface-2:   #272118;
+  --m-ink:         #ece4d6;
+  --m-ink-dim:     #ab9f8c;
+  --m-ink-faint:   #756a59;
+  --m-line:        rgba(236,228,214,0.11);
+  --m-line-soft:   rgba(236,228,214,0.06);
+  --m-hairline:    rgba(236,228,214,0.16);
+  --m-shadow:      0 24px 60px -20px rgba(0,0,0,0.7);
+  --m-gut:         28px;
+
+  font-feature-settings: "ss01","cv01","tnum";
+  -webkit-font-smoothing: antialiased;
+  color-scheme: dark;
+}
+
+.meridian-theme *::-webkit-scrollbar { width:10px; height:10px; }
+.meridian-theme *::-webkit-scrollbar-thumb { background: var(--m-line); border-radius:999px; border:3px solid transparent; background-clip: padding-box; }
+
+.m-mono  { font-family: var(--m-mono); }
+.m-serif { font-family: var(--m-serif); }
+.m-tnum  { font-variant-numeric: tabular-nums; }
+.m-eyebrow {
+  font-family: var(--m-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--m-ink-faint);
+  font-weight: 500;
+}
+
+@keyframes tickerScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+@keyframes mFadeUp {
+  from { opacity:0; transform: translateY(10px); }
+  to   { opacity:1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meridian-theme * { animation: none !important; transition: none !important; }
+}

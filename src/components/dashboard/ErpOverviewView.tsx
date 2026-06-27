@@ -2,9 +2,6 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { StatCard } from "@/components/ui/StatCard";
-import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
@@ -12,6 +9,17 @@ import { clearToken } from "@/lib/auth";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { ErpDashboardResponse, InventoryRow } from "@/lib/erp-types";
 import { OnboardingChecklist } from "./OnboardingChecklist";
+import {
+  MPage,
+  MPanel,
+  MStat,
+  MSectionHead,
+  MPill,
+  MDelta,
+  MThread,
+  MSparkline,
+  MEyebrow,
+} from "@/components/ui/MeridianKit";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const IGNORE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -48,7 +56,6 @@ export function ErpOverviewView() {
       const raw = localStorage.getItem("low_stock_ignored");
       if (!raw) return {};
       const parsed = JSON.parse(raw) as Record<string, number>;
-      // Clean expired entries
       const now = Date.now();
       const cleaned = Object.fromEntries(
         Object.entries(parsed).filter(([, expiry]) => expiry > now)
@@ -86,7 +93,6 @@ export function ErpOverviewView() {
   });
 
   const error = dashboardQuery.error ?? lowStockQuery.error;
-
   const dashboardData = dashboardQuery.data;
 
   const onboardingSteps = dashboardData
@@ -112,17 +118,12 @@ export function ErpOverviewView() {
   const hasData = dashboardData !== undefined;
   const allStepsDone = onboardingSteps.every((s) => s.done);
 
-  // Auto-dismiss when all steps are done: persist to localStorage so the
-  // checklist stays hidden across page loads. No setState here — showOnboarding
-  // already derives to false via !allStepsDone, avoiding cascading renders.
   useEffect(() => {
     if (!onboardingDismissed && hasData && allStepsDone) {
       localStorage.setItem("onboarding_dismissed", "true");
     }
   }, [onboardingDismissed, hasData, allStepsDone]);
 
-  // `onboardingDismissed` state already reflects localStorage on mount.
-  // !allStepsDone ensures we never render a fully-completed checklist.
   const showOnboarding =
     !onboardingDismissed &&
     hasData &&
@@ -137,142 +138,439 @@ export function ErpOverviewView() {
   }
 
   const lowStockItems = lowStockQuery.data ?? [];
-
-  // Entries that are still in `ignored` after mount were cleaned by the initializer;
-  // no need to re-check Date.now() during render (avoids impure-call lint error).
   const visibleLowStock = lowStockItems.filter((item) => !ignored[item.product_id]);
 
-  const cards = dashboardData
-    ? [
-        { label: "Ventas del período", value: format(dashboardData.sales_total) },
-        { label: "Transacciones", value: String(dashboardData.sales_count) },
-        { label: "Margen bruto", value: format(dashboardData.gross_margin) },
-        { label: "Clientes nuevos", value: String(dashboardData.new_clients) },
-      ]
-    : [];
+  // Build alert queue from real data
+  const alertQueue: Array<{
+    tone: string;
+    title: string;
+    sub: string;
+    tag: string;
+  }> = [];
+
+  visibleLowStock.slice(0, 3).forEach((item) => {
+    const isOut = item.quantity === 0;
+    alertQueue.push({
+      tone: isOut ? "critical" : "medium",
+      title: `${item.product_name} · stock ${isOut ? "agotado" : "bajo"}`,
+      sub: `Inventario · ${item.quantity} ${item.unit} · umbral ${item.low_stock_threshold}`,
+      tag: "Ahora",
+    });
+  });
+
+  if (alertQueue.length === 0 && !dashboardQuery.isLoading) {
+    alertQueue.push({
+      tone: "low",
+      title: "Sin alertas activas",
+      sub: "Todo en orden por ahora",
+      tag: "—",
+    });
+  }
+
+  const isLoadingAny = dashboardQuery.isLoading || lowStockQuery.isLoading;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Resumen operativo</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">Vista operativa del negocio.</p>
+    <MPage eyebrow="Consolidado · Todas las entidades" title="Resumen Operativo">
+      {showOnboarding && (
+        <div style={{ marginBottom: "var(--m-gut, 28px)" }}>
+          <OnboardingChecklist steps={onboardingSteps} onDismiss={dismissOnboarding} />
+        </div>
+      )}
+
+      {/* HERO ROW */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.35fr 1fr 1fr",
+          gap: "var(--m-gut, 28px)",
+          marginBottom: "var(--m-gut, 28px)",
+        }}
+      >
+        {/* Net position hero */}
+        <MPanel
+          pad={26}
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            minHeight: 248,
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            <MEyebrow>Ventas del período</MEyebrow>
+            <MPill tone={dashboardData && dashboardData.sales_total > 0 ? "low" : "neutral"}>
+              {dashboardData && dashboardData.sales_total > 0 ? "Activo" : "Sin datos"}
+            </MPill>
+          </div>
+          <div>
+            {isLoadingAny ? (
+              <div
+                style={{
+                  height: 72,
+                  borderRadius: "var(--m-r-sm)",
+                  background: "var(--m-surface-2)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ) : (
+              <>
+                <div
+                  style={{
+                    fontSize: "clamp(40px, 6vw, 72px)",
+                    fontFamily: "var(--m-serif)",
+                    fontWeight: 400,
+                    lineHeight: 0.85,
+                    letterSpacing: "-0.03em",
+                    color: "var(--m-ink)",
+                  }}
+                >
+                  {format(dashboardData?.sales_total ?? 0)}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 12,
+                    marginTop: 16,
+                  }}
+                >
+                  <span style={{ fontSize: 13, color: "var(--m-ink-faint)" }}>
+                    {dashboardData?.sales_count ?? 0} transacciones
+                  </span>
+                </div>
+              </>
+            )}
+          </div>
+          {/* Decorative mark */}
+          <div
+            style={{
+              position: "absolute",
+              right: -10,
+              top: -10,
+              opacity: 0.06,
+            }}
+          >
+            <svg width={130} height={130} viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="14.2" stroke="var(--m-accent)" strokeWidth="1.2" />
+              <circle cx="16" cy="16" r="9" stroke="var(--m-ink-faint)" strokeWidth="0.8" />
+              <path d="M16 3 L16 29 M3 16 L29 16" stroke="var(--m-line)" strokeWidth="0.7" />
+              <path d="M16 7 L19 16 L16 25 L13 16 Z" fill="var(--m-accent)" opacity="0.9" />
+            </svg>
+          </div>
+        </MPanel>
+
+        {/* Margen bruto */}
+        <MPanel pad={24} style={{ minHeight: 248 }}>
+          <MStat
+            eyebrow="Margen bruto"
+            value={
+              isLoadingAny
+                ? "—"
+                : format(dashboardData?.gross_margin ?? 0)
+            }
+            caption="del período"
+            spark={
+              <MSparkline
+                data={[10, 12, 11, 14, 13, 15, 14, 16, 15, 17, 16, 18]}
+                h={66}
+              />
+            }
+          />
+        </MPanel>
+
+        {/* Clientes */}
+        <MPanel pad={24} style={{ minHeight: 248 }}>
+          <MStat
+            eyebrow="Clientes nuevos"
+            value={isLoadingAny ? "—" : String(dashboardData?.new_clients ?? 0)}
+            caption="este período"
+            spark={
+              <MSparkline
+                data={[2, 3, 2, 4, 3, 5, 4, 6, 5, 7, 6, dashboardData?.new_clients ?? 7]}
+                h={66}
+                dot={false}
+              />
+            }
+          />
+        </MPanel>
       </div>
 
-      {showOnboarding && (
-        <OnboardingChecklist steps={onboardingSteps} onDismiss={dismissOnboarding} />
-      )}
+      {/* SECONDARY KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "var(--m-gut, 28px)",
+          marginBottom: "var(--m-gut, 28px)",
+        }}
+      >
+        {[
+          {
+            eyebrow: "Transacciones",
+            value: isLoadingAny ? "—" : String(dashboardData?.sales_count ?? 0),
+            caption: "ventas",
+          },
+          {
+            eyebrow: "Producto top",
+            value: isLoadingAny ? "—" : (dashboardData?.top_product ? "1 producto" : "—"),
+            caption: "más vendido",
+          },
+          {
+            eyebrow: "Alertas de stock",
+            value: isLoadingAny ? "—" : String(visibleLowStock.length),
+            caption: "productos",
+          },
+          {
+            eyebrow: "Pasos completados",
+            value: isLoadingAny
+              ? "—"
+              : `${onboardingSteps.filter((s) => s.done).length}/${onboardingSteps.length}`,
+            caption: "configuración",
+          },
+        ].map((s, i) => (
+          <MPanel key={i} pad={20} style={{ minHeight: 130 }}>
+            <MStat eyebrow={s.eyebrow} value={s.value} caption={s.caption} />
+          </MPanel>
+        ))}
+      </div>
 
-      {/* KPI cards */}
-      {dashboardQuery.isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-bg-secondary border border-border" />
-          ))}
-        </div>
-      ) : error ? (
-        <Card>
-          <p className="text-sm text-danger">
-            {error instanceof Error ? error.message : "No se pudo cargar el dashboard."}
-          </p>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {cards.map((card) => (
-            <StatCard key={card.label} label={card.label} value={card.value} />
-          ))}
-        </div>
-      )}
-
-      <div className="grid gap-6 xl:grid-cols-[1.3fr_0.7fr]">
-        {/* Low stock table */}
-        <Card>
-          <CardHeader
-            title="Alertas de stock bajo"
+      {/* ENTITY LEDGER + ACTION QUEUE */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1.7fr 1fr",
+          gap: "var(--m-gut, 28px)",
+        }}
+      >
+        {/* Low stock table as entity ledger */}
+        <MPanel pad={24}>
+          <MSectionHead
+            eyebrow={`Alertas de stock · ${visibleLowStock.length} ítems`}
+            title="Stock Bajo"
             action={
               <Button href="/dashboard/products" variant="secondary" size="sm">
                 Ver catálogo
               </Button>
             }
           />
-          <Table>
-            <Table.Head>
-              <tr>
-                <Table.Th>Producto</Table.Th>
-                <Table.Th>Categoría</Table.Th>
-                <Table.Th>Stock</Table.Th>
-                <Table.Th>Umbral</Table.Th>
-                <Table.Th>{""}</Table.Th>
-              </tr>
-            </Table.Head>
-            {lowStockQuery.isLoading ? (
-              <Table.Loading rows={3} cols={5} />
-            ) : visibleLowStock.length === 0 ? (
-              <Table.Empty>
-                {lowStockItems.length === 0
-                  ? "Sin alertas de stock."
-                  : "Todas las alertas están ignoradas."}
-              </Table.Empty>
-            ) : (
-              <Table.Body>
-                {visibleLowStock.slice(0, 6).map((row) => (
-                  <Table.Row key={`${row.product_id}-${row.variant_id ?? "base"}`}>
-                    <Table.Cell>
-                      <span className="font-medium text-text-primary">{row.product_name}</span>
-                    </Table.Cell>
-                    <Table.Cell className="text-text-secondary">
-                      {row.category || "Sin categoría"}
-                    </Table.Cell>
-                    <Table.Cell>
-                      <Badge variant={row.quantity === 0 ? "danger" : "warning"}>
-                        {row.quantity} {row.unit}
-                      </Badge>
-                    </Table.Cell>
-                    <Table.Cell className="text-text-secondary">{row.low_stock_threshold}</Table.Cell>
-                    <Table.Cell>
-                      <button
-                        type="button"
-                        onClick={() => ignoreProduct(row.product_id)}
-                        className="text-xs text-text-secondary hover:text-text-primary transition-colors"
-                      >
-                        Ignorar 7d
-                      </button>
-                    </Table.Cell>
-                  </Table.Row>
-                ))}
-              </Table.Body>
-            )}
-          </Table>
-        </Card>
-
-        {/* Onboarding status */}
-        <Card>
-          <CardHeader title="Primeros pasos" />
-          {hasData ? (
-            <ul className="space-y-3">
-              {onboardingSteps.map((step) => (
-                <li key={step.href} className="flex items-center gap-3 text-sm">
-                  <span
-                    className={`w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold ${
-                      step.done ? "bg-accent text-black" : "border border-border"
-                    }`}
-                  >
-                    {step.done ? "✓" : ""}
-                  </span>
-                  <span className={step.done ? "text-text-muted line-through" : "text-text-secondary"}>
-                    {step.label}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <div className="space-y-2">
+          {/* Header row */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.6fr 1fr 0.8fr 0.8fr 1fr",
+              gap: 12,
+              paddingBottom: 10,
+              borderBottom: "1px solid var(--m-line)",
+            }}
+          >
+            {["Producto", "Categoría", "Stock", "Umbral", ""].map((h, i) => (
+              <MEyebrow key={i}>{h}</MEyebrow>
+            ))}
+          </div>
+          {lowStockQuery.isLoading ? (
+            <div style={{ paddingTop: 16 }}>
               {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-5 animate-pulse rounded bg-bg-elevated" />
+                <div
+                  key={i}
+                  style={{
+                    height: 44,
+                    marginBottom: 8,
+                    borderRadius: "var(--m-r-sm)",
+                    background: "var(--m-surface-2)",
+                    animation: "pulse 1.5s ease-in-out infinite",
+                  }}
+                />
               ))}
             </div>
+          ) : visibleLowStock.length === 0 ? (
+            <div
+              style={{
+                padding: "32px 0",
+                textAlign: "center",
+                color: "var(--m-ink-faint)",
+                fontFamily: "var(--m-mono)",
+                fontSize: 12,
+              }}
+            >
+              {lowStockItems.length === 0
+                ? "Sin alertas de stock."
+                : "Todas las alertas están ignoradas."}
+            </div>
+          ) : (
+            visibleLowStock.slice(0, 6).map((row) => (
+              <div
+                key={`${row.product_id}-${row.variant_id ?? "base"}`}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.6fr 1fr 0.8fr 0.8fr 1fr",
+                  gap: 12,
+                  alignItems: "center",
+                  padding: "13px 0",
+                  borderBottom: "1px solid var(--m-line-soft)",
+                }}
+              >
+                <div style={{ fontWeight: 600, fontSize: 13.5, color: "var(--m-ink)" }}>
+                  {row.product_name}
+                </div>
+                <span style={{ fontSize: 12.5, color: "var(--m-ink-dim)" }}>
+                  {row.category || "Sin categoría"}
+                </span>
+                <span
+                  className="m-mono m-tnum"
+                  style={{
+                    fontSize: 13,
+                    color: row.quantity === 0 ? "var(--m-neg)" : "var(--m-warn)",
+                  }}
+                >
+                  {row.quantity} {row.unit}
+                </span>
+                <span className="m-mono m-tnum" style={{ fontSize: 12, color: "var(--m-ink-dim)" }}>
+                  {row.low_stock_threshold}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => ignoreProduct(row.product_id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--m-ink-faint)",
+                    fontSize: 11,
+                    fontFamily: "var(--m-mono)",
+                    cursor: "pointer",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  Ignorar 7d
+                </button>
+              </div>
+            ))
           )}
-        </Card>
+        </MPanel>
+
+        {/* Action queue */}
+        <MPanel pad={24} style={{ display: "flex", flexDirection: "column" }}>
+          <MSectionHead
+            eyebrow={`Requiere atención · ${alertQueue.length}`}
+            title="Cola de Acción"
+          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {alertQueue.map((a, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 13,
+                  padding: "13px 0",
+                  borderBottom:
+                    i < alertQueue.length - 1
+                      ? "1px solid var(--m-line-soft)"
+                      : "none",
+                  alignItems: "flex-start",
+                }}
+              >
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: 999,
+                    marginTop: 5,
+                    flexShrink: 0,
+                    background:
+                      a.tone === "critical"
+                        ? "var(--m-neg)"
+                        : a.tone === "medium"
+                        ? "var(--m-warn)"
+                        : "var(--m-pos)",
+                  }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      color: "var(--m-ink)",
+                    }}
+                  >
+                    {a.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: "var(--m-ink-faint)",
+                      marginTop: 3,
+                    }}
+                  >
+                    {a.sub}
+                  </div>
+                </div>
+                <span
+                  className="m-mono"
+                  style={{ fontSize: 10, color: "var(--m-ink-faint)", flexShrink: 0 }}
+                >
+                  {a.tag}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Onboarding mini */}
+          {hasData && !allStepsDone && (
+            <div style={{ marginTop: "auto", paddingTop: 18 }}>
+              <MThread />
+              <div style={{ paddingTop: 14 }}>
+                <MEyebrow style={{ marginBottom: 12 }}>Primeros pasos</MEyebrow>
+                {onboardingSteps.map((step) => (
+                  <div
+                    key={step.href}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "7px 0",
+                      fontSize: 12.5,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: 999,
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        background: step.done
+                          ? "var(--m-pos)"
+                          : "transparent",
+                        border: step.done
+                          ? "none"
+                          : "1px solid var(--m-line)",
+                        color: step.done ? "var(--m-accent-ink)" : "transparent",
+                      }}
+                    >
+                      {step.done ? "✓" : ""}
+                    </span>
+                    <span
+                      style={{
+                        color: step.done
+                          ? "var(--m-ink-faint)"
+                          : "var(--m-ink-dim)",
+                        textDecoration: step.done ? "line-through" : "none",
+                      }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </MPanel>
       </div>
-    </div>
+    </MPage>
   );
 }

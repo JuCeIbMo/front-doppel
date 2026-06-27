@@ -16,12 +16,17 @@ import {
   Legend,
 } from "recharts";
 import { Button } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { StatCard } from "@/components/ui/StatCard";
 import { Input } from "@/components/ui/Input";
-import { Table } from "@/components/ui/Table";
-import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
+import {
+  MPage,
+  MPanel,
+  MStat,
+  MSectionHead,
+  MPill,
+  MThread,
+  MEyebrow,
+} from "@/components/ui/MeridianKit";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
 import { clearToken } from "@/lib/auth";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -216,16 +221,11 @@ export function ErpFinanceView() {
     : transactions;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* PAGE HEADER */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">Finanzas</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Saldo de cajas y transacciones.
-          </p>
-        </div>
-        <div className="flex gap-3">
+    <MPage
+      eyebrow="Módulo de finanzas · Consolidado"
+      title="Finanzas"
+      right={
+        <div style={{ display: "flex", gap: 10 }}>
           <Button variant="secondary" size="sm" onClick={() => setAccountOpen(true)}>
             Nueva caja
           </Button>
@@ -233,50 +233,75 @@ export function ErpFinanceView() {
             Nueva transacción
           </Button>
         </div>
-      </div>
-
-      {/* ACCOUNTS GRID */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      }
+    >
+      {/* ACCOUNTS — KPI STRIP */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "var(--m-gut, 28px)",
+          marginBottom: "var(--m-gut, 28px)",
+        }}
+      >
         {accountsQuery.isLoading
-          ? Array.from({ length: 4 }).map((_, index) => (
+          ? Array.from({ length: 4 }).map((_, i) => (
               <div
-                key={index}
-                className="bg-bg-secondary border border-border rounded-xl h-28 animate-pulse"
+                key={i}
+                style={{
+                  height: 120,
+                  borderRadius: "var(--m-r)",
+                  background: "var(--m-surface-2)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
               />
             ))
-          : accounts.map((account) => (
-              <div key={account.id} className="relative">
-                <StatCard
-                  label={account.name}
-                  value={format(account.balance)}
-                  delta={`${account.type} · ${account.is_active ? "Activa" : "Inactiva"}`}
-                  deltaPositive={account.is_active}
-                />
-                <button
-                  type="button"
-                  onClick={() =>
-                    setEditingAccount({
-                      id: account.id,
-                      name: account.name,
-                      type: account.type,
-                      is_default: account.is_default,
-                      is_active: account.is_active,
-                    })
-                  }
-                  className="absolute top-4 right-4 text-xs text-text-muted hover:text-text-primary transition-colors"
-                >
-                  Editar
-                </button>
-              </div>
+          : accounts.slice(0, 4).map((account) => (
+              <MPanel key={account.id} pad={20} style={{ minHeight: 120 }}>
+                <div style={{ position: "relative" }}>
+                  <MStat
+                    eyebrow={account.name}
+                    value={format(account.balance)}
+                    caption={`${account.type} · ${account.is_active ? "Activa" : "Inactiva"}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setEditingAccount({
+                        id: account.id,
+                        name: account.name,
+                        type: account.type,
+                        is_default: account.is_default,
+                        is_active: account.is_active,
+                      })
+                    }
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      background: "none",
+                      border: "none",
+                      color: "var(--m-ink-faint)",
+                      fontSize: 11,
+                      fontFamily: "var(--m-mono)",
+                      cursor: "pointer",
+                      letterSpacing: "0.06em",
+                    }}
+                  >
+                    Editar
+                  </button>
+                </div>
+              </MPanel>
             ))}
       </div>
 
       {/* CASHFLOW CHART */}
-      <Card>
-        <CardHeader
-          title="Flujo de caja"
+      <MPanel pad={24} style={{ marginBottom: "var(--m-gut, 28px)" }}>
+        <MSectionHead
+          eyebrow="Flujo de caja · por día"
+          title="Trayectoria de Caja"
           action={
-            <div className="flex gap-2">
+            <div style={{ display: "flex", gap: 8 }}>
               <Input
                 type="date"
                 value={fromDate}
@@ -304,7 +329,14 @@ export function ErpFinanceView() {
         />
 
         {cashflowQuery.isLoading && (
-          <div className="h-60 animate-pulse rounded-xl bg-white/5" />
+          <div
+            style={{
+              height: 240,
+              borderRadius: "var(--m-r-sm)",
+              background: "var(--m-surface-2)",
+              animation: "pulse 1.5s ease-in-out infinite",
+            }}
+          />
         )}
 
         {cashflowQuery.data?.items && cashflowQuery.data.items.length > 0 && (
@@ -317,20 +349,40 @@ export function ErpFinanceView() {
                 if (typeof label === "string" && label) setDrillDate(label);
               }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-              <XAxis dataKey="label" tick={{ fill: "#9ca3af", fontSize: 12 }} />
-              <YAxis tick={{ fill: "#9ca3af", fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{ background: "#111", border: "1px solid rgba(255,255,255,0.1)" }}
-                labelStyle={{ color: "#fff" }}
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--m-line)" />
+              <XAxis
+                dataKey="label"
+                tick={{ fill: "var(--m-ink-faint)", fontSize: 10, fontFamily: "var(--m-mono)" }}
               />
-              <Legend />
-              <Bar dataKey="income" fill="#25d366" name="Ingresos" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="expense" fill="#ef4444" name="Egresos" radius={[4, 4, 0, 0]} />
+              <YAxis
+                tick={{ fill: "var(--m-ink-faint)", fontSize: 10, fontFamily: "var(--m-mono)" }}
+              />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--m-panel)",
+                  border: "1px solid var(--m-line)",
+                  borderRadius: "var(--m-r-sm)",
+                  color: "var(--m-ink)",
+                  fontFamily: "var(--m-mono)",
+                  fontSize: 11,
+                }}
+                labelStyle={{ color: "var(--m-ink)" }}
+              />
+              <Legend
+                wrapperStyle={{
+                  fontFamily: "var(--m-mono)",
+                  fontSize: 10,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "var(--m-ink-dim)",
+                }}
+              />
+              <Bar dataKey="income" fill="var(--m-pos)" name="Ingresos" radius={[3, 3, 0, 0]} opacity={0.85} />
+              <Bar dataKey="expense" fill="var(--m-neg)" name="Egresos" radius={[3, 3, 0, 0]} opacity={0.85} />
               <Line
                 type="monotone"
                 dataKey="net"
-                stroke="#ffffff"
+                stroke="var(--m-accent)"
                 strokeWidth={2}
                 dot={false}
                 name="Neto"
@@ -340,132 +392,206 @@ export function ErpFinanceView() {
         )}
 
         {cashflowQuery.data?.items?.length === 0 && (
-          <p className="text-sm text-text-secondary text-center py-8">
+          <div
+            style={{
+              padding: "40px 0",
+              textAlign: "center",
+              color: "var(--m-ink-faint)",
+              fontFamily: "var(--m-mono)",
+              fontSize: 12,
+            }}
+          >
             No hay datos para el período seleccionado.
-          </p>
+          </div>
         )}
-      </Card>
+      </MPanel>
 
-      {/* TRANSACTIONS */}
-      <Card>
+      {/* TRANSACTIONS — book ledger */}
+      <MPanel pad={24}>
         {drillDate && (
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm text-text-secondary">Mostrando: {drillDate}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+            <span style={{ fontSize: 12, color: "var(--m-ink-dim)", fontFamily: "var(--m-mono)" }}>
+              Mostrando: {drillDate}
+            </span>
             <button
               type="button"
               onClick={() => setDrillDate(null)}
-              className="text-xs text-accent hover:text-accent/80"
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--m-accent)",
+                fontFamily: "var(--m-mono)",
+                fontSize: 11,
+                cursor: "pointer",
+              }}
             >
-              ✕ Limpiar filtro
+              ✕ Limpiar
             </button>
           </div>
         )}
-        <CardHeader title="Transacciones" />
-        {transactionsQuery.isLoading ? (
-          <Table><Table.Loading rows={5} cols={5} /></Table>
-        ) : error ? (
-          <p className="text-sm text-danger">
-            {error instanceof Error ? error.message : "No se pudo cargar finanzas."}
-          </p>
-        ) : displayedTransactions.length === 0 ? (
-          <Table><Table.Empty>No hay transacciones registradas todavía.</Table.Empty></Table>
-        ) : (
-          <Table>
-            <Table.Head>
-              <tr>
-                <Table.Th>Fecha</Table.Th>
-                <Table.Th>Tipo</Table.Th>
-                <Table.Th>Categoría</Table.Th>
-                <Table.Th>Descripción</Table.Th>
-                <Table.Th className="text-right">Monto</Table.Th>
-              </tr>
-            </Table.Head>
-            <Table.Body>
-              {displayedTransactions.map((transaction) => (
-                <Table.Row key={transaction.id}>
-                  <Table.Cell className="text-text-muted text-xs">{transaction.date}</Table.Cell>
-                  <Table.Cell>
-                    <Badge variant={transaction.type === "income" ? "success" : "danger"}>
-                      {transaction.type === "income" ? "Ingreso" : "Egreso"}
-                    </Badge>
-                  </Table.Cell>
-                  <Table.Cell className="text-text-primary">{transaction.category}</Table.Cell>
-                  <Table.Cell className="text-text-muted">{transaction.description || "—"}</Table.Cell>
-                  <Table.Cell className={`text-right font-semibold ${transaction.type === "income" ? "text-accent" : "text-danger"}`}>
-                    {transaction.type === "income" ? "+" : "-"}{format(transaction.amount)}
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        )}
-      </Card>
+        <MSectionHead eyebrow="Libro de transacciones" title="Transacciones" />
 
-      <Pagination
-        page={page}
-        onPrev={prevPage}
-        onNext={nextPage}
-        hasMore={hasMore}
-        isLoading={transactionsQuery.isLoading}
-      />
+        {/* header row */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 0.8fr 1fr 1.6fr 1fr",
+            gap: 14,
+            paddingBottom: 10,
+            borderBottom: "1px solid var(--m-line)",
+          }}
+        >
+          {["Fecha", "Tipo", "Categoría", "Descripción", "Monto"].map((h) => (
+            <MEyebrow key={h}>{h}</MEyebrow>
+          ))}
+        </div>
+
+        {transactionsQuery.isLoading ? (
+          <div style={{ paddingTop: 16 }}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  height: 44,
+                  marginBottom: 8,
+                  borderRadius: "var(--m-r-sm)",
+                  background: "var(--m-surface-2)",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                }}
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <div style={{ padding: "20px 0", color: "var(--m-neg)", fontSize: 13 }}>
+            {error instanceof Error ? error.message : "No se pudo cargar finanzas."}
+          </div>
+        ) : displayedTransactions.length === 0 ? (
+          <div
+            style={{
+              padding: "32px 0",
+              textAlign: "center",
+              color: "var(--m-ink-faint)",
+              fontFamily: "var(--m-mono)",
+              fontSize: 12,
+            }}
+          >
+            No hay transacciones registradas todavía.
+          </div>
+        ) : (
+          displayedTransactions.map((tx, i) => (
+            <div
+              key={tx.id}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 0.8fr 1fr 1.6fr 1fr",
+                gap: 14,
+                alignItems: "center",
+                padding: "13px 0",
+                borderBottom:
+                  i < displayedTransactions.length - 1
+                    ? "1px solid var(--m-line-soft)"
+                    : "none",
+              }}
+            >
+              <span
+                className="m-mono m-tnum"
+                style={{ fontSize: 11.5, color: "var(--m-ink-faint)" }}
+              >
+                {tx.date}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  fontSize: 10,
+                  fontFamily: "var(--m-mono)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: tx.type === "income" ? "var(--m-pos)" : "var(--m-neg)",
+                  border: "1px solid currentColor",
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                }}
+              >
+                <span style={{ width: 4, height: 4, borderRadius: 999, background: "currentColor" }} />
+                {tx.type === "income" ? "Ingreso" : "Egreso"}
+              </span>
+              <span style={{ fontSize: 13, color: "var(--m-ink)" }}>{tx.category}</span>
+              <span style={{ fontSize: 12.5, color: "var(--m-ink-dim)" }}>
+                {tx.description || "—"}
+              </span>
+              <span
+                className="m-mono m-tnum"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: tx.type === "income" ? "var(--m-pos)" : "var(--m-neg)",
+                  textAlign: "right",
+                }}
+              >
+                {tx.type === "income" ? "+" : "-"}
+                {format(tx.amount)}
+              </span>
+            </div>
+          ))
+        )}
+      </MPanel>
+
+      <div style={{ marginTop: 16 }}>
+        <Pagination
+          page={page}
+          onPrev={prevPage}
+          onNext={nextPage}
+          hasMore={hasMore}
+          isLoading={transactionsQuery.isLoading}
+        />
+      </div>
 
       {/* MODAL: Nueva caja */}
       {accountOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 50,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.75)",
+            padding: "0 16px",
+          }}
           onClick={() => setAccountOpen(false)}
         >
           <div
-            className="w-full max-w-xl rounded-xl border border-border bg-bg-secondary p-6"
-            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 480,
+              background: "var(--m-panel)",
+              border: "1px solid var(--m-line)",
+              borderRadius: "var(--m-r)",
+              padding: 28,
+            }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-base font-semibold text-text-primary">Nueva caja</h2>
-              <button
-                type="button"
-                onClick={() => setAccountOpen(false)}
-                className="text-sm text-text-secondary hover:text-text-primary"
-              >
-                Cerrar
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 className="m-serif" style={{ margin: 0, fontSize: 22, fontWeight: 500, color: "var(--m-ink)" }}>
+                Nueva caja
+              </h2>
+              <button type="button" onClick={() => setAccountOpen(false)} style={{ background: "none", border: "none", color: "var(--m-ink-faint)", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
-            <div className="grid gap-4">
-              <Input
-                label="Nombre"
-                value={accountDraft.name}
-                onChange={(event) =>
-                  setAccountDraft((current) => ({ ...current, name: event.target.value }))
-                }
-              />
-              <Input
-                label="Tipo"
-                value={accountDraft.type}
-                onChange={(event) =>
-                  setAccountDraft((current) => ({ ...current, type: event.target.value }))
-                }
-              />
-              <label className="inline-flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={accountDraft.is_default}
-                  onChange={(event) =>
-                    setAccountDraft((current) => ({ ...current, is_default: event.target.checked }))
-                  }
-                />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Input label="Nombre" value={accountDraft.name} onChange={(e) => setAccountDraft((c) => ({ ...c, name: e.target.value }))} />
+              <Input label="Tipo" value={accountDraft.type} onChange={(e) => setAccountDraft((c) => ({ ...c, type: e.target.value }))} />
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--m-ink-dim)" }}>
+                <input type="checkbox" checked={accountDraft.is_default} onChange={(e) => setAccountDraft((c) => ({ ...c, is_default: e.target.checked }))} />
                 Caja por defecto
               </label>
             </div>
-            {accountError ? <p className="mt-4 text-sm text-danger">{accountError}</p> : null}
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setAccountOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => createAccountMutation.mutate()}
-                disabled={createAccountMutation.isPending}
-              >
+            {accountError && <p style={{ marginTop: 14, fontSize: 12, color: "var(--m-neg)" }}>{accountError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
+              <Button variant="ghost" size="sm" onClick={() => setAccountOpen(false)}>Cancelar</Button>
+              <Button variant="primary" size="sm" onClick={() => createAccountMutation.mutate()} disabled={createAccountMutation.isPending}>
                 {createAccountMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -476,129 +602,62 @@ export function ErpFinanceView() {
       {/* MODAL: Nueva transacción */}
       {transactionOpen ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.75)", padding: "0 16px" }}
           onClick={() => setTransactionOpen(false)}
         >
           <div
-            className="w-full max-w-2xl rounded-xl border border-border bg-bg-secondary p-6"
-            onClick={(event) => event.stopPropagation()}
+            style={{ width: "100%", maxWidth: 640, background: "var(--m-panel)", border: "1px solid var(--m-line)", borderRadius: "var(--m-r)", padding: 28 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-base font-semibold text-text-primary">Nueva transacción</h2>
-              <button
-                type="button"
-                onClick={() => setTransactionOpen(false)}
-                className="text-sm text-text-secondary hover:text-text-primary"
-              >
-                Cerrar
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 className="m-serif" style={{ margin: 0, fontSize: 22, fontWeight: 500, color: "var(--m-ink)" }}>Nueva transacción</h2>
+              <button type="button" onClick={() => setTransactionOpen(false)} style={{ background: "none", border: "none", color: "var(--m-ink-faint)", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
-                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
-                  Tipo
-                </label>
+                <MEyebrow style={{ marginBottom: 6 }}>Tipo</MEyebrow>
                 <select
                   value={transactionDraft.type}
-                  onChange={(event) =>
-                    setTransactionDraft((current) => ({
-                      ...current,
-                      type: event.target.value as "income" | "expense",
-                    }))
-                  }
-                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
+                  onChange={(e) => setTransactionDraft((c) => ({ ...c, type: e.target.value as "income" | "expense" }))}
+                  style={{ width: "100%", padding: "8px 12px", background: "var(--m-surface-2)", border: "1px solid var(--m-line)", borderRadius: "var(--m-r-sm)", color: "var(--m-ink)", fontFamily: "var(--m-sans)", fontSize: 13 }}
                 >
                   <option value="income">Ingreso</option>
                   <option value="expense">Egreso</option>
                 </select>
               </div>
-              <Input
-                label="Monto"
-                value={transactionDraft.amount}
-                onChange={(event) =>
-                  setTransactionDraft((current) => ({ ...current, amount: event.target.value }))
-                }
-              />
+              <Input label="Monto" value={transactionDraft.amount} onChange={(e) => setTransactionDraft((c) => ({ ...c, amount: e.target.value }))} />
               <div>
-                <Input
-                  label="Categoría"
-                  value={transactionDraft.category}
-                  list="finance-categories"
-                  onChange={(event) =>
-                    setTransactionDraft((current) => ({
-                      ...current,
-                      category: event.target.value,
-                    }))
-                  }
-                />
-                <datalist id="finance-categories">
-                  {categories.map((category) => (
-                    <option key={category} value={category} />
-                  ))}
-                </datalist>
+                <Input label="Categoría" value={transactionDraft.category} list="finance-categories" onChange={(e) => setTransactionDraft((c) => ({ ...c, category: e.target.value }))} />
+                <datalist id="finance-categories">{categories.map((cat) => <option key={cat} value={cat} />)}</datalist>
               </div>
               <div>
-                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
-                  Caja
-                </label>
+                <MEyebrow style={{ marginBottom: 6 }}>Caja</MEyebrow>
                 <select
                   value={transactionDraft.cash_account_id}
-                  onChange={(event) =>
-                    setTransactionDraft((current) => ({
-                      ...current,
-                      cash_account_id: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors"
+                  onChange={(e) => setTransactionDraft((c) => ({ ...c, cash_account_id: e.target.value }))}
+                  style={{ width: "100%", padding: "8px 12px", background: "var(--m-surface-2)", border: "1px solid var(--m-line)", borderRadius: "var(--m-r-sm)", color: "var(--m-ink)", fontFamily: "var(--m-sans)", fontSize: 13 }}
                 >
                   <option value="">Sin caja</option>
-                  {accounts.map((account) => (
-                    <option key={account.id} value={account.id}>
-                      {account.name}
-                    </option>
-                  ))}
+                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
-              <div className="md:col-span-2">
-                <Input
-                  label="Fecha (opcional)"
-                  placeholder="YYYY-MM-DD"
-                  value={transactionDraft.date}
-                  onChange={(event) =>
-                    setTransactionDraft((current) => ({ ...current, date: event.target.value }))
-                  }
-                />
+              <div style={{ gridColumn: "1 / -1" }}>
+                <Input label="Fecha (opcional)" placeholder="YYYY-MM-DD" value={transactionDraft.date} onChange={(e) => setTransactionDraft((c) => ({ ...c, date: e.target.value }))} />
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-text-muted uppercase tracking-wide mb-1.5">
-                  Descripción
-                </label>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <MEyebrow style={{ marginBottom: 6 }}>Descripción</MEyebrow>
                 <textarea
                   value={transactionDraft.description}
-                  onChange={(event) =>
-                    setTransactionDraft((current) => ({
-                      ...current,
-                      description: event.target.value,
-                    }))
-                  }
+                  onChange={(e) => setTransactionDraft((c) => ({ ...c, description: e.target.value }))}
                   rows={3}
-                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
+                  style={{ width: "100%", padding: "8px 12px", background: "var(--m-surface-2)", border: "1px solid var(--m-line)", borderRadius: "var(--m-r-sm)", color: "var(--m-ink)", fontFamily: "var(--m-sans)", fontSize: 13, resize: "none", outline: "none" }}
                 />
               </div>
             </div>
-            {transactionError ? (
-              <p className="mt-4 text-sm text-danger">{transactionError}</p>
-            ) : null}
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setTransactionOpen(false)}>
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => createTransactionMutation.mutate()}
-                disabled={createTransactionMutation.isPending}
-              >
+            {transactionError && <p style={{ marginTop: 14, fontSize: 12, color: "var(--m-neg)" }}>{transactionError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
+              <Button variant="ghost" size="sm" onClick={() => setTransactionOpen(false)}>Cancelar</Button>
+              <Button variant="primary" size="sm" onClick={() => createTransactionMutation.mutate()} disabled={createTransactionMutation.isPending}>
                 {createTransactionMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
@@ -609,86 +668,39 @@ export function ErpFinanceView() {
       {/* MODAL: Editar caja */}
       {editingAccount ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
+          style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.75)", padding: "0 16px" }}
           onClick={() => setEditingAccount(null)}
         >
           <div
-            className="w-full max-w-xl rounded-xl border border-border bg-bg-secondary p-6"
-            onClick={(event) => event.stopPropagation()}
+            style={{ width: "100%", maxWidth: 480, background: "var(--m-panel)", border: "1px solid var(--m-line)", borderRadius: "var(--m-r)", padding: 28 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <h2 className="text-base font-semibold text-text-primary">Editar caja</h2>
-              <button
-                type="button"
-                onClick={() => setEditingAccount(null)}
-                className="text-sm text-text-secondary hover:text-text-primary"
-              >
-                Cerrar
-              </button>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 className="m-serif" style={{ margin: 0, fontSize: 22, fontWeight: 500, color: "var(--m-ink)" }}>Editar caja</h2>
+              <button type="button" onClick={() => setEditingAccount(null)} style={{ background: "none", border: "none", color: "var(--m-ink-faint)", cursor: "pointer", fontSize: 18 }}>✕</button>
             </div>
-            <div className="grid gap-4">
-              <Input
-                label="Nombre"
-                value={editingAccount.name}
-                onChange={(event) =>
-                  setEditingAccount((current) =>
-                    current ? { ...current, name: event.target.value } : current
-                  )
-                }
-              />
-              <Input
-                label="Tipo"
-                value={editingAccount.type}
-                onChange={(event) =>
-                  setEditingAccount((current) =>
-                    current ? { ...current, type: event.target.value } : current
-                  )
-                }
-              />
-              <label className="inline-flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editingAccount.is_default}
-                  onChange={(event) =>
-                    setEditingAccount((current) =>
-                      current ? { ...current, is_default: event.target.checked } : current
-                    )
-                  }
-                />
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <Input label="Nombre" value={editingAccount.name} onChange={(e) => setEditingAccount((c) => c ? { ...c, name: e.target.value } : c)} />
+              <Input label="Tipo" value={editingAccount.type} onChange={(e) => setEditingAccount((c) => c ? { ...c, type: e.target.value } : c)} />
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--m-ink-dim)" }}>
+                <input type="checkbox" checked={editingAccount.is_default} onChange={(e) => setEditingAccount((c) => c ? { ...c, is_default: e.target.checked } : c)} />
                 Caja por defecto
               </label>
-              <label className="inline-flex items-center gap-3 text-sm">
-                <input
-                  type="checkbox"
-                  checked={editingAccount.is_active}
-                  onChange={(event) =>
-                    setEditingAccount((current) =>
-                      current ? { ...current, is_active: event.target.checked } : current
-                    )
-                  }
-                />
+              <label style={{ display: "inline-flex", alignItems: "center", gap: 10, fontSize: 13, color: "var(--m-ink-dim)" }}>
+                <input type="checkbox" checked={editingAccount.is_active} onChange={(e) => setEditingAccount((c) => c ? { ...c, is_active: e.target.checked } : c)} />
                 Caja activa
               </label>
             </div>
-            {editAccountError ? (
-              <p className="mt-4 text-sm text-danger">{editAccountError}</p>
-            ) : null}
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="ghost" size="sm" onClick={() => setEditingAccount(null)}>
-                Cancelar
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => updateAccountMutation.mutate()}
-                disabled={updateAccountMutation.isPending}
-              >
+            {editAccountError && <p style={{ marginTop: 14, fontSize: 12, color: "var(--m-neg)" }}>{editAccountError}</p>}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 24 }}>
+              <Button variant="ghost" size="sm" onClick={() => setEditingAccount(null)}>Cancelar</Button>
+              <Button variant="primary" size="sm" onClick={() => updateAccountMutation.mutate()} disabled={updateAccountMutation.isPending}>
                 {updateAccountMutation.isPending ? "Guardando..." : "Guardar"}
               </Button>
             </div>
           </div>
         </div>
       ) : null}
-    </div>
+    </MPage>
   );
 }
