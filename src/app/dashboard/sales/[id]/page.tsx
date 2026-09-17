@@ -8,7 +8,7 @@ export default async function DashboardSaleDetailPage({
 }) {
   const { id } = await params;
   return (
-    <ComingSoonGate feature="sales" title="Venta">
+    <ComingSoonGate feature="saleDetail" title="Venta">
       <ErpSaleDetailView saleId={id} />
     </ComingSoonGate>
   );

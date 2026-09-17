@@ -4,17 +4,6 @@ export interface InsightPoint {
   secondary: number | null;
 }
 
-export interface ActivityInsight {
-  id: string;
-  title: string;
-  subtitle: string;
-  timestamp: string;
-  entity_type?: string;
-  entity_id?: string;
-  module?: string;
-  isAi?: boolean;
-}
-
 function asArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value;
   if (value && typeof value === "object") {
@@ -77,44 +66,4 @@ export function normalizeSeries(payload: unknown): InsightPoint[] {
       return { label, value, secondary };
     })
     .filter((entry): entry is InsightPoint => Boolean(entry));
-}
-
-function isAiActor(actor: string): boolean {
-  const lower = actor.toLowerCase();
-  return lower.includes("bot") || lower.includes("whatsapp") || lower.includes("ai") || lower.includes("ia");
-}
-
-export function normalizeActivityItems(payload: unknown): ActivityInsight[] {
-  const results: ActivityInsight[] = [];
-  for (const [index, entry] of asArray(payload).entries()) {
-    if (!entry || typeof entry !== "object") continue;
-    const record = entry as Record<string, unknown>;
-    const title =
-      asString(record.action) ??
-      asString(record.title) ??
-      asString(record.event) ??
-      "Actividad";
-    const actor = asString(record.actor) ?? "sistema";
-    const detail = asString(record.detail) ?? asString(record.description) ?? "";
-    const timestamp =
-      asString(record.created_at) ?? asString(record.timestamp) ?? new Date(0).toISOString();
-
-    const item: ActivityInsight = {
-      id: asString(record.id) ?? `activity-${index}`,
-      title,
-      subtitle: detail ? `${actor} · ${detail}` : actor,
-      timestamp,
-      isAi: isAiActor(actor),
-    };
-
-    const entityType = asString(record.entity_type);
-    const entityId = asString(record.entity_id) ?? asString(record.reference_id) ?? null;
-    const mod = asString(record.module);
-    if (entityType !== null) item.entity_type = entityType;
-    if (entityId !== null) item.entity_id = entityId;
-    if (mod !== null) item.module = mod;
-
-    results.push(item);
-  }
-  return results;
 }

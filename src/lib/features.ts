@@ -7,11 +7,10 @@ const featureStatus = {
   overview: "soon",
   products: "soon",
   inventory: "soon",
-  sales: "soon",
+  saleDetail: "soon",
   clients: "soon",
   finance: "soon",
   reports: "soon",
-  activity: "soon",
   settings: "soon",
 } as const satisfies Record<string, FeatureStatus>;
 

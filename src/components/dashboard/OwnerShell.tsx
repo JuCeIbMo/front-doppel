@@ -31,14 +31,14 @@ const coreLinks: NavLink[] = [
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: "overview" },
   { href: "/dashboard/products", label: "Productos", icon: Package, feature: "products" },
   { href: "/dashboard/inventory", label: "Inventario", icon: Boxes, feature: "inventory" },
-  { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: "sales" },
+  { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, feature: "clients" },
   { href: "/dashboard/finance", label: "Finanzas", icon: Wallet, feature: "finance" },
 ];
 
 const toolLinks: NavLink[] = [
   { href: "/dashboard/reports", label: "Reportes", icon: BarChart2, feature: "reports" },
-  { href: "/dashboard/activity", label: "Bitácora", icon: Activity, feature: "activity" },
+  { href: "/dashboard/activity", label: "Bitácora", icon: Activity, feature: null },
   { href: "/dashboard/settings", label: "Settings", icon: Settings, feature: "settings" },
 ];
 
