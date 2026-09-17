@@ -4,56 +4,46 @@ import {
   filterConversations,
   getConversationStorageKey,
   mergeConversationMeta,
+  messageText,
   readConversationMetaMap,
   writeConversationMetaMap,
 } from "@/components/dashboard/automation-crm";
 
-const messages = [
+const conversations = [
   {
-    id: "m1",
-    user_phone: "59170000001",
-    direction: "inbound",
-    content: "Hola, precio?",
-    message_type: "text",
-    created_at: "2026-06-17T10:00:00.000Z",
+    id: "c1",
+    contact_code: "AAAAAA",
+    whatsapp_number: "59170000001",
+    last_message_at: "2026-06-17T12:00:00.000Z",
+    last_message_body: "Si, claro",
+    intervention_started_at: null,
   },
   {
-    id: "m2",
-    user_phone: "59170000002",
-    direction: "inbound",
-    content: "Siguen atendiendo?",
-    message_type: "text",
-    created_at: "2026-06-17T11:00:00.000Z",
-  },
-  {
-    id: "m3",
-    user_phone: "59170000001",
-    direction: "outbound",
-    content: "Si, claro",
-    message_type: "text",
-    created_at: "2026-06-17T12:00:00.000Z",
+    id: "c2",
+    contact_code: "BBBBBB",
+    whatsapp_number: "59170000002",
+    last_message_at: "2026-06-17T11:00:00.000Z",
+    last_message_body: "Siguen atendiendo?",
+    intervention_started_at: "2026-06-17T11:05:00.000Z",
   },
 ];
 
 describe("buildConversationSummaries", () => {
-  it("groups flat messages by phone and sorts by most recent activity", () => {
-    const conversations = buildConversationSummaries("tenant_1", messages, {});
+  it("lists the Pipeline's conversations by most recent activity", () => {
+    const summaries = buildConversationSummaries([...conversations].reverse(), {});
 
-    expect(conversations).toHaveLength(2);
-    expect(conversations[0]).toMatchObject({
-      phone: "59170000001",
+    expect(summaries.map((s) => s.phone)).toEqual(["59170000001", "59170000002"]);
+    expect(summaries[0]).toMatchObject({
+      conversationId: "c1",
+      contactCode: "AAAAAA",
       lastMessage: "Si, claro",
-      inboundCount: 1,
-      outboundCount: 1,
+      humanTakeover: false,
     });
-    expect(conversations[1]).toMatchObject({
-      phone: "59170000002",
-      lastMessage: "Siguen atendiendo?",
-    });
+    expect(summaries[1].humanTakeover).toBe(true);
   });
 
-  it("merges persisted CRM metadata into the derived conversation", () => {
-    const conversations = buildConversationSummaries("tenant_1", messages, {
+  it("merges persisted CRM metadata into the conversation", () => {
+    const summaries = buildConversationSummaries(conversations, {
       "59170000001": {
         leadStatus: "warm",
         notes: "Pidio precios",
@@ -62,7 +52,7 @@ describe("buildConversationSummaries", () => {
       },
     });
 
-    expect(conversations[0]).toMatchObject({
+    expect(summaries[0]).toMatchObject({
       displayName: "Andrea",
       leadStatus: "warm",
       notes: "Pidio precios",
@@ -73,7 +63,7 @@ describe("buildConversationSummaries", () => {
 
 describe("filterConversations", () => {
   it("filters by warm lead state and text query", () => {
-    const base = buildConversationSummaries("tenant_1", messages, {
+    const base = buildConversationSummaries(conversations, {
       "59170000001": {
         leadStatus: "warm",
         notes: "",
@@ -85,6 +75,32 @@ describe("filterConversations", () => {
     expect(filterConversations(base, { filter: "warm", query: "" })).toHaveLength(1);
     expect(filterConversations(base, { filter: "all", query: "andre" })[0].phone).toBe(
       "59170000001",
+    );
+  });
+});
+
+describe("messageText", () => {
+  const base = {
+    id: "m",
+    direction: "inbound" as const,
+    body: "",
+    created_at: "2026-06-17T12:00:00.000Z",
+    code: "M1",
+    media_type: null,
+    media_url: null,
+    transcript: null,
+    summary: null,
+    media_state: null,
+  };
+
+  it("prefers the text, then what was heard, then what was read", () => {
+    expect(messageText({ ...base, body: "hola" })).toBe("hola");
+    expect(messageText({ ...base, media_type: "audio", transcript: "dos poleras" })).toBe(
+      "dos poleras",
+    );
+    expect(messageText({ ...base, media_type: "image", summary: "Yape de 45" })).toBe("Yape de 45");
+    expect(messageText({ ...base, media_type: "image", media_state: "pending" })).toBe(
+      "Procesando image…",
     );
   });
 });

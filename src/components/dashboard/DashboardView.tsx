@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
+import { runOperation, runOperationOrThrow } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
@@ -15,47 +16,23 @@ import {
   writeConversationMetaMap,
   type ConversationFilter,
   type ConversationMeta,
+  messageText,
   type ConversationSummary,
-  type FlatMessage,
   type LeadStatus,
+  type PipelineConversation,
+  type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
 
-interface Tenant {
+interface Business {
   id: string;
-  business_name: string;
-  email: string | null;
-  plan: string;
-  status: string;
+  name: string;
 }
 
-interface WhatsAppAccount {
-  id: string;
-  waba_id: string;
+interface WhatsappLine {
   phone_number_id: string;
-  display_phone: string | null;
-  status: string;
+  display_phone_number: string;
+  public_agent_enabled: boolean;
 }
-
-interface BotConfig {
-  id: string;
-  system_prompt: string;
-  welcome_message: string;
-  language: string;
-  bot_enabled: boolean;
-}
-
-interface MessagePage {
-  messages: FlatMessage[];
-  total: number;
-  limit: number;
-  offset: number;
-}
-
-interface AdminPhonesPayload {
-  phones: string[];
-}
-
-type SaveStatus = "idle" | "saving" | "ok" | "error";
 
 const FILTER_OPTIONS: Array<{ id: ConversationFilter; label: string }> = [
   { id: "all", label: "Todos" },
@@ -86,7 +63,8 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function formatRelativeTime(value: string) {
+function formatRelativeTime(value: string | null) {
+  if (!value) return "—";
   const date = new Date(value);
   const diffMs = date.getTime() - Date.now();
   const diffMinutes = Math.round(diffMs / 60000);
@@ -119,8 +97,8 @@ function formatTimestamp(value: string) {
   }).format(new Date(value));
 }
 
-function groupMessagesByDay(messages: FlatMessage[]) {
-  const groups = new Map<string, FlatMessage[]>();
+function groupMessagesByDay(messages: PipelineMessage[]) {
+  const groups = new Map<string, PipelineMessage[]>();
 
   for (const message of messages) {
     const key = new Date(message.created_at).toISOString().slice(0, 10);
@@ -151,20 +129,13 @@ function getPipelineCount(conversations: ConversationSummary[], statuses: LeadSt
 export function DashboardView() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [whatsapp, setWhatsapp] = useState<WhatsAppAccount | null>(null);
-  const [botConfig, setBotConfig] = useState<BotConfig | null>(null);
-  const [messages, setMessages] = useState<FlatMessage[]>([]);
-  const [messagesTotal, setMessagesTotal] = useState(0);
-  const [form, setForm] = useState({
-    system_prompt: "",
-    welcome_message: "",
-    language: "es",
-    bot_enabled: true,
-  });
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [line, setLine] = useState<WhatsappLine | null>(null);
+  const [pipeline, setPipeline] = useState<PipelineConversation[]>([]);
+  const [messages, setMessages] = useState<PipelineMessage[]>([]);
+  const [botError, setBotError] = useState("");
+  const [togglingBot, setTogglingBot] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [activeFilter, setActiveFilter] = useState<ConversationFilter>("all");
@@ -173,63 +144,39 @@ export function DashboardView() {
   const [metaByPhone, setMetaByPhone] = useState<Record<string, ConversationMeta>>({});
 
   const loadDashboard = useCallback(async () => {
-    const responses = await Promise.all([
-      authenticatedFetch("/me/tenant"),
-      authenticatedFetch("/me/whatsapp"),
-      authenticatedFetch("/me/bot-config"),
-      authenticatedFetch("/me/messages?limit=20&offset=0"),
-      authenticatedFetch("/me/admin-phones"),
+    const [businessRes, lineRes, phonesRes, pipelineRes] = await Promise.all([
+      authenticatedFetch("/dashboard/business"),
+      authenticatedFetch("/dashboard/whatsapp-line"),
+      authenticatedFetch("/dashboard/manager-phones"),
+      authenticatedFetch("/dashboard/pipeline"),
     ]);
-    const [tenantRes, whatsappRes, botRes, messagesRes, adminPhonesRes] = responses;
 
-    if (tenantRes.status === 401) {
+    if (businessRes.status === 401) {
       void signOut();
       router.replace("/connect");
       return;
     }
 
-    if (tenantRes.status === 404) {
-      router.replace("/connect");
-      return;
-    }
+    const businessData: Business = await businessRes.json();
+    setBusiness(businessData);
+    setMetaByPhone(readConversationMetaMap(businessData.id));
 
-    const tenantData: Tenant = await tenantRes.json();
-    const whatsappData: WhatsAppAccount[] = await whatsappRes.json();
-    setTenant(tenantData);
-    setMetaByPhone(readConversationMetaMap(tenantData.id));
+    const lineData: WhatsappLine | null = lineRes.ok ? await lineRes.json() : null;
+    setLine(lineData);
 
-    const account =
-      whatsappData.find((entry) => entry.status === "connected") ?? whatsappData[0] ?? null;
-    setWhatsapp(account);
-
-    if (adminPhonesRes.ok && account?.status === "connected") {
-      const adminPhones: AdminPhonesPayload = await adminPhonesRes.json();
-      if ((adminPhones.phones || []).length === 0) {
+    if (lineData && phonesRes.ok) {
+      const phones: Array<{ phone: string }> = await phonesRes.json();
+      if (phones.length === 0) {
         const params = new URLSearchParams();
-        if (account.display_phone) params.set("phone", account.display_phone);
-        if (tenantData.business_name) params.set("business", tenantData.business_name);
+        params.set("phone", lineData.display_phone_number);
+        params.set("business", businessData.name);
         router.replace(`/connect/manager?${params.toString()}`);
         return;
       }
     }
 
-    if (botRes.ok) {
-      const botData: BotConfig = await botRes.json();
-      setBotConfig(botData);
-      setForm({
-        system_prompt: botData.system_prompt,
-        welcome_message: botData.welcome_message,
-        language: botData.language,
-        bot_enabled: botData.bot_enabled,
-      });
-    } else {
-      setBotConfig(null);
-    }
-
-    if (messagesRes.ok) {
-      const page: MessagePage = await messagesRes.json();
-      setMessages(page.messages);
-      setMessagesTotal(page.total);
+    if (pipelineRes.ok) {
+      setPipeline(await pipelineRes.json());
     }
   }, [router]);
 
@@ -238,13 +185,13 @@ export function DashboardView() {
   }, [loadDashboard]);
 
   useEffect(() => {
-    if (!tenant?.id) return;
-    writeConversationMetaMap(tenant.id, metaByPhone);
-  }, [metaByPhone, tenant?.id]);
+    if (!business?.id) return;
+    writeConversationMetaMap(business.id, metaByPhone);
+  }, [metaByPhone, business?.id]);
 
   const conversations = useMemo(
-    () => buildConversationSummaries(tenant?.id ?? "anonymous", messages, metaByPhone),
-    [messages, metaByPhone, tenant?.id],
+    () => buildConversationSummaries(pipeline, metaByPhone),
+    [pipeline, metaByPhone],
   );
 
   const visibleConversations = useMemo(
@@ -268,56 +215,58 @@ export function DashboardView() {
     [selectedPhone, visibleConversations],
   );
 
-  const handleSave = useCallback(async () => {
-    setSaveStatus("saving");
+  const selectedConversationId = selectedConversation?.conversationId ?? null;
+
+  useEffect(() => {
+    if (!selectedConversationId) return;
+    let active = true;
+    authenticatedFetch(`/dashboard/pipeline/${selectedConversationId}/messages`)
+      .then(async (res) => {
+        const loaded: PipelineMessage[] = res.ok ? await res.json() : [];
+        if (active) setMessages(loaded);
+      })
+      .catch(() => {
+        if (active) setMessages([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedConversationId]);
+
+  const handleToggleBot = useCallback(async () => {
+    if (!line) return;
+    setTogglingBot(true);
+    setBotError("");
     try {
-      const res = await authenticatedFetch("/me/bot-config", {
-        method: "PUT",
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) throw new Error();
-      const updated: BotConfig = await res.json();
-      setBotConfig(updated);
-      setForm({
-        system_prompt: updated.system_prompt,
-        welcome_message: updated.welcome_message,
-        language: updated.language,
-        bot_enabled: updated.bot_enabled,
-      });
-      setSaveStatus("ok");
-      setTimeout(() => setSaveStatus("idle"), 2500);
+      const answer = await runOperation<{ enabled: boolean }>(
+        line.public_agent_enabled ? "disable_public_agent" : "enable_public_agent",
+      );
+      if (answer.status === "executed") {
+        setLine({ ...line, public_agent_enabled: answer.result.enabled });
+      } else if (answer.status === "approval_created") {
+        setBotError("Quedó pendiente de aprobación.");
+      } else {
+        setBotError(answer.message);
+      }
     } catch {
-      setSaveStatus("error");
-      setTimeout(() => setSaveStatus("idle"), 3000);
+      setBotError("No se pudo cambiar el estado del bot.");
+    } finally {
+      setTogglingBot(false);
     }
-  }, [form]);
+  }, [line]);
 
   const handleDisconnect = useCallback(async () => {
     if (!confirm("Seguro que quieres desconectar tu WhatsApp en Doppel?")) return;
     setDisconnecting(true);
     try {
-      await authenticatedFetch("/me/whatsapp", { method: "DELETE" });
+      await runOperationOrThrow("disconnect_whatsapp_line");
       await loadDashboard();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "No se pudo desconectar.");
     } finally {
       setDisconnecting(false);
     }
   }, [loadDashboard]);
-
-  const handleDeleteAccount = useCallback(async () => {
-    if (!confirm("Esta accion elimina tu cuenta, mensajes y configuracion en Doppel. Continuar?")) {
-      return;
-    }
-
-    setDeletingAccount(true);
-    try {
-      const res = await authenticatedFetch("/me/account", { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      void signOut();
-      router.replace("/");
-    } finally {
-      setDeletingAccount(false);
-    }
-  }, [router]);
 
   const updateSelectedMeta = useCallback(
     (patch: Partial<ConversationMeta>) => {
@@ -351,10 +300,12 @@ export function DashboardView() {
     );
   }
 
-  const phoneDisplay = whatsapp?.display_phone ?? whatsapp?.phone_number_id ?? "-";
-  const isConnected = whatsapp?.status === "connected";
-  const canReply = Boolean(form.bot_enabled && isConnected);
-  const summaryText = getSummaryText(isConnected, conversations.length, tenant?.business_name ?? null);
+  const phoneDisplay = line?.display_phone_number ?? "-";
+  const isConnected = line !== null;
+  const canReply = Boolean(line?.public_agent_enabled);
+  const summaryText = getSummaryText(isConnected, conversations.length, business?.name ?? null);
+  const inboundCount = messages.filter((message) => message.direction === "inbound").length;
+  const outboundCount = messages.length - inboundCount;
   const pipelineWarm = getPipelineCount(conversations, ["warm", "negotiation"]);
   const pipelinePending = getPipelineCount(conversations, ["new", "contacted", "no_response"]);
   const pipelineCustomers = getPipelineCount(conversations, ["customer"]);
@@ -420,9 +371,6 @@ export function DashboardView() {
                   {visibleConversations.length} visibles de {conversations.length}
                 </p>
               </div>
-              <span className="rounded-full bg-white/6 px-2.5 py-1 text-xs text-text-secondary">
-                {messagesTotal} mensajes
-              </span>
             </div>
             <input
               value={query}
@@ -510,7 +458,7 @@ export function DashboardView() {
                       {LEAD_STATUS_OPTIONS.find((item) => item.id === conversation.leadStatus)?.label}
                     </span>
                     <span className="text-[11px] text-text-secondary">
-                      {conversation.inboundCount} in · {conversation.outboundCount} out
+                      {conversation.humanTakeover ? "Atiendes tú" : "Atiende el bot"}
                     </span>
                   </div>
                 </button>
@@ -550,7 +498,7 @@ export function DashboardView() {
                       Último inbound {formatRelativeTime(selectedConversation.lastMessageAt)}
                     </span>
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      {selectedConversation.messages.length} mensajes cargados
+                      {messages.length} mensajes
                     </span>
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
                       Línea {phoneDisplay}
@@ -560,7 +508,7 @@ export function DashboardView() {
               </div>
 
               <div className="flex-1 space-y-6 overflow-auto px-5 py-5 xl:min-h-0">
-                {groupMessagesByDay(selectedConversation.messages).map(([day, group]) => (
+                {groupMessagesByDay(messages).map(([day, group]) => (
                   <div key={day}>
                     <div className="mb-4 flex items-center justify-center">
                       <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-text-secondary">
@@ -588,14 +536,15 @@ export function DashboardView() {
                                   : "text-text-secondary",
                               )}
                             >
-                              {message.direction === "outbound" ? "Bot" : "Cliente"}
+                              {message.direction === "outbound" ? "Doppel" : "Cliente"}
                             </span>
                             <span className="text-[11px] text-text-secondary">
                               {formatTimestamp(message.created_at)}
                             </span>
                           </div>
+                          <MessageMedia message={message} />
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                            {message.content ?? `Mensaje tipo ${message.message_type}`}
+                            {messageText(message)}
                           </p>
                         </div>
                       ))}
@@ -651,7 +600,7 @@ export function DashboardView() {
                           Primer seen
                         </p>
                         <p className="mt-2 text-sm text-text-primary">
-                          {formatThreadDate(selectedConversation.messages[0].created_at)}
+                          {messages[0] ? formatThreadDate(messages[0].created_at) : "—"}
                         </p>
                       </div>
                       <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
@@ -725,13 +674,13 @@ export function DashboardView() {
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Inbound</p>
                     <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {selectedConversation.inboundCount}
+                      {inboundCount}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Outbound</p>
                     <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {selectedConversation.outboundCount}
+                      {outboundCount}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
@@ -754,10 +703,7 @@ export function DashboardView() {
             <div className="space-y-3 text-sm">
               <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-text-secondary">Negocio</p>
-                <p className="mt-2 font-medium text-text-primary">{tenant?.business_name ?? "-"}</p>
-                <p className="mt-1 text-text-secondary">
-                  Plan {tenant?.plan ?? "free"} · Estado {tenant?.status ?? "active"}
-                </p>
+                <p className="mt-2 font-medium text-text-primary">{business?.name ?? "-"}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-text-secondary">WhatsApp</p>
@@ -781,129 +727,75 @@ export function DashboardView() {
             }
           />
 
-          {botConfig === null ? (
-            <p className="text-sm text-text-secondary">
-              Sin configuración disponible. Reconecta tu cuenta para inicializarla.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 2xl:grid-cols-[0.82fr_1.18fr]">
-              <div className="space-y-4">
-                <div className="rounded-[24px] border border-white/8 bg-white/4 p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-text-primary">Estado del bot</p>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        {canReply
-                          ? "Está listo para responder en esta línea."
-                          : "Está pausado o esperando reconexión."}
-                      </p>
-                    </div>
-                    <label className="inline-flex items-center gap-3 text-sm text-text-primary">
-                      <span>{form.bot_enabled ? "Activado" : "Pausado"}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setForm((current) => ({ ...current, bot_enabled: !current.bot_enabled }))
-                        }
-                        className={cx(
-                          "h-7 w-12 rounded-full transition-colors",
-                          form.bot_enabled ? "bg-accent" : "bg-white/10",
-                        )}
-                      >
-                        <span
-                          className={cx(
-                            "block h-5 w-5 rounded-full bg-black transition-transform",
-                            form.bot_enabled ? "translate-x-6" : "translate-x-1",
-                          )}
-                        />
-                      </button>
-                    </label>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-text-secondary">Idioma</label>
-                  <input
-                    type="text"
-                    value={form.language}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, language: event.target.value }))
-                    }
-                    maxLength={10}
-                    className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary outline-none transition focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm text-text-secondary">Mensaje de bienvenida</label>
-                  <input
-                    type="text"
-                    value={form.welcome_message}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, welcome_message: event.target.value }))
-                    }
-                    maxLength={500}
-                    placeholder="Hola, en qué puedo ayudarte?"
-                    className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                  />
-                </div>
-              </div>
-
+          <div className="rounded-[24px] border border-white/8 bg-white/4 p-4">
+            <div className="flex items-center justify-between gap-4">
               <div>
-                <label className="mb-2 block text-sm text-text-secondary">Instrucciones del bot</label>
-                <textarea
-                  value={form.system_prompt}
-                  onChange={(event) =>
-                    setForm((current) => ({ ...current, system_prompt: event.target.value }))
-                  }
-                  maxLength={4000}
-                  rows={10}
-                  placeholder="Eres un asistente de atención al cliente para..."
-                  className="w-full rounded-[24px] border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                />
-                <div className="mt-3 flex items-center justify-between gap-4">
-                  <p className="text-xs text-text-secondary">{form.system_prompt.length}/4000</p>
-                  <div className="flex items-center gap-4">
-                    {saveStatus === "ok" && <span className="text-sm text-accent">Guardado</span>}
-                    {saveStatus === "error" && (
-                      <span className="text-sm text-red-400">Error al guardar</span>
-                    )}
-                    <Button
-                      variant="primary"
-                      onClick={handleSave}
-                      disabled={saveStatus === "saving"}
-                    >
-                      {saveStatus === "saving" ? "Guardando..." : "Guardar cambios"}
-                    </Button>
-                  </div>
-                </div>
+                <p className="text-sm font-medium text-text-primary">Estado del bot</p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {!isConnected
+                    ? "Conecta tu WhatsApp para activarlo."
+                    : canReply
+                      ? "Está listo para responder en esta línea."
+                      : "Está pausado: nadie responde a tus clientes automáticamente."}
+                </p>
+                {botError && <p className="mt-2 text-sm text-red-400">{botError}</p>}
               </div>
+              <label className="inline-flex items-center gap-3 text-sm text-text-primary">
+                <span>{canReply ? "Activado" : "Pausado"}</span>
+                <button
+                  type="button"
+                  aria-label={canReply ? "Pausar el bot" : "Activar el bot"}
+                  onClick={handleToggleBot}
+                  disabled={!isConnected || togglingBot}
+                  className={cx(
+                    "h-7 w-12 rounded-full transition-colors disabled:opacity-50",
+                    canReply ? "bg-accent" : "bg-white/10",
+                  )}
+                >
+                  <span
+                    className={cx(
+                      "block h-5 w-5 rounded-full bg-black transition-transform",
+                      canReply ? "translate-x-6" : "translate-x-1",
+                    )}
+                  />
+                </button>
+              </label>
             </div>
-          )}
+          </div>
         </Card>
       )}
 
       <Card>
         <CardHeader title="Acciones de cuenta" />
         <p className="mb-5 text-sm text-text-secondary">
-          La desconexión pausa el bot y desactiva la línea dentro de Doppel. La eliminación borra
-          los datos almacenados en esta plataforma.
+          La desconexión pausa el bot y desactiva la línea dentro de Doppel.
         </p>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button variant="ghost" onClick={handleDisconnect} disabled={disconnecting}>
             {disconnecting ? "Desconectando..." : "Desconectar WhatsApp"}
           </Button>
-          <Button
-            variant="ghost"
-            onClick={handleDeleteAccount}
-            disabled={deletingAccount}
-            className="text-red-400 hover:text-red-300"
-          >
-            {deletingAccount ? "Eliminando cuenta..." : "Eliminar cuenta y datos"}
-          </Button>
         </div>
       </Card>
     </div>
+  );
+}
+
+/** The file a message carries, while its link is still valid: a photo, a voice note or a link. */
+function MessageMedia({ message }: { message: PipelineMessage }) {
+  if (!message.media_url) return null;
+  if (message.media_type === "image" || message.media_type === "sticker") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- a signed Storage link that expires
+      <img src={message.media_url} alt="" className="mt-2 max-h-64 rounded-2xl" />
+    );
+  }
+  if (message.media_type === "audio") {
+    return <audio controls src={message.media_url} className="mt-2 w-full" />;
+  }
+  return (
+    <a href={message.media_url} target="_blank" rel="noreferrer" className="mt-2 block text-sm text-accent hover:underline">
+      Abrir archivo
+    </a>
   );
 }

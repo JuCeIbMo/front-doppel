@@ -16,6 +16,7 @@ vi.mock("@/lib/api", () => ({
 
 vi.mock("@/lib/supabase", () => ({
   signOut: vi.fn(),
+  getAccessToken: vi.fn(async () => "token"),
 }));
 
 const mockFetch = vi.mocked(authenticatedFetch);
@@ -34,9 +35,9 @@ describe("DashboardView", () => {
     window.localStorage.clear();
   });
 
-  it("renders an inbox-first grouped conversations view", async () => {
+  it("renders the Pipeline's conversations and the selected one's messages", async () => {
     window.localStorage.setItem(
-      "automation-crm:tenant_1:59170000001",
+      "automation-crm:biz_1:59170000001",
       JSON.stringify({
         leadStatus: "warm",
         notes: "Pidio precios",
@@ -46,88 +47,86 @@ describe("DashboardView", () => {
     );
 
     mockFetch.mockImplementation(async (path: string) => {
-      if (path === "/me/tenant") {
+      if (path === "/dashboard/business") {
+        return jsonResponse({ id: "biz_1", name: "Doppel Store" });
+      }
+      if (path === "/dashboard/whatsapp-line") {
         return jsonResponse({
-          id: "tenant_1",
-          business_name: "Doppel Store",
-          email: "owner@doppel.test",
-          plan: "pro",
-          status: "active",
+          phone_number_id: "pn_1",
+          display_phone_number: "+591 70000000",
+          public_agent_enabled: true,
         });
       }
-
-      if (path === "/me/whatsapp") {
+      if (path === "/dashboard/manager-phones") {
+        return jsonResponse([{ phone: "59177777777" }]);
+      }
+      if (path === "/dashboard/pipeline") {
         return jsonResponse([
           {
-            id: "wa_1",
-            waba_id: "waba_1",
-            phone_number_id: "pn_1",
-            display_phone: "+591 70000000",
-            status: "connected",
+            id: "c1",
+            contact_code: "AAAAAA",
+            whatsapp_number: "59170000001",
+            last_message_at: "2026-06-17T12:00:00.000Z",
+            last_message_body: "Si, claro",
+            intervention_started_at: null,
+          },
+          {
+            id: "c2",
+            contact_code: "BBBBBB",
+            whatsapp_number: "59170000002",
+            last_message_at: "2026-06-17T11:00:00.000Z",
+            last_message_body: "Siguen atendiendo?",
+            intervention_started_at: null,
           },
         ]);
       }
-
-      if (path === "/me/bot-config") {
-        return jsonResponse({
-          id: "bot_1",
-          system_prompt: "Ayuda a clientes",
-          welcome_message: "Hola",
-          language: "es",
-          bot_enabled: true,
-        });
+      if (path === "/dashboard/pipeline/c1/messages") {
+        return jsonResponse([
+          {
+            id: "m1",
+            direction: "inbound",
+            body: "",
+            created_at: "2026-06-17T10:00:00.000Z",
+            code: "M1",
+            media_type: "audio",
+            media_url: null,
+            transcript: "Hola, precio?",
+            summary: null,
+            media_state: "ready",
+          },
+        ]);
       }
-
-      if (path === "/me/messages?limit=20&offset=0") {
-        return jsonResponse({
-          total: 3,
-          limit: 20,
-          offset: 0,
-          messages: [
-            {
-              id: "m1",
-              user_phone: "59170000001",
-              direction: "inbound",
-              content: "Hola, precio?",
-              message_type: "text",
-              created_at: "2026-06-17T10:00:00.000Z",
-            },
-            {
-              id: "m2",
-              user_phone: "59170000002",
-              direction: "inbound",
-              content: "Siguen atendiendo?",
-              message_type: "text",
-              created_at: "2026-06-17T11:00:00.000Z",
-            },
-            {
-              id: "m3",
-              user_phone: "59170000001",
-              direction: "outbound",
-              content: "Si, claro",
-              message_type: "text",
-              created_at: "2026-06-17T12:00:00.000Z",
-            },
-          ],
-        });
-      }
-
-      if (path === "/me/admin-phones") {
-        return jsonResponse({ phones: ["59177777777"] });
-      }
-
       throw new Error(`Unexpected path: ${path}`);
     });
 
     render(<DashboardView />);
 
     expect(await screen.findByText("Inbox de automatización")).toBeInTheDocument();
-    expect(await screen.findByText("Andrea")).toBeInTheDocument();
+    expect((await screen.findAllByText("Andrea")).length).toBeGreaterThan(0);
     expect(screen.getByText("Siguen atendiendo?")).toBeInTheDocument();
     expect(screen.getByText("Pidio precios")).toBeInTheDocument();
+    expect(await screen.findByText("Hola, precio?")).toBeInTheDocument();
+    expect(screen.getByText("Bot respondiendo")).toBeInTheDocument();
+  });
 
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalled();
+  it("sends an Owner with a Line but no Manager phone to the manager step", async () => {
+    mockFetch.mockImplementation(async (path: string) => {
+      if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Tienda" });
+      if (path === "/dashboard/whatsapp-line") {
+        return jsonResponse({
+          phone_number_id: "pn_1",
+          display_phone_number: "+591 7",
+          public_agent_enabled: false,
+        });
+      }
+      if (path === "/dashboard/manager-phones") return jsonResponse([]);
+      return jsonResponse([]);
     });
+
+    render(<DashboardView />);
+
+    await waitFor(() =>
+      expect(replace).toHaveBeenCalledWith(expect.stringContaining("/connect/manager?")),
+    );
   });
 });

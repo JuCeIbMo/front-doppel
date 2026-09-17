@@ -8,13 +8,28 @@ export type LeadStatus =
 
 export type ConversationFilter = "all" | "unread" | "warm" | "pending";
 
-export type FlatMessage = {
+/** One Contact Conversation as `GET /dashboard/pipeline` lists it. */
+export type PipelineConversation = {
   id: string;
-  user_phone: string;
-  direction: string;
-  content: string | null;
-  message_type: string;
+  contact_code: string;
+  whatsapp_number: string;
+  last_message_at: string | null;
+  last_message_body: string | null;
+  intervention_started_at: string | null;
+};
+
+/** One message as `GET /dashboard/pipeline/{id}/messages` returns it. */
+export type PipelineMessage = {
+  id: string;
+  direction: "inbound" | "outbound";
+  body: string;
   created_at: string;
+  code: string;
+  media_type: string | null;
+  media_url: string | null;
+  transcript: string | null;
+  summary: string | null;
+  media_state: string | null;
 };
 
 export type ConversationMeta = {
@@ -26,17 +41,17 @@ export type ConversationMeta = {
 
 export type ConversationSummary = {
   conversationId: string;
+  contactCode: string;
   phone: string;
   displayName: string;
   leadStatus: LeadStatus;
   notes: string;
   tags: string[];
-  messages: FlatMessage[];
   lastMessage: string;
-  lastMessageAt: string;
+  lastMessageAt: string | null;
   unreadCount: number;
-  inboundCount: number;
-  outboundCount: number;
+  /** An Owner took this Conversation over, so the agent is not answering it. */
+  humanTakeover: boolean;
 };
 
 const STORAGE_PREFIX = "automation-crm";
@@ -98,42 +113,41 @@ export function writeConversationMetaMap(
 }
 
 export function buildConversationSummaries(
-  tenantId: string,
-  messages: FlatMessage[],
+  conversations: PipelineConversation[],
   persisted: Record<string, ConversationMeta>,
 ): ConversationSummary[] {
-  const grouped = new Map<string, FlatMessage[]>();
-
-  for (const message of messages) {
-    const thread = grouped.get(message.user_phone) ?? [];
-    thread.push(message);
-    grouped.set(message.user_phone, thread);
-  }
-
-  return Array.from(grouped.entries())
-    .map(([phone, thread]) => {
-      const sortedMessages = [...thread].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-      );
-      const last = sortedMessages[sortedMessages.length - 1];
+  return conversations
+    .map((conversation) => {
+      const phone = conversation.whatsapp_number;
       const meta = mergeConversationMeta(DEFAULT_META, persisted[phone] ?? {});
-
       return {
-        conversationId: getConversationStorageKey(tenantId, phone),
+        conversationId: conversation.id,
+        contactCode: conversation.contact_code,
         phone,
         displayName: meta.displayName ?? phone,
         leadStatus: meta.leadStatus,
         notes: meta.notes,
         tags: meta.tags,
-        messages: sortedMessages,
-        lastMessage: last.content ?? `Mensaje tipo ${last.message_type}`,
-        lastMessageAt: last.created_at,
+        lastMessage: conversation.last_message_body ?? "",
+        lastMessageAt: conversation.last_message_at,
         unreadCount: 0,
-        inboundCount: sortedMessages.filter((message) => message.direction === "inbound").length,
-        outboundCount: sortedMessages.filter((message) => message.direction === "outbound").length,
+        humanTakeover: conversation.intervention_started_at !== null,
       };
     })
-    .sort((a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime());
+    .sort((a, b) => timeOf(b.lastMessageAt) - timeOf(a.lastMessageAt));
+}
+
+function timeOf(value: string | null): number {
+  return value ? new Date(value).getTime() : 0;
+}
+
+/** What a message says: its text, else what was heard or read in its file. */
+export function messageText(message: PipelineMessage): string {
+  if (message.body) return message.body;
+  if (message.transcript) return message.transcript;
+  if (message.summary) return message.summary;
+  if (message.media_state === "pending") return `Procesando ${message.media_type ?? "archivo"}…`;
+  return message.media_type ? `Mensaje tipo ${message.media_type}` : "";
 }
 
 export function filterConversations(
