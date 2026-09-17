@@ -104,7 +104,7 @@ describe("DashboardView", () => {
     expect(await screen.findByText("Inbox de automatización")).toBeInTheDocument();
     expect((await screen.findAllByText("Andrea")).length).toBeGreaterThan(0);
     expect(screen.getByText("Siguen atendiendo?")).toBeInTheDocument();
-    expect(screen.getByText("Pidio precios")).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("Pidio precios")).toBeInTheDocument();
     expect(await screen.findByText("Hola, precio?")).toBeInTheDocument();
     expect(screen.getByText("Bot respondiendo")).toBeInTheDocument();
   });

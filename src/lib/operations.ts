@@ -43,3 +43,15 @@ export async function runOperationOrThrow<T>(
 export async function readApi<T>(path: string): Promise<T> {
   return apiFetch<T>(path, { baseUrl: API_URL, session: getBrowserSessionStore() });
 }
+
+/** Approves or declines an Approval as the signed-in Owner. */
+export async function answerApproval(
+  approvalId: string,
+  answer: "approve" | "decline",
+): Promise<OperationResult<unknown>> {
+  return apiFetch<OperationResult<unknown>>(`/approvals/${approvalId}/${answer}`, {
+    baseUrl: API_URL,
+    session: getBrowserSessionStore(),
+    method: "POST",
+  });
+}
