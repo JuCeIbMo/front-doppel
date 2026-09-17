@@ -1,6 +1,14 @@
 import Link from "next/link";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
 
+const AVAILABLE = [
+  { href: "/dashboard/automation", label: "Automatización" },
+  { href: "/dashboard/orders", label: "Pedidos" },
+  { href: "/dashboard/approvals", label: "Aprobaciones" },
+  { href: "/dashboard/sales", label: "Ventas" },
+  { href: "/dashboard/automation/business", label: "Negocio" },
+];
+
 /**
  * Renders the screen only when its feature works against the API; otherwise says it is
  * coming and points to what already works. The screen's code stays wired here, so
@@ -26,15 +34,11 @@ export function ComingSoonGate({
         Esta sección está en construcción. Mientras tanto puedes usar:
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link href="/dashboard/automation" className="text-accent hover:underline">
-          Automatización
-        </Link>
-        <Link href="/dashboard/automation/business" className="text-accent hover:underline">
-          Negocio
-        </Link>
-        <Link href="/dashboard/automation/admin-phones" className="text-accent hover:underline">
-          Teléfonos de encargados
-        </Link>
+        {AVAILABLE.map((link) => (
+          <Link key={link.href} href={link.href} className="text-accent hover:underline">
+            {link.label}
+          </Link>
+        ))}
       </div>
     </section>
   );

@@ -125,7 +125,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 border-r border-border">
           {/* Logo */}
           <div className="px-6 py-6">
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <Link href="/dashboard/automation" className="flex items-center gap-2">
               <span className="text-base font-semibold text-text-primary">Doppel</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" />
             </Link>
@@ -161,7 +161,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile top bar */}
         <header className="lg:hidden flex items-center justify-between px-4 py-4 border-b border-border">
-          <Link href="/dashboard" className="flex items-center gap-2">
+          <Link href="/dashboard/automation" className="flex items-center gap-2">
             <span className="text-base font-semibold">Doppel</span>
             <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" />
           </Link>

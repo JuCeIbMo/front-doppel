@@ -7,10 +7,15 @@ Frontend de Doppel construido con Next.js App Router.
 Copia `.env.local.example` a `.env.local` y completa:
 
 ```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_SUPABASE_URL=          # GET /web/config del backend los muestra
+NEXT_PUBLIC_SUPABASE_ANON_KEY=     # la clave pública (anon), nunca la service role
 NEXT_PUBLIC_META_APP_ID=
 NEXT_PUBLIC_META_CONFIG_ID=
-NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
+
+Son públicas y Next.js las fija al construir: en Dokploy van como build args.
+El backend debe tener el dominio de este front en `DOPPEL_FRONTEND_ORIGINS`.
 
 ## Scripts
 
@@ -26,14 +31,20 @@ Si PowerShell bloquea `npm`, usa `npm.cmd`.
 ## Flujo principal
 
 - `/` landing de producto
-- `/connect` onboarding con OTP + Meta Embedded Signup
-- `/connect/success` confirmacion de conexion
-- `/dashboard` configuracion del bot, estado del tenant e historial reciente
-- `/privacy`, `/terms`, `/data-deletion` paginas legales
+- `/connect` login con código por email (supabase-js) + Meta Embedded Signup
+- `/connect/manager` teléfono del encargado; `/connect/success` confirmación
+- `/dashboard/automation` inbox de conversaciones, estado del bot, negocio y teléfonos
+- `/dashboard/orders`, `/dashboard/approvals`, `/dashboard/sales`, `/dashboard/activity`
+- `/privacy`, `/terms`, `/data-deletion` páginas legales
+
+El login lo hace supabase-js, que también renueva la sesión; el backend solo verifica el
+token que recibe. Las pantallas sin backend todavía (Resumen, Productos, Inventario,
+Clientes, Finanzas, Reportes, Settings, detalle de venta) muestran "Próximamente":
+se encienden en `src/lib/features.ts` cuando su backend exista.
 
 ## Checklist local
 
-1. Levanta el backend en `http://localhost:8000`.
+1. Levanta el backend en `http://localhost:8000` con `http://localhost:3000` en `DOPPEL_FRONTEND_ORIGINS`.
 2. Ejecuta `npm.cmd run dev`.
 3. Completa el flujo OTP -> connect -> success -> dashboard.
 4. Ejecuta `npm.cmd run lint`.

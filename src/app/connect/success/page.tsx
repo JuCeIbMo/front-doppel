@@ -91,7 +91,7 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-4">
-        <Button variant="primary" href="/dashboard">
+        <Button variant="primary" href="/dashboard/automation">
           Ir al dashboard
         </Button>
         <Button variant="secondary" href="/">

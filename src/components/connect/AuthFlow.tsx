@@ -33,7 +33,7 @@ export function AuthFlow() {
       .then(async (token) => {
         if (!token) return;
         if (await isOnboarded()) {
-          router.replace("/dashboard");
+          router.replace("/dashboard/automation");
           return;
         }
         setStep("connect");
@@ -88,7 +88,7 @@ export function AuthFlow() {
         // Returning users who already connected their business go straight to the
         // dashboard. Only those without a WhatsApp Line yet see the connect step.
         if (await isOnboarded()) {
-          router.replace("/dashboard");
+          router.replace("/dashboard/automation");
           return;
         }
         setStep("connect");

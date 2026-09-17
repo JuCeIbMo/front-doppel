@@ -33,7 +33,7 @@ function AuthCta({
 
   if (hasSession) {
     return (
-      <Button variant="primary" href="/dashboard" className={buttonClass}>
+      <Button variant="primary" href="/dashboard/automation" className={buttonClass}>
         Ir al dashboard →
       </Button>
     );

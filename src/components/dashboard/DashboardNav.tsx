@@ -4,9 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/dashboard/automation", label: "Resumen" },
+  { href: "/dashboard/automation", label: "Inbox" },
   { href: "/dashboard/automation/business", label: "Negocio y productos" },
-  { href: "/dashboard/automation/admin-phones", label: "Numeros admin" },
+  { href: "/dashboard/automation/admin-phones", label: "Teléfonos de encargados" },
 ];
 
 export function DashboardNav() {

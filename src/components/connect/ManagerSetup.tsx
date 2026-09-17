@@ -28,7 +28,7 @@ export function ManagerSetup() {
     setError("");
     try {
       await runOperationOrThrow("set_manager_phones", { phones: [trimmed] });
-      router.replace("/dashboard");
+      router.replace("/dashboard/automation");
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "No se pudo guardar el numero manager.");
