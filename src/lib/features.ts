@@ -11,7 +11,7 @@ const featureStatus = {
   clients: "soon",
   finance: "soon",
   reports: "soon",
-  settings: "soon",
+  settings: "ready",
 } as const satisfies Record<string, FeatureStatus>;
 
 export type FeatureStatus = "ready" | "soon";

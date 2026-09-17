@@ -10,6 +10,7 @@ import {
   Users,
   Wallet,
   BarChart2,
+  BookOpen,
   Activity,
   Bot,
   Settings,
@@ -33,6 +34,7 @@ const coreLinks: NavLink[] = [
   { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
   { href: "/dashboard/orders", label: "Pedidos", icon: ClipboardList, feature: null },
   { href: "/dashboard/templates", label: "Plantillas", icon: MessageSquareText, feature: null },
+  { href: "/dashboard/knowledge", label: "Lo que sabe el bot", icon: BookOpen, feature: null },
   { href: "/dashboard/approvals", label: "Aprobaciones", icon: ShieldCheck, feature: null },
   { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: "overview" },
@@ -45,7 +47,7 @@ const coreLinks: NavLink[] = [
 const toolLinks: NavLink[] = [
   { href: "/dashboard/reports", label: "Reportes", icon: BarChart2, feature: "reports" },
   { href: "/dashboard/activity", label: "Bitácora", icon: Activity, feature: null },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings, feature: "settings" },
+  { href: "/dashboard/settings", label: "Ajustes", icon: Settings, feature: "settings" },
 ];
 
 function NavItem({

@@ -1,10 +1,10 @@
 import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpSettingsView } from "@/components/dashboard/ErpSettingsView";
+import { SettingsView } from "@/components/dashboard/SettingsView";
 
 export default function DashboardSettingsPage() {
   return (
-    <ComingSoonGate feature="settings" title="Settings">
-      <ErpSettingsView />
+    <ComingSoonGate feature="settings" title="Ajustes">
+      <SettingsView />
     </ComingSoonGate>
   );
 }

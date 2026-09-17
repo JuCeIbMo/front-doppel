@@ -5,10 +5,9 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
-import { readApi, runOperation, runOperationOrThrow } from "@/lib/operations";
+import { readApi, runOperation } from "@/lib/operations";
 import { placeholderCount, renderTemplate, type MessageTemplate } from "@/lib/templates";
 import { signOut } from "@/lib/supabase";
-import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import {
   buildConversationSummaries,
@@ -140,7 +139,6 @@ export function DashboardView() {
   const [messages, setMessages] = useState<PipelineMessage[]>([]);
   const [botError, setBotError] = useState("");
   const [togglingBot, setTogglingBot] = useState(false);
-  const [disconnecting, setDisconnecting] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [activeFilter, setActiveFilter] = useState<ConversationFilter>("all");
@@ -286,19 +284,6 @@ export function DashboardView() {
     }
   }, [line]);
 
-  const handleDisconnect = useCallback(async () => {
-    if (!confirm("Seguro que quieres desconectar tu WhatsApp en Doppel?")) return;
-    setDisconnecting(true);
-    try {
-      await runOperationOrThrow("disconnect_whatsapp_line");
-      await loadDashboard();
-    } catch (error) {
-      alert(error instanceof Error ? error.message : "No se pudo desconectar.");
-    } finally {
-      setDisconnecting(false);
-    }
-  }, [loadDashboard]);
-
   const updateSelectedMeta = useCallback(
     (patch: Partial<ConversationMeta>) => {
       if (!selectedConversation) return;
@@ -375,18 +360,6 @@ export function DashboardView() {
           >
             {showBotSettings ? "Ocultar configuración" : "Configurar bot"}
           </Button>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <DashboardNav />
-        <div className="hidden lg:flex items-center gap-2 text-xs text-text-secondary">
-          <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
-            Inbox primero
-          </span>
-          <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1.5">
-            Pipeline secundario
-          </span>
         </div>
       </div>
 
@@ -803,18 +776,6 @@ export function DashboardView() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader title="Acciones de cuenta" />
-        <p className="mb-5 text-sm text-text-secondary">
-          La desconexión pausa el bot y desactiva la línea dentro de Doppel.
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Button variant="ghost" onClick={handleDisconnect} disabled={disconnecting}>
-            {disconnecting ? "Desconectando..." : "Desconectar WhatsApp"}
-          </Button>
-        </div>
-      </Card>
     </div>
   );
 }
