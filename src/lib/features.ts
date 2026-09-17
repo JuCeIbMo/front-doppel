@@ -7,7 +7,7 @@ const featureStatus = {
   overview: "soon",
   products: "ready",
   inventory: "soon",
-  saleDetail: "soon",
+  saleDetail: "ready",
   clients: "soon",
   finance: "soon",
   reports: "soon",

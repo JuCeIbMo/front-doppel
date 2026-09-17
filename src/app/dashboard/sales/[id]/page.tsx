@@ -1,5 +1,5 @@
 import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpSaleDetailView } from "@/components/dashboard/ErpSaleDetailView";
+import { SaleDetailView } from "@/components/dashboard/SaleDetailView";
 
 export default async function DashboardSaleDetailPage({
   params,
@@ -9,7 +9,7 @@ export default async function DashboardSaleDetailPage({
   const { id } = await params;
   return (
     <ComingSoonGate feature="saleDetail" title="Venta">
-      <ErpSaleDetailView saleId={id} />
+      <SaleDetailView saleCode={decodeURIComponent(id)} />
     </ComingSoonGate>
   );
 }
