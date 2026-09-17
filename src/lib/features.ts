@@ -1,21 +1,24 @@
-const enabledFeatures = {
-  inventory: true,
-  products: true,
-  sales: true,
-  clients: true,
-  finance: true,
-  settings: true,
-  reports: true,
-  activity: true,
-  demo: false,
-} as const;
+/**
+ * Which Owner screens work against the Doppel API today. A screen marked "soon" keeps
+ * its code but shows "Próximamente" instead of calling routes the API does not have
+ * yet; flip it to "ready" once its backend exists.
+ */
+const featureStatus = {
+  overview: "soon",
+  products: "soon",
+  inventory: "soon",
+  sales: "soon",
+  clients: "soon",
+  finance: "soon",
+  reports: "soon",
+  activity: "soon",
+  settings: "soon",
+} as const satisfies Record<string, FeatureStatus>;
 
-export type FeatureName = keyof typeof enabledFeatures;
+export type FeatureStatus = "ready" | "soon";
 
-export function isFeatureEnabled(feature: FeatureName): boolean {
-  return enabledFeatures[feature];
-}
+export type FeatureName = keyof typeof featureStatus;
 
-export function getFeatureFlags() {
-  return enabledFeatures;
+export function isFeatureReady(feature: FeatureName): boolean {
+  return (featureStatus[feature] as FeatureStatus) === "ready";
 }

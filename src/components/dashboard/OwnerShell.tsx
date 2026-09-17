@@ -16,18 +16,19 @@ import {
   LogOut,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
-import { getFeatureFlags } from "@/lib/features";
+import { isFeatureReady, type FeatureName } from "@/lib/features";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type NavLink = {
   href: string;
   label: string;
   icon: React.ElementType;
-  feature: null | keyof ReturnType<typeof getFeatureFlags>;
+  feature: null | FeatureName;
 };
 
 const coreLinks: NavLink[] = [
-  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: null },
+  { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
+  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: "overview" },
   { href: "/dashboard/products", label: "Productos", icon: Package, feature: "products" },
   { href: "/dashboard/inventory", label: "Inventario", icon: Boxes, feature: "inventory" },
   { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: "sales" },
@@ -38,7 +39,6 @@ const coreLinks: NavLink[] = [
 const toolLinks: NavLink[] = [
   { href: "/dashboard/reports", label: "Reportes", icon: BarChart2, feature: "reports" },
   { href: "/dashboard/activity", label: "Bitácora", icon: Activity, feature: "activity" },
-  { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
   { href: "/dashboard/settings", label: "Settings", icon: Settings, feature: "settings" },
 ];
 
@@ -46,13 +46,10 @@ function NavItem({
   href,
   label,
   icon: Icon,
+  feature,
   active,
-}: {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  active: boolean;
-}) {
+}: NavLink & { active: boolean }) {
+  const soon = feature !== null && !isFeatureReady(feature);
   return (
     <Link
       href={href}
@@ -64,6 +61,11 @@ function NavItem({
     >
       <Icon size={16} strokeWidth={1.75} />
       <span>{label}</span>
+      {soon && (
+        <span className="ml-auto rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
+          Pronto
+        </span>
+      )}
     </Link>
   );
 }
@@ -102,10 +104,6 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   useRequireAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const flags = getFeatureFlags();
-
-  const filteredCore = coreLinks.filter((l) => (l.feature ? flags[l.feature] : true));
-  const filteredTools = toolLinks.filter((l) => (l.feature ? flags[l.feature] : true));
 
   async function handleLogout() {
     await signOut();
@@ -131,7 +129,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
           {/* Core nav */}
           <nav className="flex-1 flex flex-col px-2 gap-0.5 overflow-y-auto">
-            {filteredCore.map((link) => (
+            {coreLinks.map((link) => (
               <NavItem key={link.href} {...link} active={isActive(link.href)} />
             ))}
 
@@ -139,7 +137,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
             <div className="h-px bg-border mx-4 my-2" />
 
             {/* Tool nav */}
-            {filteredTools.map((link) => (
+            {toolLinks.map((link) => (
               <NavItem key={link.href} {...link} active={isActive(link.href)} />
             ))}
           </nav>
@@ -178,7 +176,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Mobile bottom nav */}
-        <MobileNav links={filteredCore} pathname={pathname} />
+        <MobileNav links={coreLinks} pathname={pathname} />
       </div>
     </div>
   );

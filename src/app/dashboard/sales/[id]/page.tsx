@@ -1,3 +1,4 @@
+import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
 import { ErpSaleDetailView } from "@/components/dashboard/ErpSaleDetailView";
 
 export default async function DashboardSaleDetailPage({
@@ -6,5 +7,9 @@ export default async function DashboardSaleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  return <ErpSaleDetailView saleId={id} />;
+  return (
+    <ComingSoonGate feature="sales" title="Venta">
+      <ErpSaleDetailView saleId={id} />
+    </ComingSoonGate>
+  );
 }

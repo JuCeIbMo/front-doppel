@@ -1,5 +1,10 @@
+import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
 import { ErpActivityView } from "@/components/dashboard/ErpActivityView";
 
 export default function DashboardActivityPage() {
-  return <ErpActivityView />;
+  return (
+    <ComingSoonGate feature="activity" title="Bitácora">
+      <ErpActivityView />
+    </ComingSoonGate>
+  );
 }
