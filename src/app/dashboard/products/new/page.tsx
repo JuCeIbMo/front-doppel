@@ -1,15 +1,10 @@
 import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpProductEditorView } from "@/components/dashboard/ErpProductEditorView";
+import { ProductEditorView } from "@/components/dashboard/ProductEditorView";
 
-export default async function DashboardProductNewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ barcode?: string }>;
-}) {
-  const params = await searchParams;
+export default function DashboardProductNewPage() {
   return (
     <ComingSoonGate feature="products" title="Nuevo producto">
-      <ErpProductEditorView barcodeSeed={params.barcode} />
+      <ProductEditorView />
     </ComingSoonGate>
   );
 }

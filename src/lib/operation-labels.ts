@@ -1,6 +1,11 @@
 /** How each Doppel Operation reads to an Owner. Unknown names fall back to the raw name. */
 const LABELS: Record<string, string> = {
   add_product: "Producto agregado",
+  rename_product: "Producto renombrado",
+  count_stock: "Stock contado",
+  change_product_photo: "Foto de producto cambiada",
+  archive_product: "Producto archivado",
+  restore_product: "Producto restaurado",
   attach_payment_proof: "Comprobante de pago recibido",
   cancel_order: "Pedido cancelado",
   change_price: "Precio cambiado",
