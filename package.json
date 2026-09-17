@@ -13,6 +13,7 @@
     "typecheck": "rm -rf .next tsconfig.tsbuildinfo && next typegen && npm exec tsc -- --noEmit --incremental false"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "@tanstack/react-query": "^5.81.5",
     "@zxing/library": "^0.23.0",
     "driver.js": "^1.4.0",

@@ -1,174 +1,43 @@
 import { describe, expect, it, vi } from "vitest";
-import { apiFetch, type SessionStore } from "@/lib/api-client";
+import { ApiError, apiFetch, readErrorDetail } from "@/lib/api-client";
 
-function createSessionStore(seed?: Partial<SessionStore>): SessionStore {
-  return {
-    getAccessToken: vi.fn(async () => seed?.getAccessToken ? seed.getAccessToken() : null),
-    getRefreshToken: vi.fn(async () => seed?.getRefreshToken ? seed.getRefreshToken() : null),
-    setTokens: vi.fn(async () => undefined),
-    clear: vi.fn(async () => undefined),
-  };
-}
+const session = { getAccessToken: async () => "access" };
 
 describe("apiFetch", () => {
-  it("retries once after a 401 when refresh succeeds", async () => {
-    const session = createSessionStore({
-      getAccessToken: async () => "old-access",
-      getRefreshToken: async () => "refresh-token",
-    });
+  it("sends the session's access token as a bearer token", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ ok: true }));
 
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        new Response(null, {
-          status: 401,
-        }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          access_token: "new-access",
-          refresh_token: "new-refresh",
-          expires_in: 3600,
-        }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          ok: true,
-        }),
-      );
-
-    const payload = await apiFetch<{ ok: boolean }>("/erp/products", {
+    const payload = await apiFetch<{ ok: boolean }>("/dashboard/business", {
       baseUrl: "https://api.example.com",
       fetcher,
       session,
     });
 
     expect(payload).toEqual({ ok: true });
-    expect(fetcher).toHaveBeenCalledTimes(3);
-    expect(session.setTokens).toHaveBeenCalledWith({
-      accessToken: "new-access",
-      refreshToken: "new-refresh",
-      expiresIn: 3600,
-    });
-    const thirdCall = fetcher.mock.calls[2];
-    expect(thirdCall?.[0]).toBe("https://api.example.com/erp/products");
-    expect(
-      new Headers((thirdCall?.[1] as RequestInit | undefined)?.headers).get("Authorization"),
-    ).toBe("Bearer new-access");
+    const [url, init] = fetcher.mock.calls[0]!;
+    expect(url).toBe("https://api.example.com/dashboard/business");
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer access");
   });
 
-  it("refreshes proactively when there is no access token but a refresh token exists", async () => {
-    const session = createSessionStore({
-      getAccessToken: async () => null,
-      getRefreshToken: async () => "refresh-token",
-    });
-
+  it("turns the API's {detail: {code, message}} into an ApiError", async () => {
     const fetcher = vi
       .fn<typeof fetch>()
-      .mockResolvedValueOnce(
-        Response.json({
-          access_token: "new-access",
-          refresh_token: "new-refresh",
-          expires_in: 3600,
-        }),
-      )
-      .mockResolvedValueOnce(
-        Response.json({
-          ok: true,
-        }),
+      .mockResolvedValue(
+        Response.json({ detail: { code: "otp_unavailable", message: "Down" } }, { status: 502 }),
       );
 
-    const payload = await apiFetch<{ ok: boolean }>("/erp/reports/dashboard", {
-      baseUrl: "https://api.example.com",
-      fetcher,
-      session,
-    });
+    const error = await apiFetch("/x", { baseUrl: "", fetcher, session }).catch((e) => e);
 
-    expect(payload).toEqual({ ok: true });
-    // No wasted unauthenticated round-trip: refresh first, then the real call.
-    expect(fetcher).toHaveBeenCalledTimes(2);
-    expect(fetcher.mock.calls[0]?.[0]).toBe("https://api.example.com/auth/token/refresh");
-    const secondCall = fetcher.mock.calls[1];
-    expect(secondCall?.[0]).toBe("https://api.example.com/erp/reports/dashboard");
-    expect(
-      new Headers((secondCall?.[1] as RequestInit | undefined)?.headers).get("Authorization"),
-    ).toBe("Bearer new-access");
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ status: 502, code: "otp_unavailable", message: "Down" });
   });
+});
 
-  it("makes one unauthenticated attempt when there is no token at all", async () => {
-    const session = createSessionStore();
-    const fetcher = vi
-      .fn<typeof fetch>()
-      .mockResolvedValue(new Response(null, { status: 401 }));
-
-    await expect(
-      apiFetch("/erp/reports/dashboard", {
-        baseUrl: "https://api.example.com",
-        fetcher,
-        session,
-      }),
-    ).rejects.toMatchObject({ status: 401 });
-
-    // No refresh token -> no refresh endpoint call; just the single attempt.
-    expect(fetcher).toHaveBeenCalledTimes(1);
-    expect(session.clear).toHaveBeenCalled();
-  });
-
-  it("throws a normalized ApiError with backend metadata", async () => {
-    const session = createSessionStore();
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-      Response.json(
-        {
-          error: "insufficient_stock",
-          message: "Stock insuficiente: quedan 3 unidades",
-          detail: {
-            available: 3,
-          },
-        },
-        {
-          status: 409,
-        },
-      ),
-    );
-
-    await expect(
-      apiFetch("/erp/sales", {
-        baseUrl: "https://api.example.com",
-        fetcher,
-        session,
-        method: "POST",
-        body: JSON.stringify({}),
-      }),
-    ).rejects.toMatchObject({
-      status: 409,
-      code: "insufficient_stock",
-      message: "Stock insuficiente: quedan 3 unidades",
-      detail: {
-        available: 3,
-      },
-    });
-  });
-
-  it("does not force application/json when body is FormData", async () => {
-    const session = createSessionStore({
-      getAccessToken: async () => "token",
-    });
-
-    const fetcher = vi.fn<typeof fetch>().mockResolvedValue(
-      Response.json({
-        ok: true,
-      }),
-    );
-
-    await apiFetch("/erp/products/import", {
-      baseUrl: "https://api.example.com",
-      fetcher,
-      session,
-      method: "POST",
-      body: new FormData(),
-    });
-
-    const headers = new Headers((fetcher.mock.calls[0]?.[1] as RequestInit | undefined)?.headers);
-    expect(headers.get("Content-Type")).toBeNull();
+describe("readErrorDetail", () => {
+  it("reads a plain string, an object and an input-validation list", () => {
+    expect(readErrorDetail("No such Order")).toEqual({ message: "No such Order" });
+    expect(readErrorDetail({ code: "C", message: "M" })).toEqual({ code: "C", message: "M" });
+    expect(readErrorDetail([{ loc: ["body"] }]).code).toBe("invalid_input");
+    expect(readErrorDetail(undefined)).toEqual({});
   });
 });

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { usePagination } from "@/hooks/usePagination";
 import type { InventoryRow } from "@/lib/erp-types";
 import { Input } from "@/components/ui/Input";
@@ -75,7 +75,7 @@ export function ErpInventoryView() {
   });
 
   if (query.error instanceof ApiError && query.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

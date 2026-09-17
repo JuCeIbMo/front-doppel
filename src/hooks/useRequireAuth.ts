@@ -2,22 +2,18 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { readTokens } from "@/lib/session";
+import { getAccessToken } from "@/lib/supabase";
 
 /**
- * Client-side guard for owner-only routes. If there is no session to work with
- * (neither an access token nor a refresh token), bounce to the login page instead
- * of rendering a dashboard that can only spam the API with unauthenticated calls
- * (which now correctly 401). A lone refresh token counts as a recoverable session
- * — the API client refreshes it on demand — so those are let through.
+ * Client-side guard for owner-only routes: with no session, bounce to the landing
+ * page instead of rendering a dashboard whose every call would answer 401.
  */
 export function useRequireAuth(): void {
   const router = useRouter();
 
   useEffect(() => {
-    const { accessToken, refreshToken } = readTokens();
-    if (!accessToken && !refreshToken) {
-      router.replace("/");
-    }
+    getAccessToken().then((token) => {
+      if (token === null) router.replace("/");
+    });
   }, [router]);
 }

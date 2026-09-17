@@ -8,7 +8,7 @@ import { Table } from "@/components/ui/Table";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { ErpDashboardResponse, InventoryRow } from "@/lib/erp-types";
 import { OnboardingChecklist } from "./OnboardingChecklist";
@@ -131,7 +131,7 @@ export function ErpOverviewView() {
     !allStepsDone;
 
   if (error instanceof ApiError && error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

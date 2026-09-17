@@ -15,8 +15,7 @@ import {
   Settings,
   LogOut,
 } from "lucide-react";
-import { clearToken } from "@/lib/auth";
-import { authenticatedFetch } from "@/lib/api";
+import { signOut } from "@/lib/supabase";
 import { getFeatureFlags } from "@/lib/features";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
@@ -109,8 +108,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   const filteredTools = toolLinks.filter((l) => (l.feature ? flags[l.feature] : true));
 
   async function handleLogout() {
-    await authenticatedFetch("/auth/logout", { method: "POST" }).catch(() => null);
-    clearToken();
+    await signOut();
     router.replace("/");
   }
 

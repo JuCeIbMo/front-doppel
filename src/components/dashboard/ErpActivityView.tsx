@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { usePagination } from "@/hooks/usePagination";
 import { normalizeActivityItems } from "@/lib/erp-insights";
 import { buildEntityHref } from "@/lib/erp-links";
@@ -84,7 +84,7 @@ export function ErpActivityView() {
   const hasActiveFilters = Boolean(moduleFilter || fromDate || toDate);
 
   if (activeQuery.error instanceof ApiError && activeQuery.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

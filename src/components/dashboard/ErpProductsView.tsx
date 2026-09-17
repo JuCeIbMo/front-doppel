@@ -13,7 +13,7 @@ import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { CardHeader } from "@/components/ui/Card";
 import { apiFetch, apiRequest, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 import { usePagination } from "@/hooks/usePagination";
 import type { ErpProduct, ImportResult } from "@/lib/erp-types";
@@ -108,7 +108,7 @@ export function ErpProductsView() {
   });
 
   if (query.error instanceof ApiError && query.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

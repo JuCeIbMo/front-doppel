@@ -9,7 +9,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { usePagination } from "@/hooks/usePagination";
 import { buildMovementQuery } from "@/lib/erp-ops";
 import type { InventoryRow, MovementResponse } from "@/lib/erp-types";
@@ -56,7 +56,7 @@ export function ErpInventoryMovementsView({ initialProductId = "" }: { initialPr
 
   const error = inventoryQuery.error ?? movementsQuery.error;
   if (error instanceof ApiError && error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { Table } from "@/components/ui/Table";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 import { usePagination } from "@/hooks/usePagination";
 import type { ClientResponse } from "@/lib/erp-types";
@@ -84,7 +84,7 @@ export function ErpClientsView() {
   });
 
   if (query.error instanceof ApiError && query.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

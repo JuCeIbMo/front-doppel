@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
@@ -26,7 +26,7 @@ export function ErpSettingsView() {
   });
 
   if (categoriesQuery.error instanceof ApiError && categoriesQuery.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

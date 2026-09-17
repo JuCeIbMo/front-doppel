@@ -6,7 +6,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { authenticatedFetch } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
 type SaveStatus = "idle" | "saving" | "ok" | "error";
@@ -26,7 +26,7 @@ export function AdminPhonesView() {
   const load = useCallback(async () => {
     const res = await authenticatedFetch("/me/admin-phones");
     if (res.status === 401) {
-      clearToken();
+      void signOut();
       router.replace("/connect");
       return;
     }

@@ -23,7 +23,7 @@ import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Pagination } from "@/components/ui/Pagination";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 import { usePagination } from "@/hooks/usePagination";
 import type { CashAccountResponse, CashflowItem, TransactionResponse } from "@/lib/erp-types";
@@ -201,7 +201,7 @@ export function ErpFinanceView() {
   const error = accountsQuery.error ?? transactionsQuery.error;
 
   if (error instanceof ApiError && error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

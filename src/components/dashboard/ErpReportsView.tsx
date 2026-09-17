@@ -21,7 +21,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { apiFetch, apiRequest, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { normalizeTopProducts, normalizeSeries } from "@/lib/erp-insights";
 import type { TopProductItem, SalesByPeriodItem } from "@/lib/erp-types";
 
@@ -111,7 +111,7 @@ export function ErpReportsView() {
 
   useEffect(() => {
     if (firstError instanceof ApiError && firstError.status === 401) {
-      clearToken();
+      void signOut();
       router.replace("/connect");
     }
   }, [firstError, router]);

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { buildProductPayload, type ProductDraftInput } from "@/lib/erp-forms";
 import type { ErpProduct } from "@/lib/erp-types";
 
@@ -52,7 +52,7 @@ export function ErpProductEditorView({
   });
 
   if (query.error instanceof ApiError && query.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

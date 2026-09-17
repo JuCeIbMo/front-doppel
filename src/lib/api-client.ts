@@ -1,10 +1,7 @@
-import { clearTokens, readTokens, writeTokens, type StoredTokens } from "@/lib/session";
+import { getAccessToken } from "@/lib/supabase";
 
 export interface SessionStore {
   getAccessToken(): Promise<string | null> | string | null;
-  getRefreshToken(): Promise<string | null> | string | null;
-  setTokens(tokens: StoredTokens): Promise<void> | void;
-  clear(): Promise<void> | void;
 }
 
 export class ApiError extends Error {
@@ -39,20 +36,7 @@ export interface ApiRequestOptions extends RequestInit {
   throwOnError?: boolean;
 }
 
-const browserSessionStore: SessionStore = {
-  async getAccessToken() {
-    return readTokens().accessToken;
-  },
-  async getRefreshToken() {
-    return readTokens().refreshToken;
-  },
-  async setTokens(tokens) {
-    writeTokens(tokens);
-  },
-  async clear() {
-    clearTokens();
-  },
-};
+const browserSessionStore: SessionStore = { getAccessToken };
 
 function withDefaultHeaders(options: RequestInit, accessToken?: string | null): RequestInit {
   const headers = new Headers(options.headers);
@@ -78,45 +62,21 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
   return response.json().catch(() => null);
 }
 
-async function refreshAccessToken(
-  baseUrl: string,
-  fetcher: typeof fetch,
-  session: SessionStore,
-): Promise<string | null> {
-  const refreshToken = await session.getRefreshToken();
-  if (!refreshToken) {
-    await session.clear();
-    return null;
+/**
+ * The API answers errors as `{detail}`: an object `{code, message}` for its own
+ * refusals, a plain string for simple ones, and a list for invalid input.
+ */
+export function readErrorDetail(detail: unknown): { code?: string; message?: string } {
+  if (typeof detail === "string") return { message: detail };
+  if (detail && typeof detail === "object" && !Array.isArray(detail)) {
+    const { code, message } = detail as { code?: unknown; message?: unknown };
+    return {
+      code: typeof code === "string" ? code : undefined,
+      message: typeof message === "string" ? message : undefined,
+    };
   }
-
-  const response = await fetcher(`${baseUrl}/auth/token/refresh`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      refresh_token: refreshToken,
-    }),
-  });
-
-  if (!response.ok) {
-    await session.clear();
-    return null;
-  }
-
-  const payload = (await response.json()) as {
-    access_token: string;
-    refresh_token?: string | null;
-    expires_in?: number;
-  };
-
-  await session.setTokens({
-    accessToken: payload.access_token,
-    refreshToken: payload.refresh_token,
-    expiresIn: payload.expires_in,
-  });
-
-  return payload.access_token;
+  if (Array.isArray(detail)) return { code: "invalid_input", message: "Revisa los datos ingresados." };
+  return {};
 }
 
 export async function apiRequest(path: string, options: ApiRequestOptions): Promise<Response> {
@@ -129,53 +89,16 @@ export async function apiRequest(path: string, options: ApiRequestOptions): Prom
     ...init
   } = options;
 
-  let accessToken = skipAuth ? null : await session.getAccessToken();
-
-  // No access token but a refresh token on hand: refresh up front instead of
-  // firing a guaranteed-401 request. The API returns 401 for a missing token,
-  // but skipping the wasted round-trip keeps logs clean and the UX snappier.
-  if (!accessToken && !skipAuth) {
-    const refreshToken = await session.getRefreshToken();
-    if (refreshToken) {
-      accessToken = await refreshAccessToken(baseUrl, fetcher, session);
-    }
-  }
-
-  let response = await fetcher(`${baseUrl}${path}`, withDefaultHeaders(init, accessToken));
-
-  if (response.status === 401 && !skipAuth) {
-    const refreshedAccessToken = await refreshAccessToken(baseUrl, fetcher, session);
-    if (!refreshedAccessToken) {
-      if (!throwOnError) {
-        return response;
-      }
-      throw new ApiError({
-        status: 401,
-        code: "unauthorized",
-        message: "Tu sesión expiró. Volvé a iniciar sesión.",
-      });
-    }
-
-    response = await fetcher(
-      `${baseUrl}${path}`,
-      withDefaultHeaders(init, refreshedAccessToken),
-    );
-  }
+  const accessToken = skipAuth ? null : await session.getAccessToken();
+  const response = await fetcher(`${baseUrl}${path}`, withDefaultHeaders(init, accessToken));
 
   if (!response.ok && throwOnError) {
-    const payload = (await parseJsonSafe(response)) as
-      | {
-          error?: string;
-          code?: string;
-          message?: string;
-          detail?: unknown;
-        }
-      | null;
-
+    const payload = (await parseJsonSafe(response)) as { detail?: unknown } | null;
+    const { code, message } = readErrorDetail(payload?.detail);
     throw new ApiError({
       status: response.status,
-      code: payload?.error ?? payload?.code,
-      message: payload?.message ?? "Ocurrió un error inesperado.",
+      code,
+      message: message ?? "Ocurrió un error inesperado.",
       detail: payload?.detail,
     });
   }

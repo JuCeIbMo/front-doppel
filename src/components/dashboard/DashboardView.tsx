@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import {
@@ -183,7 +183,7 @@ export function DashboardView() {
     const [tenantRes, whatsappRes, botRes, messagesRes, adminPhonesRes] = responses;
 
     if (tenantRes.status === 401) {
-      clearToken();
+      void signOut();
       router.replace("/connect");
       return;
     }
@@ -312,7 +312,7 @@ export function DashboardView() {
     try {
       const res = await authenticatedFetch("/me/account", { method: "DELETE" });
       if (!res.ok) throw new Error();
-      clearToken();
+      void signOut();
       router.replace("/");
     } finally {
       setDeletingAccount(false);

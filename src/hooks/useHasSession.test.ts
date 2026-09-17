@@ -1,31 +1,25 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
-const readTokensMock = vi.fn();
-vi.mock("@/lib/session", () => ({
-  readTokens: () => readTokensMock(),
+const getAccessTokenMock = vi.fn();
+vi.mock("@/lib/supabase", () => ({
+  getAccessToken: () => getAccessTokenMock(),
 }));
 
 import { useHasSession } from "./useHasSession";
 
 describe("useHasSession", () => {
-  beforeEach(() => readTokensMock.mockReset());
+  beforeEach(() => getAccessTokenMock.mockReset());
 
-  it("is true when an access token is present", () => {
-    readTokensMock.mockReturnValue({ accessToken: "a", refreshToken: null });
+  it("is true when Supabase holds a session", async () => {
+    getAccessTokenMock.mockResolvedValue("a");
     const { result } = renderHook(() => useHasSession());
-    expect(result.current).toBe(true);
+    await waitFor(() => expect(result.current).toBe(true));
   });
 
-  it("is true when only a refresh token is present (recoverable session)", () => {
-    readTokensMock.mockReturnValue({ accessToken: null, refreshToken: "r" });
+  it("is false when there is no session", async () => {
+    getAccessTokenMock.mockResolvedValue(null);
     const { result } = renderHook(() => useHasSession());
-    expect(result.current).toBe(true);
-  });
-
-  it("is false when there is no token at all", () => {
-    readTokensMock.mockReturnValue({ accessToken: null, refreshToken: null });
-    const { result } = renderHook(() => useHasSession());
-    expect(result.current).toBe(false);
+    await waitFor(() => expect(result.current).toBe(false));
   });
 });

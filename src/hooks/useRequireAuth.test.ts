@@ -1,14 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 
 const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
 }));
 
-const readTokensMock = vi.fn();
-vi.mock("@/lib/session", () => ({
-  readTokens: () => readTokensMock(),
+const getAccessTokenMock = vi.fn();
+vi.mock("@/lib/supabase", () => ({
+  getAccessToken: () => getAccessTokenMock(),
 }));
 
 import { useRequireAuth } from "./useRequireAuth";
@@ -16,24 +16,19 @@ import { useRequireAuth } from "./useRequireAuth";
 describe("useRequireAuth", () => {
   beforeEach(() => {
     replace.mockClear();
-    readTokensMock.mockReset();
+    getAccessTokenMock.mockReset();
   });
 
-  it("redirects to login when there is no token at all", () => {
-    readTokensMock.mockReturnValue({ accessToken: null, refreshToken: null });
+  it("redirects to the landing page when there is no session", async () => {
+    getAccessTokenMock.mockResolvedValue(null);
     renderHook(() => useRequireAuth());
-    expect(replace).toHaveBeenCalledWith("/");
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
   });
 
-  it("stays put when an access token is present", () => {
-    readTokensMock.mockReturnValue({ accessToken: "a", refreshToken: null });
+  it("stays put when there is a session", async () => {
+    getAccessTokenMock.mockResolvedValue("a");
     renderHook(() => useRequireAuth());
-    expect(replace).not.toHaveBeenCalled();
-  });
-
-  it("stays put when only a refresh token is present (recoverable session)", () => {
-    readTokensMock.mockReturnValue({ accessToken: null, refreshToken: "r" });
-    renderHook(() => useRequireAuth());
+    await waitFor(() => expect(getAccessTokenMock).toHaveBeenCalled());
     expect(replace).not.toHaveBeenCalled();
   });
 });

@@ -9,14 +9,14 @@ const mockFetch = vi.mocked(authenticatedFetch);
 describe("isOnboarded", () => {
   beforeEach(() => mockFetch.mockReset());
 
-  it("is true when /me/tenant returns ok (business already connected)", async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 200 }));
+  it("is true when the Business has a WhatsApp Line", async () => {
+    mockFetch.mockResolvedValue(Response.json({ phone_number_id: "1" }));
     expect(await isOnboarded()).toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith("/me/tenant");
+    expect(mockFetch).toHaveBeenCalledWith("/dashboard/whatsapp-line");
   });
 
-  it("is false when /me/tenant returns 404 (no business connected)", async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 404 }));
+  it("is false when the Business has no Line yet", async () => {
+    mockFetch.mockResolvedValue(Response.json(null));
     expect(await isOnboarded()).toBe(false);
   });
 

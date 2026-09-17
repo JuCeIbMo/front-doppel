@@ -6,13 +6,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { OTPInput } from "@/components/connect/OTPInput";
 import { EmbeddedSignup } from "@/components/connect/EmbeddedSignup";
-import { getToken, setToken, setRefreshToken, clearToken } from "@/lib/auth";
-import { authenticatedFetch } from "@/lib/api";
 import { isOnboarded } from "@/lib/onboarding";
+import { getAccessToken, getSupabase } from "@/lib/supabase";
 
 type Step = "email" | "otp" | "connect";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const steps: { key: Step; label: string }[] = [
   { key: "email", label: "Email" },
@@ -32,25 +29,14 @@ export function AuthFlow() {
   // On mount: if there's already a valid session, skip straight to where the user
   // belongs — the dashboard if their business is connected, otherwise the connect step.
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      setChecking(false);
-      return;
-    }
-    authenticatedFetch("/auth/me")
-      .then(async (res) => {
-        if (!res.ok) {
-          clearToken();
-          return;
-        }
+    getAccessToken()
+      .then(async (token) => {
+        if (!token) return;
         if (await isOnboarded()) {
           router.replace("/dashboard");
           return;
         }
         setStep("connect");
-      })
-      .catch(() => {
-        clearToken();
       })
       .finally(() => setChecking(false));
   }, [router]);
@@ -62,19 +48,15 @@ export function AuthFlow() {
       setLoading(true);
 
       try {
-        const res = await fetch(`${API_URL}/auth/otp/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-
-        if (res.status === 429) {
-          const data = await res.json();
-          setError(data.detail || "Demasiados intentos. Espera unos minutos.");
+        const { error: sendError } = await getSupabase().auth.signInWithOtp({ email });
+        if (sendError?.status === 429) {
+          setError("Ya te enviamos un código. Revisa tu correo o espera un minuto.");
           return;
         }
-
-        // Always move to OTP step (backend returns 202 regardless)
+        if (sendError) {
+          setError("No pudimos enviar el código. Intenta de nuevo.");
+          return;
+        }
         setStep("otp");
       } catch {
         setError("Error de conexion. Intenta de nuevo.");
@@ -92,25 +74,19 @@ export function AuthFlow() {
       setLoading(true);
 
       try {
-        const res = await fetch(`${API_URL}/auth/otp/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, token: code }),
+        const { error: verifyError } = await getSupabase().auth.verifyOtp({
+          email,
+          token: code,
+          type: "email",
         });
-
-        if (!res.ok) {
+        if (verifyError) {
           setOtpError(true);
-          const data = await res.json();
-          setError(data.detail || "Codigo invalido.");
+          setError("Codigo invalido.");
           return;
         }
 
-        const data = await res.json();
-        setToken(data.access_token);
-        if (data.refresh_token) setRefreshToken(data.refresh_token);
-
         // Returning users who already connected their business go straight to the
-        // dashboard. Only first-timers (no tenant yet) see the connect step.
+        // dashboard. Only those without a WhatsApp Line yet see the connect step.
         if (await isOnboarded()) {
           router.replace("/dashboard");
           return;

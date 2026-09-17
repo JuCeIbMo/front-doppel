@@ -14,8 +14,8 @@ vi.mock("@/lib/api", () => ({
   authenticatedFetch: vi.fn(),
 }));
 
-vi.mock("@/lib/auth", () => ({
-  clearToken: vi.fn(),
+vi.mock("@/lib/supabase", () => ({
+  signOut: vi.fn(),
 }));
 
 const mockFetch = vi.mocked(authenticatedFetch);

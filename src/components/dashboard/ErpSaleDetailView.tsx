@@ -10,7 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { apiFetch, ApiError, getBrowserSessionStore } from "@/lib/api-client";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { SaleResponse } from "@/lib/erp-types";
 
@@ -52,7 +52,7 @@ export function ErpSaleDetailView({ saleId }: { saleId: string }) {
   });
 
   if (query.error instanceof ApiError && query.error.status === 401) {
-    clearToken();
+    void signOut();
     router.replace("/connect");
     return null;
   }

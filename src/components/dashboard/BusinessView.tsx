@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Table } from "@/components/ui/Table";
 import { authenticatedFetch } from "@/lib/api";
-import { clearToken } from "@/lib/auth";
+import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
 type SaveStatus = "idle" | "saving" | "ok" | "error";
@@ -71,7 +71,7 @@ export function BusinessView() {
     ]);
 
     if (bizRes.status === 401 || prodRes.status === 401) {
-      clearToken();
+      void signOut();
       router.replace("/connect");
       return;
     }
