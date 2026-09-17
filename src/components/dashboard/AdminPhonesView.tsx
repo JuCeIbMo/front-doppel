@@ -1,17 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { authenticatedFetch } from "@/lib/api";
+import { ApiError } from "@/lib/api-client";
+import { readApi, runOperationOrThrow } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 
 type SaveStatus = "idle" | "saving" | "ok" | "error";
 
-interface AdminPhonesPayload {
+interface ManagerPhonesPayload {
   phones: string[];
 }
 
@@ -23,28 +24,27 @@ export function AdminPhonesView() {
   const [status, setStatus] = useState<SaveStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const res = await authenticatedFetch("/me/admin-phones");
-    if (res.status === 401) {
-      void signOut();
-      router.replace("/connect");
-      return;
-    }
-    if (res.status === 404) {
-      router.replace("/connect");
-      return;
-    }
-    if (!res.ok) {
-      setErrorMessage("No se pudo cargar la lista de numeros admin.");
-      return;
-    }
-    const data: AdminPhonesPayload = await res.json();
-    setPhones(data.phones || []);
-  }, [router]);
-
   useEffect(() => {
-    load().finally(() => setLoading(false));
-  }, [load]);
+    let active = true;
+    readApi<Array<{ phone: string }>>("/dashboard/manager-phones")
+      .then((data) => {
+        if (active) setPhones(data.map((entry) => entry.phone));
+      })
+      .catch((error) => {
+        if (error instanceof ApiError && error.status === 401) {
+          void signOut();
+          router.replace("/connect");
+          return;
+        }
+        if (active) setErrorMessage("No se pudo cargar la lista de numeros admin.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   const handleAdd = () => {
     const cleaned = draft.trim();
@@ -65,18 +65,17 @@ export function AdminPhonesView() {
     setStatus("saving");
     setErrorMessage(null);
     try {
-      const res = await authenticatedFetch("/me/admin-phones", {
-        method: "PUT",
-        body: JSON.stringify({ phones }),
+      const data = await runOperationOrThrow<ManagerPhonesPayload>("set_manager_phones", {
+        phones,
       });
-      if (!res.ok) throw new Error();
-      const data: AdminPhonesPayload = await res.json();
-      setPhones(data.phones || []);
+      setPhones(data.phones);
       setStatus("ok");
       setTimeout(() => setStatus("idle"), 2500);
-    } catch {
+    } catch (error) {
       setStatus("error");
-      setErrorMessage("No se pudo guardar la lista. Intenta otra vez.");
+      setErrorMessage(
+        error instanceof Error ? error.message : "No se pudo guardar la lista. Intenta otra vez.",
+      );
       setTimeout(() => setStatus("idle"), 3000);
     }
   };

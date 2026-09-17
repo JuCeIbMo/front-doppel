@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { authenticatedFetch } from "@/lib/api";
+import { runOperationOrThrow } from "@/lib/operations";
 
 type SaveStatus = "idle" | "saving" | "error";
 
@@ -27,14 +27,7 @@ export function ManagerSetup() {
     setStatus("saving");
     setError("");
     try {
-      const res = await authenticatedFetch("/me/admin-phones", {
-        method: "PUT",
-        body: JSON.stringify({ phones: [trimmed] }),
-      });
-      if (!res.ok) {
-        const payload = await res.json().catch(() => ({}));
-        throw new Error(payload.detail || "No se pudo guardar el numero manager.");
-      }
+      await runOperationOrThrow("set_manager_phones", { phones: [trimmed] });
       router.replace("/dashboard");
     } catch (err) {
       setStatus("error");
