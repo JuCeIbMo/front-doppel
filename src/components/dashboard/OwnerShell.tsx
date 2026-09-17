@@ -16,6 +16,7 @@ import {
   LogOut,
   ClipboardList,
   ShieldCheck,
+  MessageSquareText,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
@@ -31,6 +32,7 @@ type NavLink = {
 const coreLinks: NavLink[] = [
   { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
   { href: "/dashboard/orders", label: "Pedidos", icon: ClipboardList, feature: null },
+  { href: "/dashboard/templates", label: "Plantillas", icon: MessageSquareText, feature: null },
   { href: "/dashboard/approvals", label: "Aprobaciones", icon: ShieldCheck, feature: null },
   { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: "overview" },

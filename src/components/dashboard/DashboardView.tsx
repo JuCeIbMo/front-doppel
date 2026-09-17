@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { authenticatedFetch } from "@/lib/api";
-import { runOperation, runOperationOrThrow } from "@/lib/operations";
+import { readApi, runOperation, runOperationOrThrow } from "@/lib/operations";
+import { placeholderCount, renderTemplate, type MessageTemplate } from "@/lib/templates";
 import { signOut } from "@/lib/supabase";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
@@ -929,11 +930,140 @@ function ConversationFooter({
           </Button>
         </form>
       ) : (
-        <p className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-secondary">
-          {REJECTION_TEXT.CONTACT_WINDOW_CLOSED}
-        </p>
+        <div className="space-y-3">
+          <p className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-secondary">
+            {REJECTION_TEXT.CONTACT_WINDOW_CLOSED}
+          </p>
+          <TemplatePicker contactCode={conversation.contactCode} onSent={onChanged} />
+        </div>
       )}
 
+      {error && <p className="text-sm text-red-400">{error}</p>}
+    </div>
+  );
+}
+
+/** Pick an approved Template, fill its gaps and send it to a Contact whose 24 hours are over. */
+function TemplatePicker({
+  contactCode,
+  onSent,
+}: {
+  contactCode: string;
+  onSent: () => Promise<void>;
+}) {
+  const [templates, setTemplates] = useState<MessageTemplate[] | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [chosen, setChosen] = useState("");
+  const [values, setValues] = useState<string[]>([]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
+
+  useEffect(() => {
+    let active = true;
+    readApi<MessageTemplate[]>("/dashboard/templates")
+      .then((loaded) => {
+        if (active) setTemplates(loaded.filter((template) => template.status === "APPROVED"));
+      })
+      .catch(() => {
+        if (active) setLoadError("No se pudieron cargar tus plantillas de Meta.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (loadError) return <p className="text-sm text-red-400">{loadError}</p>;
+  if (templates === null) return null;
+  if (templates.length === 0) {
+    return (
+      <p className="text-sm text-text-secondary">
+        No tienes plantillas aprobadas.{" "}
+        <a href="/dashboard/templates" className="text-accent hover:underline">
+          Crear una
+        </a>
+      </p>
+    );
+  }
+
+  const template = templates.find((item) => item.name === chosen) ?? null;
+  const gaps = template ? placeholderCount(template.body) : 0;
+  const filled = Array.from({ length: gaps }, (_, index) => values[index] ?? "");
+  const ready = template !== null && filled.every((value) => value.trim());
+
+  async function send() {
+    if (!template || !ready || sending) return;
+    if (!confirm("Enviar esta plantilla? WhatsApp cobra cada envío.")) return;
+    setSending(true);
+    setError("");
+    try {
+      const answer = await runOperation(
+        "send_template",
+        {
+          contact_code: contactCode,
+          template_name: template.name,
+          body: template.body,
+          values: filled.map((value) => value.trim()),
+        },
+        sendKey,
+      );
+      if (answer.status === "rejected") {
+        setError(REJECTION_TEXT[answer.code] ?? answer.message);
+        return;
+      }
+      setChosen("");
+      setValues([]);
+      setSendKey(crypto.randomUUID());
+      await onSent();
+    } catch {
+      setError("No se pudo enviar la plantilla.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <select
+        aria-label="Plantilla"
+        value={chosen}
+        onChange={(event) => {
+          setChosen(event.target.value);
+          setValues([]);
+        }}
+        className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary outline-none focus:border-accent/40"
+      >
+        <option value="">Elegir plantilla</option>
+        {templates.map((item) => (
+          <option key={item.name} value={item.name}>
+            {item.name}
+          </option>
+        ))}
+      </select>
+      {template && (
+        <>
+          {filled.map((value, index) => (
+            <input
+              key={index}
+              aria-label={`Valor para {{${index + 1}}}`}
+              value={value}
+              onChange={(event) => {
+                const next = [...filled];
+                next[index] = event.target.value;
+                setValues(next);
+              }}
+              placeholder={`Valor para {{${index + 1}}}`}
+              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40"
+            />
+          ))}
+          <p className="whitespace-pre-wrap rounded-2xl border border-accent/20 bg-accent/8 px-4 py-3 text-sm text-text-primary">
+            {renderTemplate(template.body, filled)}
+          </p>
+          <Button onClick={send} disabled={!ready || sending}>
+            {sending ? "Enviando..." : "Enviar plantilla"}
+          </Button>
+        </>
+      )}
       {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );

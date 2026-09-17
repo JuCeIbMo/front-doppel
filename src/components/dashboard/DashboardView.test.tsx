@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardView } from "@/components/dashboard/DashboardView";
 import { authenticatedFetch } from "@/lib/api";
-import { runOperation } from "@/lib/operations";
+import { readApi, runOperation } from "@/lib/operations";
 
 const replace = vi.fn();
 
@@ -16,6 +16,7 @@ vi.mock("@/lib/api", () => ({
 }));
 
 vi.mock("@/lib/operations", () => ({
+  readApi: vi.fn(),
   runOperation: vi.fn(),
   runOperationOrThrow: vi.fn(),
 }));
@@ -27,6 +28,7 @@ vi.mock("@/lib/supabase", () => ({
 
 const mockFetch = vi.mocked(authenticatedFetch);
 const mockRun = vi.mocked(runOperation);
+const mockRead = vi.mocked(readApi);
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -40,6 +42,8 @@ describe("DashboardView", () => {
     replace.mockReset();
     mockFetch.mockReset();
     mockRun.mockReset();
+    mockRead.mockReset();
+    mockRead.mockResolvedValue([]);
     window.localStorage.clear();
   });
 
@@ -206,6 +210,51 @@ describe("DashboardView", () => {
       await screen.findByText(/no escribió en las últimas 24 horas/),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Respuesta al cliente")).not.toBeInTheDocument();
+  });
+
+  it("sends an approved template once the 24 hours are over", async () => {
+    oneConversation({ reply_window_closes_at: "2020-01-01T00:00:00.000Z" });
+    mockRead.mockResolvedValue([
+      {
+        name: "pedido_listo",
+        category: "UTILITY",
+        language: "es",
+        status: "APPROVED",
+        body: "Hola {{1}}, ya está.",
+        rejected_reason: null,
+      },
+      {
+        name: "en_revision",
+        category: "UTILITY",
+        language: "es",
+        status: "PENDING",
+        body: "Nada",
+        rejected_reason: null,
+      },
+    ]);
+    mockRun.mockResolvedValue({ status: "executed", result: {} });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(<DashboardView />);
+    const picker = await screen.findByLabelText("Plantilla");
+    expect(screen.queryByRole("option", { name: "en_revision" })).not.toBeInTheDocument();
+    fireEvent.change(picker, { target: { value: "pedido_listo" } });
+    fireEvent.change(screen.getByLabelText("Valor para {{1}}"), { target: { value: "Ana" } });
+    expect(screen.getByText("Hola Ana, ya está.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Enviar plantilla" }));
+
+    await waitFor(() =>
+      expect(mockRun).toHaveBeenCalledWith(
+        "send_template",
+        {
+          contact_code: "AAAAAA",
+          template_name: "pedido_listo",
+          body: "Hola {{1}}, ya está.",
+          values: ["Ana"],
+        },
+        expect.any(String),
+      ),
+    );
   });
 
   it("shows until when the bot is paused and hands the chat back", async () => {

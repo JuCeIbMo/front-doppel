@@ -21,8 +21,11 @@ const LABELS: Record<string, string> = {
   register_sale: "Venta registrada",
   reply_to_contact: "Respondiste a un cliente",
   restore_price: "Precio restaurado",
+  resume_public_agent: "Bot reactivado en un chat",
   rotate_whatsapp_line_credential: "Credencial de WhatsApp renovada",
+  send_template: "Plantilla enviada a un cliente",
   send_web_message: "Mensaje al agente",
+  submit_template: "Plantilla enviada a revisión",
   set_manager_phones: "Teléfonos de encargados actualizados",
   void_sale: "Venta anulada",
 };
