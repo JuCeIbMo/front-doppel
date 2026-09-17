@@ -11,6 +11,7 @@ import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import {
   buildConversationSummaries,
+  canReplyFreely,
   filterConversations,
   readConversationMetaMap,
   writeConversationMetaMap,
@@ -33,6 +34,9 @@ interface WhatsappLine {
   display_phone_number: string;
   public_agent_enabled: boolean;
 }
+
+/** How often the inbox asks for new messages. */
+const REFRESH_MS = 5000;
 
 const FILTER_OPTIONS: Array<{ id: ConversationFilter; label: string }> = [
   { id: "all", label: "Todos" },
@@ -184,6 +188,18 @@ export function DashboardView() {
     loadDashboard().finally(() => setLoading(false));
   }, [loadDashboard]);
 
+  const refreshPipeline = useCallback(async () => {
+    const res = await authenticatedFetch("/dashboard/pipeline");
+    if (res.ok) setPipeline(await res.json());
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refreshPipeline().catch(() => undefined);
+    }, REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [refreshPipeline]);
+
   useEffect(() => {
     if (!business?.id) return;
     writeConversationMetaMap(business.id, metaByPhone);
@@ -217,21 +233,35 @@ export function DashboardView() {
 
   const selectedConversationId = selectedConversation?.conversationId ?? null;
 
+  const loadMessages = useCallback(async (conversationId: string) => {
+    const res = await authenticatedFetch(`/dashboard/pipeline/${conversationId}/messages`);
+    return res.ok ? ((await res.json()) as PipelineMessage[]) : null;
+  }, []);
+
   useEffect(() => {
     if (!selectedConversationId) return;
     let active = true;
-    authenticatedFetch(`/dashboard/pipeline/${selectedConversationId}/messages`)
-      .then(async (res) => {
-        const loaded: PipelineMessage[] = res.ok ? await res.json() : [];
-        if (active) setMessages(loaded);
-      })
-      .catch(() => {
-        if (active) setMessages([]);
-      });
+    setMessages([]);
+    const load = () =>
+      loadMessages(selectedConversationId)
+        .then((loaded) => {
+          if (active && loaded) setMessages(loaded);
+        })
+        .catch(() => undefined);
+    void load();
+    const timer = window.setInterval(load, REFRESH_MS);
     return () => {
       active = false;
+      window.clearInterval(timer);
     };
-  }, [selectedConversationId]);
+  }, [selectedConversationId, loadMessages]);
+
+  const refreshSelected = useCallback(async () => {
+    await refreshPipeline();
+    if (!selectedConversationId) return;
+    const loaded = await loadMessages(selectedConversationId);
+    if (loaded) setMessages(loaded);
+  }, [refreshPipeline, loadMessages, selectedConversationId]);
 
   const handleToggleBot = useCallback(async () => {
     if (!line) return;
@@ -552,6 +582,13 @@ export function DashboardView() {
                   </div>
                 ))}
               </div>
+
+              <ConversationFooter
+                key={selectedConversation.conversationId}
+                conversation={selectedConversation}
+                botEnabled={canReply}
+                onChanged={refreshSelected}
+              />
             </div>
           ) : (
             <div className="flex h-full min-h-[42rem] items-center justify-center px-6 text-center">
@@ -777,6 +814,127 @@ export function DashboardView() {
           </Button>
         </div>
       </Card>
+    </div>
+  );
+}
+
+const REJECTION_TEXT: Record<string, string> = {
+  CONTACT_WINDOW_CLOSED:
+    "Este cliente no escribió en las últimas 24 horas. WhatsApp solo deja escribirle con una plantilla aprobada.",
+  WHATSAPP_LINE_NOT_CONNECTED: "Conecta tu WhatsApp antes de responder.",
+  CONTACT_NOT_FOUND: "Este cliente ya no existe.",
+};
+
+/**
+ * Below a Conversation: whether the bot is paused there, and the box the Owner replies
+ * with while WhatsApp still lets them write.
+ */
+function ConversationFooter({
+  conversation,
+  botEnabled,
+  onChanged,
+}: {
+  conversation: ConversationSummary;
+  botEnabled: boolean;
+  onChanged: () => Promise<void>;
+}) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [error, setError] = useState("");
+  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
+  const windowOpen = canReplyFreely(conversation);
+
+  async function send() {
+    const body = draft.trim();
+    if (!body || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const answer = await runOperation(
+        "reply_to_contact",
+        { contact_code: conversation.contactCode, body },
+        sendKey,
+      );
+      if (answer.status === "rejected") {
+        setError(REJECTION_TEXT[answer.code] ?? "No se pudo enviar el mensaje.");
+        return;
+      }
+      setDraft("");
+      setSendKey(crypto.randomUUID());
+      await onChanged();
+    } catch {
+      setError("No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function resume() {
+    setResuming(true);
+    setError("");
+    try {
+      const answer = await runOperation("resume_public_agent", {
+        contact_code: conversation.contactCode,
+      });
+      if (answer.status === "rejected") {
+        setError(REJECTION_TEXT[answer.code] ?? "No se pudo reactivar el bot.");
+        return;
+      }
+      await onChanged();
+    } catch {
+      setError("No se pudo reactivar el bot.");
+    } finally {
+      setResuming(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3 border-t border-white/8 px-5 py-4">
+      {conversation.pausedUntil && botEnabled && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
+          <p className="text-sm text-amber-200">
+            Bot en pausa hasta las {formatTimestamp(conversation.pausedUntil)}
+          </p>
+          <Button variant="secondary" onClick={resume} disabled={resuming}>
+            {resuming ? "Reactivando..." : "Reactivar bot"}
+          </Button>
+        </div>
+      )}
+
+      {windowOpen ? (
+        <form
+          className="flex items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void send();
+          }}
+        >
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void send();
+              }
+            }}
+            rows={2}
+            placeholder="Escribe tu respuesta. El bot se pausa 30 minutos en este chat."
+            aria-label="Respuesta al cliente"
+            className="min-h-[3rem] flex-1 resize-none rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
+          />
+          <Button type="submit" disabled={sending || !draft.trim()}>
+            {sending ? "Enviando..." : "Enviar"}
+          </Button>
+        </form>
+      ) : (
+        <p className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-secondary">
+          {REJECTION_TEXT.CONTACT_WINDOW_CLOSED}
+        </p>
+      )}
+
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </div>
   );
 }

@@ -4,6 +4,7 @@ import {
   filterConversations,
   getConversationStorageKey,
   mergeConversationMeta,
+  canReplyFreely,
   messageText,
   readConversationMetaMap,
   writeConversationMetaMap,
@@ -17,6 +18,8 @@ const conversations = [
     last_message_at: "2026-06-17T12:00:00.000Z",
     last_message_body: "Si, claro",
     intervention_started_at: null,
+    paused_until: null,
+    reply_window_closes_at: "2026-06-18T12:00:00.000Z",
   },
   {
     id: "c2",
@@ -25,6 +28,8 @@ const conversations = [
     last_message_at: "2026-06-17T11:00:00.000Z",
     last_message_body: "Siguen atendiendo?",
     intervention_started_at: "2026-06-17T11:05:00.000Z",
+    paused_until: "2026-06-17T11:35:00.000Z",
+    reply_window_closes_at: null,
   },
 ];
 
@@ -145,5 +150,15 @@ describe("local storage persistence", () => {
         displayName: "Andrea",
       },
     });
+  });
+});
+
+describe("canReplyFreely", () => {
+  it("lets the Owner write only while the Contact's 24 hours are open", () => {
+    const [open, silent] = buildConversationSummaries(conversations, {});
+
+    expect(canReplyFreely(open, new Date("2026-06-18T11:59:00.000Z"))).toBe(true);
+    expect(canReplyFreely(open, new Date("2026-06-18T12:01:00.000Z"))).toBe(false);
+    expect(canReplyFreely(silent, new Date("2026-06-17T11:10:00.000Z"))).toBe(false);
   });
 });

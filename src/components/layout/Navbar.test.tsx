@@ -30,7 +30,7 @@ describe("Navbar auth entry", () => {
 
     expect(screen.getByRole("link", { name: /Ir al dashboard/ })).toHaveAttribute(
       "href",
-      "/dashboard",
+      "/dashboard/automation",
     );
     expect(screen.queryByRole("link", { name: "Iniciar sesión" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Conectar WhatsApp" })).toBeNull();

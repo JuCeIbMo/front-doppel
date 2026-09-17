@@ -16,6 +16,10 @@ export type PipelineConversation = {
   last_message_at: string | null;
   last_message_body: string | null;
   intervention_started_at: string | null;
+  /** When the bot answers again; null when it is not paused. */
+  paused_until: string | null;
+  /** Until when WhatsApp lets the Owner write freely; past it only a template gets through. */
+  reply_window_closes_at: string | null;
 };
 
 /** One message as `GET /dashboard/pipeline/{id}/messages` returns it. */
@@ -50,8 +54,10 @@ export type ConversationSummary = {
   lastMessage: string;
   lastMessageAt: string | null;
   unreadCount: number;
-  /** An Owner took this Conversation over, so the agent is not answering it. */
+  /** The bot is paused in this Conversation, because the Owner replied or it handed over. */
   humanTakeover: boolean;
+  pausedUntil: string | null;
+  replyWindowClosesAt: string | null;
 };
 
 const STORAGE_PREFIX = "automation-crm";
@@ -131,7 +137,9 @@ export function buildConversationSummaries(
         lastMessage: conversation.last_message_body ?? "",
         lastMessageAt: conversation.last_message_at,
         unreadCount: 0,
-        humanTakeover: conversation.intervention_started_at !== null,
+        humanTakeover: conversation.paused_until !== null,
+        pausedUntil: conversation.paused_until,
+        replyWindowClosesAt: conversation.reply_window_closes_at,
       };
     })
     .sort((a, b) => timeOf(b.lastMessageAt) - timeOf(a.lastMessageAt));
@@ -139,6 +147,12 @@ export function buildConversationSummaries(
 
 function timeOf(value: string | null): number {
   return value ? new Date(value).getTime() : 0;
+}
+
+/** Whether WhatsApp still lets the Owner write to this Contact without a template. */
+export function canReplyFreely(conversation: ConversationSummary, now: Date = new Date()): boolean {
+  if (!conversation.replyWindowClosesAt) return false;
+  return new Date(conversation.replyWindowClosesAt).getTime() > now.getTime();
 }
 
 /** What a message says: its text, else what was heard or read in its file. */
