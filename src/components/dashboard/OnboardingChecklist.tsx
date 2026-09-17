@@ -1,45 +1,38 @@
-"use client";
 import Link from "next/link";
 
-interface Step {
+export interface OnboardingStep {
   label: string;
   done: boolean;
   href: string;
 }
 
-interface OnboardingChecklistProps {
-  steps: Step[];
-  onDismiss: () => void;
-}
-
-export function OnboardingChecklist({ steps, onDismiss }: OnboardingChecklistProps) {
+/** The first steps of a new Business; Inicio shows it only while one is missing. */
+export function OnboardingChecklist({ steps }: { steps: OnboardingStep[] }) {
+  const done = steps.filter((step) => step.done).length;
   return (
     <div className="rounded-2xl border border-accent/30 bg-accent/5 p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <p className="font-semibold text-text-primary">¡Bienvenido a Doppel ERP!</p>
-          <p className="text-sm text-text-secondary mt-1">Completá estos pasos para comenzar.</p>
-        </div>
-        <button
-          type="button"
-          onClick={onDismiss}
-          className="text-text-secondary hover:text-text-primary text-sm"
-        >
-          Descartar
-        </button>
-      </div>
-      <ul className="space-y-3">
+      <p className="font-semibold text-text-primary">Pon a funcionar tu bot</p>
+      <p className="mt-1 text-sm text-text-secondary">
+        {done} de {steps.length} pasos listos.
+      </p>
+      <ul className="mt-4 space-y-3">
         {steps.map((step) => (
           <li key={step.href} className="flex items-center gap-3">
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-              step.done ? "bg-accent text-black" : "border border-border text-text-secondary"
-            }`}>
+            <span
+              aria-hidden
+              className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                step.done ? "bg-accent text-black" : "border border-border text-text-secondary"
+              }`}
+            >
               {step.done ? "✓" : ""}
             </span>
             {step.done ? (
               <span className="text-sm text-text-secondary line-through">{step.label}</span>
             ) : (
-              <Link href={step.href} className="text-sm text-text-primary hover:text-accent transition-colors">
+              <Link
+                href={step.href}
+                className="text-sm text-text-primary transition-colors hover:text-accent"
+              >
                 {step.label} →
               </Link>
             )}

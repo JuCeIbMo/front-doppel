@@ -37,7 +37,7 @@ const coreLinks: NavLink[] = [
   { href: "/dashboard/knowledge", label: "Lo que sabe el bot", icon: BookOpen, feature: null },
   { href: "/dashboard/approvals", label: "Aprobaciones", icon: ShieldCheck, feature: null },
   { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
-  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard, feature: "overview" },
+  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, feature: "overview" },
   { href: "/dashboard/products", label: "Productos", icon: Package, feature: "products" },
   { href: "/dashboard/inventory", label: "Inventario", icon: Boxes, feature: "inventory" },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, feature: "clients" },

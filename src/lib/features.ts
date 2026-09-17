@@ -4,7 +4,7 @@
  * yet; flip it to "ready" once its backend exists.
  */
 const featureStatus = {
-  overview: "soon",
+  overview: "ready",
   products: "ready",
   inventory: "soon",
   saleDetail: "ready",

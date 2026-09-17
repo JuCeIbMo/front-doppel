@@ -1,10 +1,10 @@
 import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpOverviewView } from "@/components/dashboard/ErpOverviewView";
+import { OverviewView } from "@/components/dashboard/OverviewView";
 
 export default function DashboardPage() {
   return (
-    <ComingSoonGate feature="overview" title="Resumen">
-      <ErpOverviewView />
+    <ComingSoonGate feature="overview" title="Inicio">
+      <OverviewView />
     </ComingSoonGate>
   );
 }
