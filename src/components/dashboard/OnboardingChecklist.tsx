@@ -17,7 +17,7 @@ export function OnboardingChecklist({ steps }: { steps: OnboardingStep[] }) {
       </p>
       <ul className="mt-4 space-y-3">
         {steps.map((step) => (
-          <li key={step.href} className="flex items-center gap-3">
+          <li key={step.label} className="flex items-center gap-3">
             <span
               aria-hidden
               className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${

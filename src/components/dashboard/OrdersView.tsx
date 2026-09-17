@@ -9,6 +9,7 @@ import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -99,7 +100,7 @@ export function OrdersView() {
           </Table>
         ) : query.error ? (
           <p className="text-sm text-danger">
-            {query.error instanceof Error ? query.error.message : "No se pudo cargar los pedidos."}
+            {query.error instanceof Error ? query.error.message : "No se pudieron cargar los pedidos."}
           </p>
         ) : orders.length === 0 ? (
           <Table>
@@ -110,8 +111,8 @@ export function OrdersView() {
             <Table.Head>
               <tr>
                 <Table.Th>Código</Table.Th>
-                <Table.Th>Cliente</Table.Th>
-                <Table.Th>Fecha</Table.Th>
+                <Table.Th className="hidden sm:table-cell">Cliente</Table.Th>
+                <Table.Th className="hidden sm:table-cell">Fecha</Table.Th>
                 <Table.Th>Total</Table.Th>
                 <Table.Th>Estado</Table.Th>
                 <Table.Th className="text-right">Detalle</Table.Th>
@@ -148,9 +149,9 @@ function OrderRow({
     <>
       <Table.Row>
         <Table.Cell className="text-text-muted font-mono text-xs">{order.code}</Table.Cell>
-        <Table.Cell className="text-text-secondary">{order.whatsapp_number}</Table.Cell>
-        <Table.Cell className="text-text-secondary text-xs">
-          {new Date(order.placed_at).toLocaleString()}
+        <Table.Cell className="hidden sm:table-cell text-text-secondary">{order.whatsapp_number}</Table.Cell>
+        <Table.Cell className="hidden sm:table-cell text-text-secondary text-xs">
+          {formatDateTime(order.placed_at)}
         </Table.Cell>
         <Table.Cell className="text-text-primary font-semibold">{format(Number(order.total))}</Table.Cell>
         <Table.Cell>

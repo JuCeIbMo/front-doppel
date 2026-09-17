@@ -1,39 +1,6 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { E2E_API_URL } from "../../playwright.config";
-
-/** The API lives on another origin, as in production, so every answer carries CORS headers. */
-const CORS = {
-  "access-control-allow-origin": "http://localhost:3101",
-  "access-control-allow-headers": "authorization, content-type, idempotency-key",
-  "access-control-allow-methods": "GET, POST, OPTIONS",
-};
-
-function json(route: Route, payload: unknown) {
-  return route.fulfill({
-    status: 200,
-    headers: CORS,
-    contentType: "application/json",
-    body: JSON.stringify(payload),
-  });
-}
-
-/** A signed-in Owner as supabase-js stores it, so no network call is needed to read it. */
-async function signIn(page: Page) {
-  await page.addInitScript(() => {
-    const now = Math.floor(Date.now() / 1000);
-    window.localStorage.setItem(
-      "sb-e2e-auth-token",
-      JSON.stringify({
-        access_token: "e2e-access",
-        refresh_token: "e2e-refresh",
-        token_type: "bearer",
-        expires_in: 3600,
-        expires_at: now + 3600,
-        user: { id: "owner-1", aud: "authenticated", email: "owner@e2e.test" },
-      }),
-    );
-  });
-}
+import { CORS, json, signIn } from "./owner";
 
 async function mockApi(page: Page, confirmed: string[]) {
   await page.route(`${E2E_API_URL}/**`, async (route) => {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Package,
@@ -18,6 +19,8 @@ import {
   ClipboardList,
   ShieldCheck,
   MessageSquareText,
+  Menu,
+  X,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
@@ -50,17 +53,26 @@ const toolLinks: NavLink[] = [
   { href: "/dashboard/settings", label: "Ajustes", icon: Settings, feature: "settings" },
 ];
 
+/** The screens a phone keeps in its bottom bar; the rest are under "Más". */
+const MOBILE_BAR = ["/dashboard", "/dashboard/automation", "/dashboard/orders", "/dashboard/sales"];
+
+function isActiveLink(pathname: string, href: string) {
+  return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+}
+
 function NavItem({
   href,
   label,
   icon: Icon,
   feature,
   active,
-}: NavLink & { active: boolean }) {
+  onNavigate,
+}: NavLink & { active: boolean; onNavigate?: () => void }) {
   const soon = feature !== null && !isFeatureReady(feature);
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={`flex items-center gap-3 py-2.5 pr-4 text-sm rounded-r-lg transition-colors ${
         active
           ? "border-l-2 border-accent bg-accent-dim text-text-primary pl-[calc(1rem-2px)]"
@@ -78,33 +90,112 @@ function NavItem({
   );
 }
 
-function MobileNav({
-  links,
-  pathname,
-}: {
-  links: NavLink[];
-  pathname: string;
-}) {
-  const mobileLinks = links.slice(0, 5);
+/** Every screen, the core ones first and the tools after a separator. */
+function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t border-border flex">
-      {mobileLinks.map(({ href, label, icon: Icon }) => {
-        const active =
-          pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-        return (
+    <>
+      {coreLinks.map((link) => (
+        <NavItem
+          key={link.href}
+          {...link}
+          active={isActiveLink(pathname, link.href)}
+          onNavigate={onNavigate}
+        />
+      ))}
+      <div className="h-px bg-border mx-4 my-2" />
+      {toolLinks.map((link) => (
+        <NavItem
+          key={link.href}
+          {...link}
+          active={isActiveLink(pathname, link.href)}
+          onNavigate={onNavigate}
+        />
+      ))}
+    </>
+  );
+}
+
+function MobileNav({
+  pathname,
+  onLogout,
+}: {
+  pathname: string;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const barLinks = coreLinks.filter((link) => MOBILE_BAR.includes(link.href));
+  const close = () => setOpen(false);
+
+  return (
+    <>
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t border-border flex">
+        {barLinks.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}
             aria-label={label}
             className={`flex-1 flex flex-col items-center justify-center py-3 text-xs transition-colors ${
-              active ? "text-accent" : "text-text-secondary"
+              isActiveLink(pathname, href) ? "text-accent" : "text-text-secondary"
             }`}
           >
             <Icon size={20} strokeWidth={1.75} />
           </Link>
-        );
-      })}
-    </nav>
+        ))}
+        <button
+          type="button"
+          aria-label="Más"
+          aria-expanded={open}
+          onClick={() => setOpen(true)}
+          className="flex-1 flex flex-col items-center justify-center py-3 text-xs text-text-secondary transition-colors"
+        >
+          <Menu size={20} strokeWidth={1.75} />
+        </button>
+      </nav>
+
+      {open && (
+        <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <button
+            type="button"
+            aria-label="Cerrar menú"
+            onClick={close}
+            className="absolute inset-0 bg-black/60"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") close();
+            }}
+            className="relative max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border bg-bg-secondary px-2 pb-6 pt-4"
+          >
+            <div className="flex items-center justify-between px-4 pb-2">
+              <span className="text-sm font-semibold text-text-primary">Menú</span>
+              <button
+                type="button"
+                aria-label="Cerrar"
+                autoFocus
+                onClick={close}
+                className="text-text-secondary hover:text-text-primary"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-0.5">
+              <NavLinks pathname={pathname} onNavigate={close} />
+              <button
+                type="button"
+                onClick={onLogout}
+                className="flex items-center gap-3 py-2.5 pl-4 pr-4 text-sm text-text-secondary hover:text-text-primary"
+              >
+                <LogOut size={16} strokeWidth={1.75} />
+                <span>Cerrar sesión</span>
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -116,10 +207,6 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   async function handleLogout() {
     await signOut();
     router.replace("/");
-  }
-
-  function isActive(href: string) {
-    return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
   }
 
   return (
@@ -135,19 +222,9 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
-          {/* Core nav */}
+          {/* Nav */}
           <nav className="flex-1 flex flex-col px-2 gap-0.5 overflow-y-auto">
-            {coreLinks.map((link) => (
-              <NavItem key={link.href} {...link} active={isActive(link.href)} />
-            ))}
-
-            {/* Separator */}
-            <div className="h-px bg-border mx-4 my-2" />
-
-            {/* Tool nav */}
-            {toolLinks.map((link) => (
-              <NavItem key={link.href} {...link} active={isActive(link.href)} />
-            ))}
+            <NavLinks pathname={pathname} />
           </nav>
 
           {/* Sidebar footer — logout */}
@@ -184,7 +261,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
         </main>
 
         {/* Mobile bottom nav */}
-        <MobileNav links={coreLinks} pathname={pathname} />
+        <MobileNav pathname={pathname} onLogout={handleLogout} />
       </div>
     </div>
   );

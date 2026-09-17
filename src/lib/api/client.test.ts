@@ -31,6 +31,19 @@ describe("apiFetch", () => {
     expect(error).toBeInstanceOf(ApiError);
     expect(error).toMatchObject({ status: 502, code: "otp_unavailable", message: "Down" });
   });
+
+  it("says in Spanish that the API could not be reached when the network fails", async () => {
+    const fetcher = vi.fn<typeof fetch>().mockRejectedValue(new TypeError("Failed to fetch"));
+
+    const error = await apiFetch("/x", { baseUrl: "", fetcher, session }).catch((e) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({
+      status: 0,
+      code: "network",
+      message: expect.stringMatching(/^No pudimos conectar con Doppel/),
+    });
+  });
 });
 
 describe("readErrorDetail", () => {

@@ -59,7 +59,7 @@ export function AuthFlow() {
         }
         setStep("otp");
       } catch {
-        setError("Error de conexion. Intenta de nuevo.");
+        setError("Error de conexión. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -81,7 +81,7 @@ export function AuthFlow() {
         });
         if (verifyError) {
           setOtpError(true);
-          setError("Codigo invalido.");
+          setError("Código inválido.");
           return;
         }
 
@@ -94,7 +94,7 @@ export function AuthFlow() {
         setStep("connect");
       } catch {
         setOtpError(true);
-        setError("Error de conexion. Intenta de nuevo.");
+        setError("Error de conexión. Intenta de nuevo.");
       } finally {
         setLoading(false);
       }
@@ -120,8 +120,8 @@ export function AuthFlow() {
       </h1>
       <p className="text-text-secondary mt-3">
         {step === "email" && "Ingresa tu email para comenzar"}
-        {step === "otp" && "Te enviamos un codigo de verificacion"}
-        {step === "connect" && "Ultimo paso: autoriza tu WhatsApp"}
+        {step === "otp" && "Te enviamos un código de verificación"}
+        {step === "connect" && "Último paso: autoriza tu WhatsApp"}
       </p>
 
       {/* Stepper */}

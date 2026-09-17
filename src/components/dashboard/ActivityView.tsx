@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { readApi } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
@@ -117,7 +118,7 @@ export function ActivityView() {
                     </Badge>
                   </div>
                   <p className="text-xs text-text-secondary">
-                    {new Date(row.created_at).toLocaleString()}
+                    {formatDateTime(row.created_at)}
                   </p>
                 </div>
               </div>

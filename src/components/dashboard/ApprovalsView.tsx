@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { answerApproval, readApi } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
@@ -87,9 +88,9 @@ export function ApprovalsView() {
                     <p className="mt-1 text-sm text-text-secondary">{approval.reason}</p>
                     <p className="mt-1 text-xs text-text-muted">
                       Pedido por: {REQUESTER[approval.requested_by.kind ?? ""] ?? "Desconocido"} · vence{" "}
-                      {new Date(approval.expires_at).toLocaleString()}
+                      {formatDateTime(approval.expires_at)}
                     </p>
-                    <pre className="mt-2 overflow-auto rounded bg-bg-elevated p-2 text-xs text-text-secondary">
+                    <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-bg-elevated p-2 text-xs text-text-secondary">
                       {JSON.stringify(approval.payload, null, 2)}
                     </pre>
                   </div>

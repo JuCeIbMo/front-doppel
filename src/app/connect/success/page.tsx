@@ -83,16 +83,16 @@ export default async function SuccessPage({ searchParams }: SuccessPageProps) {
         </svg>
       </div>
 
-      <h1 className="text-3xl font-bold text-text-primary mt-8 text-center">Tu WhatsApp ya esta conectado</h1>
+      <h1 className="text-3xl font-bold text-text-primary mt-8 text-center">Tu WhatsApp ya está conectado</h1>
       <p className="text-text-secondary mt-3 text-center max-w-md">
         {business ? `Negocio conectado: ${business}. ` : ""}
-        {phone ? `Numero activo: ${phone}. ` : ""}
-        Ya puedes terminar la configuracion del bot desde tu dashboard.
+        {phone ? `Número activo: ${phone}. ` : ""}
+        Ya puedes terminar la configuración del bot desde tu panel.
       </p>
 
       <div className="mt-8 flex flex-wrap justify-center gap-4">
         <Button variant="primary" href="/dashboard/automation">
-          Ir al dashboard
+          Ir al panel
         </Button>
         <Button variant="secondary" href="/">
           Volver al inicio

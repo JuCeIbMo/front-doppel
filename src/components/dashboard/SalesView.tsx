@@ -7,6 +7,7 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { ApiError } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/dates";
 import { readApi } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -60,7 +61,7 @@ export function SalesView() {
           </Table>
         ) : query.error ? (
           <p className="text-sm text-danger">
-            {query.error instanceof Error ? query.error.message : "No se pudo cargar ventas."}
+            {query.error instanceof Error ? query.error.message : "No se pudieron cargar las ventas."}
           </p>
         ) : sales.length === 0 ? (
           <Table>
@@ -71,8 +72,8 @@ export function SalesView() {
             <Table.Head>
               <tr>
                 <Table.Th>Código</Table.Th>
-                <Table.Th>Fecha</Table.Th>
-                <Table.Th>Pago</Table.Th>
+                <Table.Th className="hidden sm:table-cell">Fecha</Table.Th>
+                <Table.Th className="hidden sm:table-cell">Pago</Table.Th>
                 <Table.Th>Total</Table.Th>
                 <Table.Th>Estado</Table.Th>
               </tr>
@@ -85,10 +86,10 @@ export function SalesView() {
                       {sale.code}
                     </Link>
                   </Table.Cell>
-                  <Table.Cell className="text-text-secondary text-xs">
-                    {new Date(sale.created_at).toLocaleString()}
+                  <Table.Cell className="hidden sm:table-cell text-text-secondary text-xs">
+                    {formatDateTime(sale.created_at)}
                   </Table.Cell>
-                  <Table.Cell className="text-text-secondary">{PAYMENT[sale.payment_method]}</Table.Cell>
+                  <Table.Cell className="hidden sm:table-cell text-text-secondary">{PAYMENT[sale.payment_method]}</Table.Cell>
                   <Table.Cell className="text-text-primary font-semibold">
                     {format(Number(sale.total))}
                   </Table.Cell>

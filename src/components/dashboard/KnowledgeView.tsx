@@ -49,6 +49,7 @@ export function KnowledgeView() {
   const [saved, setSaved] = useState<Partial<Record<KnowledgeTopic, string>>>({});
   const [savingTopic, setSavingTopic] = useState<KnowledgeTopic | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -62,7 +63,11 @@ export function KnowledgeView() {
         router.replace("/connect");
         return;
       }
-      setErrorMessage("No se pudo cargar la información del negocio.");
+      // Empty boxes would invite overwriting what is already saved, so none are shown.
+      setLoadFailed(true);
+      setErrorMessage(
+        error instanceof Error ? error.message : "No se pudo cargar lo que sabe el bot.",
+      );
     }
   }, [router]);
 
@@ -86,7 +91,7 @@ export function KnowledgeView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -104,50 +109,51 @@ export function KnowledgeView() {
 
       {errorMessage && <p className="text-danger text-sm">{errorMessage}</p>}
 
-      <Card>
-        <CardHeader title="Lo que tu bot sabe" />
-        <p className="text-text-secondary text-sm mb-5">
-          El bot usa estos textos para responder a tus clientes. También puedes contárselos al
-          agente por WhatsApp y aparecerán aquí.
-        </p>
-        <div className="flex flex-col gap-5">
-          {TOPICS.map((topic) => {
-            const body = bodies[topic.id] ?? "";
-            const unchanged = body.trim() === (saved[topic.id] ?? "");
-            return (
-              <div key={topic.id}>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <label className="text-sm text-text-primary">{topic.label}</label>
-                  {!saved[topic.id] && (
-                    <span className="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
-                      Sin escribir
-                    </span>
-                  )}
+      {!loadFailed && (
+        <Card>
+          <CardHeader title="Lo que tu bot sabe" />
+          <p className="text-text-secondary text-sm mb-5">
+            El bot usa estos textos para responder a tus clientes. También puedes contárselos al
+            agente por WhatsApp y aparecerán aquí.
+          </p>
+          <div className="flex flex-col gap-5">
+            {TOPICS.map((topic) => {
+              const body = bodies[topic.id] ?? "";
+              const unchanged = body.trim() === (saved[topic.id] ?? "");
+              return (
+                <div key={topic.id}>
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <label className="text-sm text-text-primary">{topic.label}</label>
+                    {!saved[topic.id] && (
+                      <span className="rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
+                        Sin escribir
+                      </span>
+                    )}
+                  </div>
+                  <textarea
+                    value={body}
+                    onChange={(e) => setBodies((current) => ({ ...current, [topic.id]: e.target.value }))}
+                    maxLength={4000}
+                    rows={3}
+                    placeholder={topic.hint}
+                    className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
+                  />
+                  <div className="mt-2 flex justify-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSaveTopic(topic.id)}
+                      disabled={unchanged || !body.trim() || savingTopic === topic.id}
+                    >
+                      {savingTopic === topic.id ? "Guardando..." : "Guardar"}
+                    </Button>
+                  </div>
                 </div>
-                <textarea
-                  value={body}
-                  onChange={(e) => setBodies((current) => ({ ...current, [topic.id]: e.target.value }))}
-                  maxLength={4000}
-                  rows={3}
-                  placeholder={topic.hint}
-                  className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
-                />
-                <div className="mt-2 flex justify-end">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleSaveTopic(topic.id)}
-                    disabled={unchanged || !body.trim() || savingTopic === topic.id}
-                  >
-                    {savingTopic === topic.id ? "Guardando..." : "Guardar"}
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
-
+              );
+            })}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

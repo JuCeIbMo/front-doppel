@@ -20,7 +20,7 @@ export function ManagerSetup() {
     event.preventDefault();
     const trimmed = managerPhone.trim();
     if (!trimmed) {
-      setError("Ingresa el numero manager.");
+      setError("Ingresa el número de encargado.");
       return;
     }
 
@@ -31,7 +31,7 @@ export function ManagerSetup() {
       router.replace("/dashboard/automation");
     } catch (err) {
       setStatus("error");
-      setError(err instanceof Error ? err.message : "No se pudo guardar el numero manager.");
+      setError(err instanceof Error ? err.message : "No se pudo guardar el número de encargado.");
     }
   };
 
@@ -40,17 +40,17 @@ export function ManagerSetup() {
       <form onSubmit={handleSubmit} className="w-full max-w-lg text-center">
         <span className="text-xl font-bold text-text-primary">Doppel</span>
         <h1 className="text-3xl font-bold text-text-primary mt-8">
-          Define tu numero manager
+          Define tu número de encargado
         </h1>
         <p className="text-text-secondary mt-3">
-          {business ? `${business} ya esta conectado. ` : ""}
+          {business ? `${business} ya está conectado. ` : ""}
           {phone ? `WhatsApp activo: ${phone}. ` : ""}
-          Este numero sera el unico que podra darle instrucciones al agente por WhatsApp.
+          Este número será el único que podrá darle instrucciones a tu asistente por WhatsApp.
         </p>
 
         <div className="mt-8">
           <label className="block text-text-secondary text-sm mb-2">
-            Numero manager
+            Número de encargado
           </label>
           <input
             type="tel"

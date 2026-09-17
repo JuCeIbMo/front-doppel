@@ -269,4 +269,29 @@ describe("DashboardView", () => {
       expect(mockRun).toHaveBeenCalledWith("resume_public_agent", { contact_code: "AAAAAA" }),
     );
   });
+
+  it.each(["/dashboard/business", "/dashboard/pipeline"])(
+    "says so when %s cannot load, instead of an empty inbox",
+    async (failing) => {
+      mockFetch.mockImplementation(async (path: string) => {
+        if (path === failing) return jsonResponse({ detail: "boom" }, 500);
+        if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Doppel Store" });
+        if (path === "/dashboard/whatsapp-line") return jsonResponse(null);
+        return jsonResponse([]);
+      });
+
+      render(<DashboardView />);
+
+      expect(await screen.findByText(/No se pudo cargar tu bandeja/)).toBeInTheDocument();
+      expect(screen.queryByText("Aún no hay conversaciones registradas")).not.toBeInTheDocument();
+    },
+  );
+
+  it("passes on the network's Spanish message when the API cannot be reached", async () => {
+    mockFetch.mockRejectedValue(new Error("No pudimos conectar con Doppel. Revisa tu conexión."));
+
+    render(<DashboardView />);
+
+    expect(await screen.findByText(/No pudimos conectar con Doppel/)).toBeInTheDocument();
+  });
 });

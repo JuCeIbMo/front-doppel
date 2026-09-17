@@ -2,11 +2,13 @@ import Link from "next/link";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
 
 const AVAILABLE = [
+  { href: "/dashboard", label: "Inicio" },
   { href: "/dashboard/automation", label: "Automatización" },
   { href: "/dashboard/orders", label: "Pedidos" },
   { href: "/dashboard/approvals", label: "Aprobaciones" },
   { href: "/dashboard/sales", label: "Ventas" },
   { href: "/dashboard/products", label: "Productos" },
+  { href: "/dashboard/templates", label: "Plantillas" },
   { href: "/dashboard/settings", label: "Ajustes" },
 ];
 

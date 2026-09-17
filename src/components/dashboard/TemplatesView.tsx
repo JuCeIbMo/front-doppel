@@ -83,7 +83,7 @@ export function TemplatesView() {
                 className="rounded-lg border border-border bg-bg-elevated p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium">{template.name}</p>
+                  <p className="break-all font-medium">{template.name}</p>
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-text-secondary">
                       {TEMPLATE_CATEGORY[template.category] ?? template.category}

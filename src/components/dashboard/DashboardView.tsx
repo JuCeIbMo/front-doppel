@@ -123,7 +123,7 @@ function getSummaryText(isConnected: boolean, totalConversations: number, busine
     return `${businessName ?? "Tu negocio"} está conectado. El inbox se activará cuando lleguen nuevos mensajes.`;
   }
 
-  return `${businessName ?? "Tu negocio"} tiene ${totalConversations} conversaciones operativas listas para seguimiento.`;
+  return `${businessName ?? "Tu negocio"} tiene ${totalConversations} ${totalConversations === 1 ? "conversación operativa lista" : "conversaciones operativas listas"} para seguimiento.`;
 }
 
 function getPipelineCount(conversations: ConversationSummary[], statuses: LeadStatus[]) {
@@ -133,6 +133,7 @@ function getPipelineCount(conversations: ConversationSummary[], statuses: LeadSt
 export function DashboardView() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [business, setBusiness] = useState<Business | null>(null);
   const [line, setLine] = useState<WhatsappLine | null>(null);
   const [pipeline, setPipeline] = useState<PipelineConversation[]>([]);
@@ -159,6 +160,10 @@ export function DashboardView() {
       router.replace("/connect");
       return;
     }
+    if (!businessRes.ok || !pipelineRes.ok) {
+      setLoadError("No se pudo cargar tu bandeja. Recarga la página en un momento.");
+      return;
+    }
 
     const businessData: Business = await businessRes.json();
     setBusiness(businessData);
@@ -178,13 +183,15 @@ export function DashboardView() {
       }
     }
 
-    if (pipelineRes.ok) {
-      setPipeline(await pipelineRes.json());
-    }
+    setPipeline(await pipelineRes.json());
   }, [router]);
 
   useEffect(() => {
-    loadDashboard().finally(() => setLoading(false));
+    loadDashboard()
+      .catch((error: unknown) =>
+        setLoadError(error instanceof Error ? error.message : "No se pudo cargar tu bandeja."),
+      )
+      .finally(() => setLoading(false));
   }, [loadDashboard]);
 
   const refreshPipeline = useCallback(async () => {
@@ -310,8 +317,19 @@ export function DashboardView() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-20">
         <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <h1 className="text-xl font-semibold">Inbox de automatización</h1>
+        <Card>
+          <p className="text-sm text-danger">{loadError}</p>
+        </Card>
       </div>
     );
   }
@@ -365,7 +383,7 @@ export function DashboardView() {
 
       {!isConnected && <WhatsAppDisconnectedNotice />}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[17.5rem_minmax(0,1.15fr)_20rem] 2xl:grid-cols-[18.5rem_minmax(0,1.25fr)_21rem]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[17.5rem_minmax(0,1fr)] 2xl:grid-cols-[18.5rem_minmax(0,1.25fr)_21rem]">
         <Card className="overflow-hidden p-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)]">
           <div className="border-b border-white/8 px-4 py-4">
             <div className="flex items-center justify-between gap-3">
@@ -401,15 +419,15 @@ export function DashboardView() {
             </div>
             <div className="mt-4 grid grid-cols-3 gap-2">
               <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Calientes</p>
+                <p className="text-[11px] text-text-secondary">Calientes</p>
                 <p className="mt-1 text-lg font-semibold text-text-primary">{pipelineWarm}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Pendientes</p>
+                <p className="text-[11px] text-text-secondary">Pendientes</p>
                 <p className="mt-1 text-lg font-semibold text-text-primary">{pipelinePending}</p>
               </div>
               <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Clientes</p>
+                <p className="text-[11px] text-text-secondary">Clientes</p>
                 <p className="mt-1 text-lg font-semibold text-text-primary">{pipelineCustomers}</p>
               </div>
             </div>
@@ -428,7 +446,13 @@ export function DashboardView() {
                 <button
                   key={conversation.conversationId}
                   type="button"
-                  onClick={() => setSelectedPhone(conversation.phone)}
+                  onClick={() => {
+                    setSelectedPhone(conversation.phone);
+                    // Below xl the thread sits under the list, out of sight on a phone.
+                    if (!window.matchMedia?.("(min-width: 1280px)").matches) {
+                      document.getElementById("conversation-thread")?.scrollIntoView?.({ behavior: "smooth" });
+                    }
+                  }}
                   className={cx(
                     "mb-2 w-full rounded-[24px] border px-4 py-4 text-left transition",
                     selectedConversation?.phone === conversation.phone
@@ -473,7 +497,7 @@ export function DashboardView() {
 
         <Card className="min-h-[42rem] p-0 xl:max-h-[calc(100vh-7rem)] xl:overflow-hidden">
           {selectedConversation ? (
-            <div className="flex h-full flex-col">
+            <div id="conversation-thread" className="flex h-full scroll-mt-4 flex-col">
               <div className="border-b border-white/8 px-5 py-5">
                 <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
                   <div>
@@ -499,10 +523,10 @@ export function DashboardView() {
 
                   <div className="flex flex-wrap gap-2 text-xs text-text-secondary xl:max-w-[19rem] xl:justify-end">
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      Último inbound {formatRelativeTime(selectedConversation.lastMessageAt)}
+                      Último mensaje {formatRelativeTime(selectedConversation.lastMessageAt)}
                     </span>
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      {messages.length} mensajes
+                      {messages.length} {messages.length === 1 ? "mensaje" : "mensajes"}
                     </span>
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
                       Línea {phoneDisplay}
@@ -576,7 +600,7 @@ export function DashboardView() {
           )}
         </Card>
 
-        <div className="flex flex-col gap-6 xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)] xl:overflow-auto">
+        <div className="flex flex-col gap-6 xl:col-span-2 2xl:sticky 2xl:top-6 2xl:col-span-1 2xl:max-h-[calc(100vh-7rem)] 2xl:overflow-auto">
           <Card>
             <CardHeader title="Ficha comercial" />
             {selectedConversation ? (
@@ -608,7 +632,7 @@ export function DashboardView() {
                     <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
                       <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
                         <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                          Primer seen
+                          Primer mensaje
                         </p>
                         <p className="mt-2 text-sm text-text-primary">
                           {messages[0] ? formatThreadDate(messages[0].created_at) : "—"}
@@ -616,7 +640,7 @@ export function DashboardView() {
                       </div>
                       <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
                         <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                          Último seen
+                          Último mensaje
                         </p>
                         <p className="mt-2 text-sm text-text-primary">
                           {formatRelativeTime(selectedConversation.lastMessageAt)}
@@ -681,15 +705,15 @@ export function DashboardView() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 2xl:grid-cols-1">
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Inbound</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Recibidos</p>
                     <p className="mt-2 text-lg font-semibold text-text-primary">
                       {inboundCount}
                     </p>
                   </div>
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Outbound</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Enviados</p>
                     <p className="mt-2 text-lg font-semibold text-text-primary">
                       {outboundCount}
                     </p>
@@ -866,7 +890,7 @@ function ConversationFooter({
 
       {windowOpen ? (
         <form
-          className="flex items-end gap-3"
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
           onSubmit={(event) => {
             event.preventDefault();
             void send();
@@ -884,7 +908,7 @@ function ConversationFooter({
             rows={2}
             placeholder="Escribe tu respuesta. El bot se pausa 30 minutos en este chat."
             aria-label="Respuesta al cliente"
-            className="min-h-[3rem] flex-1 resize-none rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
+            className="min-h-[3rem] w-full flex-1 resize-none rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
           />
           <Button type="submit" disabled={sending || !draft.trim()}>
             {sending ? "Enviando..." : "Enviar"}
@@ -954,7 +978,7 @@ function TemplatePicker({
 
   async function send() {
     if (!template || !ready || sending) return;
-    if (!confirm("Enviar esta plantilla? WhatsApp cobra cada envío.")) return;
+    if (!confirm("¿Enviar esta plantilla? WhatsApp cobra cada envío.")) return;
     setSending(true);
     setError("");
     try {

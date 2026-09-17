@@ -90,7 +90,17 @@ export async function apiRequest(path: string, options: ApiRequestOptions): Prom
   } = options;
 
   const accessToken = skipAuth ? null : await session.getAccessToken();
-  const response = await fetcher(`${baseUrl}${path}`, withDefaultHeaders(init, accessToken));
+  let response: Response;
+  try {
+    response = await fetcher(`${baseUrl}${path}`, withDefaultHeaders(init, accessToken));
+  } catch {
+    // The browser only says "Failed to fetch": no connection, or the API is down.
+    throw new ApiError({
+      status: 0,
+      code: "network",
+      message: "No pudimos conectar con Doppel. Revisa tu conexión e inténtalo de nuevo.",
+    });
+  }
 
   if (!response.ok && throwOnError) {
     const payload = (await parseJsonSafe(response)) as { detail?: unknown } | null;

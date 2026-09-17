@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Table } from "@/components/ui/Table";
 import { PAYMENT, type SaleSummary } from "@/components/dashboard/SalesView";
 import { ApiError } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
 import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -80,7 +81,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
             <div>
               <h1 className="text-xl font-semibold">Venta {sale.code}</h1>
               <p className="mt-0.5 text-sm text-text-secondary">
-                {new Date(sale.created_at).toLocaleString()} · {PAYMENT[sale.payment_method]}
+                {formatDateTime(sale.created_at)} · {PAYMENT[sale.payment_method]}
                 {sale.order_code && (
                   <>
                     {" · del pedido "}
@@ -103,7 +104,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
                 <tr>
                   <Table.Th>Producto</Table.Th>
                   <Table.Th className="text-right">Cantidad</Table.Th>
-                  <Table.Th className="text-right">Precio</Table.Th>
+                  <Table.Th className="hidden sm:table-cell text-right">Precio</Table.Th>
                   <Table.Th className="text-right">Subtotal</Table.Th>
                 </tr>
               </Table.Head>
@@ -112,7 +113,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
                   <Table.Row key={`${line.product_code}-${index}`}>
                     <Table.Cell className="text-text-primary">{line.name}</Table.Cell>
                     <Table.Cell className="text-right">{line.quantity}</Table.Cell>
-                    <Table.Cell className="text-right">{format(Number(line.unit_price))}</Table.Cell>
+                    <Table.Cell className="hidden sm:table-cell text-right">{format(Number(line.unit_price))}</Table.Cell>
                     <Table.Cell className="text-right">
                       {format(Number(line.unit_price) * line.quantity)}
                     </Table.Cell>
@@ -129,7 +130,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
           {sale.status === "voided" ? (
             sale.voided_at && (
               <p className="text-sm text-text-secondary">
-                Anulada el {new Date(sale.voided_at).toLocaleString()}. El stock volvió al
+                Anulada el {formatDateTime(sale.voided_at)}. El stock volvió al
                 catálogo.
               </p>
             )
