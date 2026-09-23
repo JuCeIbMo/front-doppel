@@ -18,6 +18,8 @@ const EMPTY: Overview = {
   handed_over: 0,
   messages_this_month: 0,
   free_messages_per_month: 1000,
+  call_minutes_this_month: 0,
+  call_minutes_per_month: 150,
   onboarding: {
     line_connected: false,
     has_product: false,
@@ -60,6 +62,7 @@ describe("OverviewView", () => {
       pending_approvals: 4,
       handed_over: 1,
       messages_this_month: 850,
+      call_minutes_this_month: 150,
       onboarding: {
         line_connected: true,
         has_product: true,
@@ -73,6 +76,10 @@ describe("OverviewView", () => {
     expect(screen.getByText("3 ventas")).toBeInTheDocument();
     expect(screen.getByText("850 / 1000")).toBeInTheDocument();
     expect(screen.getByText("Cerca del límite gratis")).toBeInTheDocument();
+    expect(screen.getByText("150 / 150")).toBeInTheDocument();
+    expect(
+      screen.getByText("Se acabaron: las llamadas vuelven el 1 del próximo mes"),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/pasos listos/)).not.toBeInTheDocument();
   });
 });

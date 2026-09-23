@@ -77,6 +77,8 @@ const ANSWERS: Record<string, unknown> = {
     handed_over: 1,
     messages_this_month: 850,
     free_messages_per_month: 1000,
+    call_minutes_this_month: 42,
+    call_minutes_per_month: 150,
     onboarding: { line_connected: true, has_product: true, has_knowledge: false, has_manager_phone: true },
   },
   "/dashboard/orders": [

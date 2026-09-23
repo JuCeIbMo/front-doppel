@@ -20,6 +20,8 @@ export interface Overview {
   handed_over: number;
   messages_this_month: number;
   free_messages_per_month: number;
+  call_minutes_this_month: number;
+  call_minutes_per_month: number;
   onboarding: {
     line_connected: boolean;
     has_product: boolean;
@@ -71,6 +73,9 @@ export function OverviewView() {
   const messagesShare = overview
     ? overview.messages_this_month / overview.free_messages_per_month
     : 0;
+  const callMinutesShare = overview
+    ? overview.call_minutes_this_month / overview.call_minutes_per_month
+    : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -81,7 +86,7 @@ export function OverviewView() {
 
       {query.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2, 3, 4, 5].map((index) => (
+          {[0, 1, 2, 3, 4, 5, 6].map((index) => (
             <div key={index} className="h-28 animate-pulse rounded-xl bg-bg-elevated" />
           ))}
         </div>
@@ -133,6 +138,18 @@ export function OverviewView() {
                     : "Aproximado, según nuestros registros"
               }
               deltaPositive={messagesShare < 0.8}
+            />
+            <StatCard
+              label="Minutos de llamadas este mes"
+              value={`${overview.call_minutes_this_month} / ${overview.call_minutes_per_month}`}
+              delta={
+                callMinutesShare >= 1
+                  ? "Se acabaron: las llamadas vuelven el 1 del próximo mes"
+                  : callMinutesShare >= 0.8
+                    ? "Quedan pocos minutos"
+                    : undefined
+              }
+              deltaPositive={false}
             />
           </div>
         </>
