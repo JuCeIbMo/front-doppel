@@ -43,6 +43,8 @@ describe("SettingsView", () => {
       phone_number_id: "1",
       display_phone_number: "+591 7000 0000",
       public_agent_enabled: true,
+      calls_state: "off",
+      calls_refused_reason: null,
     });
   });
 
@@ -98,5 +100,67 @@ describe("SettingsView", () => {
         phones: ["+591 71111111"],
       }),
     );
+  });
+
+  function lineWithCalls(calls_state: string, calls_refused_reason: string | null = null) {
+    answers({
+      phone_number_id: "1",
+      display_phone_number: "+591 7000 0000",
+      public_agent_enabled: true,
+      calls_state,
+      calls_refused_reason,
+    });
+  }
+
+  it("turns calls on when they are off", async () => {
+    lineWithCalls("off");
+    renderView();
+
+    const calls = await screen.findByRole("switch", { name: "Llamadas" });
+    expect(calls).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(calls);
+
+    await waitFor(() => expect(runOperationOrThrow).toHaveBeenCalledWith("enable_calls", undefined));
+  });
+
+  it("turns calls off when they are on", async () => {
+    lineWithCalls("on");
+    renderView();
+
+    const calls = await screen.findByRole("switch", { name: "Llamadas" });
+    expect(calls).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(calls);
+
+    await waitFor(() =>
+      expect(runOperationOrThrow).toHaveBeenCalledWith("disable_calls", undefined),
+    );
+  });
+
+  it.each([
+    ["turning_on", "Activando las llamadas"],
+    ["turning_off", "Apagando las llamadas"],
+  ])("says WhatsApp is applying it while calls are %s", async (state, words) => {
+    lineWithCalls(state);
+    renderView();
+
+    expect(await screen.findByText(new RegExp(words))).toBeInTheDocument();
+    // Never stuck half-way: the owner can still change their mind.
+    expect(screen.getByRole("switch", { name: "Llamadas" })).toBeEnabled();
+  });
+
+  it.each([
+    ["messaging_limit", /2\.000 personas por día/],
+    ["payment_method", /método de pago/],
+    ["quality", /restringió las llamadas/],
+    ["other", /no dio un motivo/],
+  ])("explains a %s refusal and lets the owner try again", async (reason, explanation) => {
+    lineWithCalls("refused", reason);
+    renderView();
+
+    expect(await screen.findByText(/WhatsApp no permitió activar las llamadas/)).toBeInTheDocument();
+    expect(screen.getByText(explanation)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Intentar de nuevo" }));
+
+    await waitFor(() => expect(runOperationOrThrow).toHaveBeenCalledWith("enable_calls", undefined));
   });
 });
