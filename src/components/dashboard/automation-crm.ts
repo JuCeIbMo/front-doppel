@@ -46,7 +46,8 @@ export type MissedReason =
   | "intervention"
   | "allowance_spent"
   | "no_capacity"
-  | "voice_model_unavailable";
+  | "voice_model_unavailable"
+  | "connection_failed";
 
 /** One Call as `GET /dashboard/pipeline/{id}/messages` returns it, between the messages. */
 export type PipelineCall = {
@@ -206,6 +207,7 @@ const MISSED_REASON_TEXT: Record<MissedReason, string> = {
   allowance_spent: "Se acabaron los minutos de llamada del mes. Se invitó al cliente a escribir.",
   no_capacity: "El servicio de voz estaba ocupado. Se invitó al cliente a escribir.",
   voice_model_unavailable: "La voz del bot no se pudo conectar. Se invitó al cliente a escribir.",
+  connection_failed: "La llamada no se pudo conectar. Se invitó al cliente a escribir.",
 };
 
 /** Why a missed Call was not answered, in words the Owner understands. */
