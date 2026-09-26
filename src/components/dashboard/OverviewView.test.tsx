@@ -23,10 +23,23 @@ const EMPTY: Overview = {
   onboarding: {
     line_connected: false,
     has_product: false,
+    has_service: false,
+    has_hours: false,
     has_knowledge: false,
     has_manager_phone: false,
   },
 };
+
+const SELLS = { selling_enabled: true, booking_enabled: false };
+const BOOKS = { selling_enabled: false, booking_enabled: true };
+
+function answers(overview: Overview, kind = SELLS) {
+  readApi.mockImplementation(async (path: string) => {
+    if (path === "/dashboard/overview") return overview;
+    if (path === "/dashboard/business") return { id: "b1", name: "Tienda", calendar_email: null, ...kind };
+    throw new Error(path);
+  });
+}
 
 function renderView() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -38,10 +51,12 @@ function renderView() {
 }
 
 describe("OverviewView", () => {
-  beforeEach(() => readApi.mockReset());
+  beforeEach(() => {
+    readApi.mockReset();
+  });
 
   it("walks a new business through four steps", async () => {
-    readApi.mockResolvedValue(EMPTY);
+    answers(EMPTY);
     renderView();
 
     expect(await screen.findByText("0 de 4 pasos listos.")).toBeInTheDocument();
@@ -49,11 +64,36 @@ describe("OverviewView", () => {
       "href",
       "/dashboard/settings",
     );
+    expect(screen.getByRole("link", { name: "Agrega tu primer producto →" })).toBeInTheDocument();
     expect(readApi).toHaveBeenCalledWith("/dashboard/overview");
   });
 
+  it("walks a business that books through its first Service and its hours, not a product", async () => {
+    answers(EMPTY, BOOKS);
+    renderView();
+
+    expect(await screen.findByText("0 de 5 pasos listos.")).toBeInTheDocument();
+    expect(screen.getByText(/Agrega tu primer servicio/)).toBeInTheDocument();
+    expect(screen.getByText(/Dile a tu asistente tu horario/)).toBeInTheDocument();
+    expect(screen.queryByText(/primer producto/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Pedidos por cobrar")).not.toBeInTheDocument();
+  });
+
+  it("counts the Service and hours of a business that books as done", async () => {
+    answers(
+      {
+        ...EMPTY,
+        onboarding: { ...EMPTY.onboarding, line_connected: true, has_service: true, has_hours: true },
+      },
+      BOOKS,
+    );
+    renderView();
+
+    expect(await screen.findByText("3 de 5 pasos listos.")).toBeInTheDocument();
+  });
+
   it("shows the numbers and no checklist once every step is done", async () => {
-    readApi.mockResolvedValue({
+    answers({
       ...EMPTY,
       sold_today: "150.50",
       sales_today: 3,
@@ -66,6 +106,8 @@ describe("OverviewView", () => {
       onboarding: {
         line_connected: true,
         has_product: true,
+        has_service: false,
+        has_hours: false,
         has_knowledge: true,
         has_manager_phone: true,
       },

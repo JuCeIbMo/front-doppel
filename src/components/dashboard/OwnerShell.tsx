@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
+import { isOn, useBusiness, type BusinessSwitch } from "@/lib/business";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type NavLink = {
@@ -31,18 +32,38 @@ type NavLink = {
   label: string;
   icon: React.ElementType;
   feature: null | FeatureName;
+  /** Shown only while the Business has this switch on. */
+  needs?: BusinessSwitch;
 };
 
 const coreLinks: NavLink[] = [
   { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
-  { href: "/dashboard/orders", label: "Pedidos", icon: ClipboardList, feature: null },
+  {
+    href: "/dashboard/orders",
+    label: "Pedidos",
+    icon: ClipboardList,
+    feature: null,
+    needs: "selling",
+  },
   { href: "/dashboard/templates", label: "Plantillas", icon: MessageSquareText, feature: null },
   { href: "/dashboard/knowledge", label: "Lo que sabe el bot", icon: BookOpen, feature: null },
   { href: "/dashboard/approvals", label: "Aprobaciones", icon: ShieldCheck, feature: null },
   { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, feature: "overview" },
-  { href: "/dashboard/products", label: "Productos", icon: Package, feature: "products" },
-  { href: "/dashboard/inventory", label: "Inventario", icon: Boxes, feature: "inventory" },
+  {
+    href: "/dashboard/products",
+    label: "Productos",
+    icon: Package,
+    feature: "products",
+    needs: "selling",
+  },
+  {
+    href: "/dashboard/inventory",
+    label: "Inventario",
+    icon: Boxes,
+    feature: "inventory",
+    needs: "selling",
+  },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, feature: "clients" },
   { href: "/dashboard/finance", label: "Finanzas", icon: Wallet, feature: "finance" },
 ];
@@ -55,6 +76,15 @@ const toolLinks: NavLink[] = [
 
 /** The screens a phone keeps in its bottom bar; the rest are under "Más". */
 const MOBILE_BAR = ["/dashboard", "/dashboard/automation", "/dashboard/orders", "/dashboard/sales"];
+
+/**
+ * The links a Business may use. Those behind a switch wait until the Business is known,
+ * and all show when it cannot be read: a failed read must not take screens away.
+ */
+function useOffered(links: NavLink[]): NavLink[] {
+  const { data: business, isError } = useBusiness();
+  return links.filter((link) => !link.needs || isError || isOn(business, link.needs));
+}
 
 function isActiveLink(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
@@ -92,9 +122,11 @@ function NavItem({
 
 /** Every screen, the core ones first and the tools after a separator. */
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+  const core = useOffered(coreLinks);
+  const tools = useOffered(toolLinks);
   return (
     <>
-      {coreLinks.map((link) => (
+      {core.map((link) => (
         <NavItem
           key={link.href}
           {...link}
@@ -103,7 +135,7 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
         />
       ))}
       <div className="h-px bg-border mx-4 my-2" />
-      {toolLinks.map((link) => (
+      {tools.map((link) => (
         <NavItem
           key={link.href}
           {...link}
@@ -123,7 +155,7 @@ function MobileNav({
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const barLinks = coreLinks.filter((link) => MOBILE_BAR.includes(link.href));
+  const barLinks = useOffered(coreLinks).filter((link) => MOBILE_BAR.includes(link.href));
   const close = () => setOpen(false);
 
   return (
@@ -203,7 +235,6 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   useRequireAuth();
   const pathname = usePathname();
   const router = useRouter();
-
   async function handleLogout() {
     await signOut();
     router.replace("/");

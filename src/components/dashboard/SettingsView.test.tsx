@@ -10,8 +10,10 @@ vi.mock("@/components/dashboard/WhatsAppDisconnectedNotice", () => ({
 }));
 const readApi = vi.fn();
 const runOperationOrThrow = vi.fn();
+const runOperation = vi.fn();
 vi.mock("@/lib/operations", () => ({
   readApi: (path: string) => readApi(path),
+  runOperation: (name: string) => runOperation(name),
   runOperationOrThrow: (name: string, payload?: unknown) => runOperationOrThrow(name, payload),
 }));
 
@@ -22,9 +24,13 @@ vi.mock("@/lib/rehearsal", () => ({
 
 import { SettingsView } from "./SettingsView";
 
-function answers(line: unknown) {
+const SELLS = { selling_enabled: true, booking_enabled: false };
+const BOOKS = { selling_enabled: false, booking_enabled: true };
+
+function answers(line: unknown, kind = SELLS, reminders: unknown = null) {
   readApi.mockImplementation(async (path: string) => {
-    if (path === "/dashboard/business") return { name: "Tienda" };
+    if (path === "/dashboard/business") return { name: "Tienda", calendar_email: null, ...kind };
+    if (path === "/dashboard/reminders" && reminders) return reminders;
     if (path === "/dashboard/whatsapp-line") return line;
     if (path === "/dashboard/manager-phones") return [{ phone: "59170000000" }];
     throw new Error(path);
@@ -44,6 +50,7 @@ describe("SettingsView", () => {
   beforeEach(() => {
     readApi.mockReset();
     runOperationOrThrow.mockReset().mockResolvedValue({});
+    runOperation.mockReset().mockResolvedValue({ status: "executed", result: {} });
     answers({
       phone_number_id: "1",
       display_phone_number: "+591 7000 0000",
@@ -65,6 +72,76 @@ describe("SettingsView", () => {
     await waitFor(() =>
       expect(runOperationOrThrow).toHaveBeenCalledWith("name_business", { name: "Tienda Sol" }),
     );
+  });
+
+  it("turns booking on for a Business that sells", async () => {
+    renderView();
+
+    const selling = await screen.findByRole("switch", { name: "Vender productos" });
+    const booking = screen.getByRole("switch", { name: "Agendar citas" });
+    expect(selling).toHaveAttribute("aria-checked", "true");
+    expect(booking).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(booking);
+
+    await waitFor(() => expect(runOperation).toHaveBeenCalledWith("enable_booking"));
+  });
+
+  it("says why selling could not be turned off", async () => {
+    runOperation.mockResolvedValue({
+      status: "rejected",
+      code: "ORDERS_STILL_OPEN",
+      message: "1 Order is still open.",
+      details: { open_orders: 1 },
+    });
+    renderView();
+
+    fireEvent.click(await screen.findByRole("switch", { name: "Vender productos" }));
+
+    expect(
+      await screen.findByText(
+        "Tienes 1 pedido abierto. Entrégalo, cancélalo o devuélvelo antes de dejar de vender.",
+      ),
+    ).toBeInTheDocument();
+    expect(runOperation).toHaveBeenCalledWith("disable_selling");
+  });
+
+  it("does not ask Meta about reminders while the Business does not book", async () => {
+    renderView();
+
+    await screen.findByRole("switch", { name: "Agendar citas" });
+
+    expect(readApi).not.toHaveBeenCalledWith("/dashboard/reminders");
+    expect(screen.queryByText(/recordatorio/i)).not.toBeInTheDocument();
+  });
+
+  it("says reminders go out once Meta approved them, and what each costs", async () => {
+    answers(null, BOOKS, {
+      template_name: "doppel_recordatorio_cita",
+      status: "APPROVED",
+      rejected_reason: null,
+      sending: true,
+      cost_note: "Meta le cobra al negocio su precio por mensaje.",
+    });
+    renderView();
+
+    expect(
+      await screen.findByText("Tus clientes reciben un recordatorio el día antes de su cita."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Meta le cobra al negocio su precio por mensaje.")).toBeInTheDocument();
+  });
+
+  it("says why reminders do not go out when Meta rejected the Template", async () => {
+    answers(null, BOOKS, {
+      template_name: "doppel_recordatorio_cita",
+      status: "REJECTED",
+      rejected_reason: "INVALID_FORMAT",
+      sending: false,
+      cost_note: "Meta le cobra al negocio su precio por mensaje.",
+    });
+    renderView();
+
+    expect(await screen.findByText(/Meta rechazó el mensaje del recordatorio/)).toBeInTheDocument();
+    expect(screen.getByText(/INVALID_FORMAT/)).toBeInTheDocument();
   });
 
   it("disconnects WhatsApp only after confirming", async () => {

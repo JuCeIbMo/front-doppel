@@ -6,7 +6,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 export type OperationResult<T> =
   | { status: "executed"; result: T }
   | { status: "approval_created"; result: { approval_id: string } }
-  | { status: "rejected"; code: string; message: string };
+  | { status: "rejected"; code: string; message: string; details?: Record<string, unknown> };
 
 /**
  * Runs one Doppel Operation as the signed-in Owner. Pass the same `idempotencyKey`

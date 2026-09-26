@@ -4,9 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { StatCard } from "@/components/ui/StatCard";
-import { OnboardingChecklist } from "@/components/dashboard/OnboardingChecklist";
+import { OnboardingChecklist, type OnboardingStep } from "@/components/dashboard/OnboardingChecklist";
 import { ApiError } from "@/lib/api-client";
 import { readApi } from "@/lib/operations";
+import { isOn, useBusiness, type Business } from "@/lib/business";
 import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -25,9 +26,58 @@ export interface Overview {
   onboarding: {
     line_connected: boolean;
     has_product: boolean;
+    has_service: boolean;
+    has_hours: boolean;
     has_knowledge: boolean;
     has_manager_phone: boolean;
   };
+}
+
+/** The first steps of a new Business, following what it has on. */
+function firstSteps(
+  onboarding: Overview["onboarding"],
+  business: Business | undefined,
+): OnboardingStep[] {
+  return [
+    {
+      label: "Conecta tu WhatsApp",
+      done: onboarding.line_connected,
+      href: "/dashboard/settings",
+    },
+    ...(isOn(business, "selling")
+      ? [
+          {
+            label: "Agrega tu primer producto",
+            done: onboarding.has_product,
+            href: "/dashboard/products/new",
+          },
+        ]
+      : []),
+    ...(isOn(business, "booking")
+      ? [
+          {
+            label: "Agrega tu primer servicio",
+            done: onboarding.has_service,
+            hint: "Escríbele a tu asistente por WhatsApp: «corte, 30 minutos, 50 Bs».",
+          },
+          {
+            label: "Dile a tu asistente tu horario",
+            done: onboarding.has_hours,
+            hint: "Por ejemplo: «atiendo de lunes a viernes de 9 a 18».",
+          },
+        ]
+      : []),
+    {
+      label: "Cuéntale al bot sobre tu negocio",
+      done: onboarding.has_knowledge,
+      href: "/dashboard/knowledge",
+    },
+    {
+      label: "Agrega tu teléfono de encargado",
+      done: onboarding.has_manager_phone,
+      href: "/dashboard/settings",
+    },
+  ];
 }
 
 export function OverviewView() {
@@ -38,6 +88,7 @@ export function OverviewView() {
     queryFn: () => readApi<Overview>("/dashboard/overview"),
     refetchInterval: 30000,
   });
+  const { data: business, isError: businessUnknown } = useBusiness();
 
   if (query.error instanceof ApiError && query.error.status === 401) {
     void signOut();
@@ -46,30 +97,9 @@ export function OverviewView() {
   }
 
   const overview = query.data;
-  const steps = overview
-    ? [
-        {
-          label: "Conecta tu WhatsApp",
-          done: overview.onboarding.line_connected,
-          href: "/dashboard/settings",
-        },
-        {
-          label: "Agrega tu primer producto",
-          done: overview.onboarding.has_product,
-          href: "/dashboard/products/new",
-        },
-        {
-          label: "Cuéntale al bot sobre tu negocio",
-          done: overview.onboarding.has_knowledge,
-          href: "/dashboard/knowledge",
-        },
-        {
-          label: "Agrega tu teléfono de encargado",
-          done: overview.onboarding.has_manager_phone,
-          href: "/dashboard/settings",
-        },
-      ]
-    : [];
+  // Without the Business, the steps that follow a switch are left out, not the checklist.
+  const steps =
+    overview && (business || businessUnknown) ? firstSteps(overview.onboarding, business) : [];
   const messagesShare = overview
     ? overview.messages_this_month / overview.free_messages_per_month
     : 0;
@@ -107,12 +137,19 @@ export function OverviewView() {
                 deltaPositive
               />
             </Link>
-            <Link href="/dashboard/orders">
-              <StatCard label="Pedidos por cobrar" value={String(overview.orders_to_collect)} />
-            </Link>
-            <Link href="/dashboard/orders">
-              <StatCard label="Pedidos por entregar" value={String(overview.orders_to_deliver)} />
-            </Link>
+            {isOn(business, "selling") && (
+              <>
+                <Link href="/dashboard/orders">
+                  <StatCard label="Pedidos por cobrar" value={String(overview.orders_to_collect)} />
+                </Link>
+                <Link href="/dashboard/orders">
+                  <StatCard
+                    label="Pedidos por entregar"
+                    value={String(overview.orders_to_deliver)}
+                  />
+                </Link>
+              </>
+            )}
             <Link href="/dashboard/approvals">
               <StatCard
                 label="Aprobaciones pendientes"

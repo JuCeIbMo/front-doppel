@@ -6,15 +6,22 @@ import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@/components/ui/Button";
 import { OTPInput } from "@/components/connect/OTPInput";
 import { EmbeddedSignup } from "@/components/connect/EmbeddedSignup";
-import { isOnboarded } from "@/lib/onboarding";
+import { SWITCH_SAYS, chooseKind, type BusinessSwitch } from "@/lib/business";
+import { hasStarted, isOnboarded } from "@/lib/onboarding";
 import { getAccessToken, getSupabase } from "@/lib/supabase";
 
-type Step = "email" | "otp" | "connect";
+type Step = "email" | "otp" | "kind" | "connect";
 
 const steps: { key: Step; label: string }[] = [
   { key: "email", label: "Email" },
   { key: "otp", label: "Verifica" },
+  { key: "kind", label: "Tu negocio" },
   { key: "connect", label: "Conecta" },
+];
+
+const KINDS: { kind: BusinessSwitch; label: string }[] = [
+  { kind: "selling", label: "Vendo productos" },
+  { kind: "booking", label: "Agendo citas" },
 ];
 
 export function AuthFlow() {
@@ -27,7 +34,8 @@ export function AuthFlow() {
   const [checking, setChecking] = useState(true);
 
   // On mount: if there's already a valid session, skip straight to where the user
-  // belongs — the dashboard if their business is connected, otherwise the connect step.
+  // belongs — the dashboard if their business is connected, otherwise what it does
+  // (asked only of a Business with nothing yet) and then the connect step.
   useEffect(() => {
     getAccessToken()
       .then(async (token) => {
@@ -36,7 +44,7 @@ export function AuthFlow() {
           router.replace("/dashboard/automation");
           return;
         }
-        setStep("connect");
+        setStep((await hasStarted()) ? "connect" : "kind");
       })
       .finally(() => setChecking(false));
   }, [router]);
@@ -86,12 +94,12 @@ export function AuthFlow() {
         }
 
         // Returning users who already connected their business go straight to the
-        // dashboard. Only those without a WhatsApp Line yet see the connect step.
+        // dashboard. Only those without a WhatsApp Line yet see the rest.
         if (await isOnboarded()) {
           router.replace("/dashboard/automation");
           return;
         }
-        setStep("connect");
+        setStep((await hasStarted()) ? "connect" : "kind");
       } catch {
         setOtpError(true);
         setError("Error de conexión. Intenta de nuevo.");
@@ -101,6 +109,19 @@ export function AuthFlow() {
     },
     [email, router],
   );
+
+  const handleChooseKind = useCallback(async (kind: BusinessSwitch) => {
+    setError("");
+    setLoading(true);
+    try {
+      await chooseKind(kind);
+      setStep("connect");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const currentStepIndex = steps.findIndex((s) => s.key === step);
 
@@ -121,6 +142,7 @@ export function AuthFlow() {
       <p className="text-text-secondary mt-3">
         {step === "email" && "Ingresa tu email para comenzar"}
         {step === "otp" && "Te enviamos un código de verificación"}
+        {step === "kind" && "¿Qué hace tu negocio?"}
         {step === "connect" && "Último paso: autoriza tu WhatsApp"}
       </p>
 
@@ -157,7 +179,7 @@ export function AuthFlow() {
 
             {i < steps.length - 1 && (
               <div
-                className={`w-12 md:w-16 h-px mx-3 -mt-5 transition-colors duration-300 ${
+                className={`w-6 sm:w-12 md:w-16 h-px mx-2 sm:mx-3 -mt-5 transition-colors duration-300 ${
                   i < currentStepIndex ? "bg-accent" : "bg-white/8"
                 }`}
               />
@@ -229,6 +251,35 @@ export function AuthFlow() {
                   Verificando...
                 </div>
               )}
+            </motion.div>
+          )}
+
+          {step === "kind" && (
+            <motion.div
+              key="kind"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <div className="grid w-full gap-3 sm:grid-cols-2">
+                {KINDS.map(({ kind, label }) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    disabled={loading}
+                    onClick={() => void handleChooseKind(kind)}
+                    className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-left transition-all hover:border-accent focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/50 disabled:opacity-50 cursor-pointer"
+                  >
+                    <span className="text-lg font-semibold text-text-primary">{label}</span>
+                    <span className="text-sm text-text-secondary">{SWITCH_SAYS[kind]}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-text-secondary text-sm">
+                Más adelante puedes activar lo otro desde Ajustes.
+              </p>
             </motion.div>
           )}
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { authenticatedFetch } from "@/lib/api";
-import { isOnboarded } from "./onboarding";
+import { hasStarted, isOnboarded } from "./onboarding";
 
 vi.mock("@/lib/api", () => ({ authenticatedFetch: vi.fn() }));
 
@@ -26,5 +26,34 @@ describe("isOnboarded", () => {
     mockFetch.mockResolvedValue(undefined as never);
     const result = await isOnboarded();
     expect(result).toBe(false);
+  });
+});
+
+describe("hasStarted", () => {
+  const nothing = {
+    line_connected: false,
+    has_product: false,
+    has_service: false,
+    has_hours: false,
+    has_knowledge: false,
+    has_manager_phone: false,
+  };
+
+  beforeEach(() => mockFetch.mockReset());
+
+  it("is false for a Business with nothing of its own", async () => {
+    mockFetch.mockResolvedValue(Response.json({ onboarding: nothing }));
+    expect(await hasStarted()).toBe(false);
+    expect(mockFetch).toHaveBeenCalledWith("/dashboard/overview");
+  });
+
+  it("is true once the Business has a product or a Manager phone", async () => {
+    mockFetch.mockResolvedValue(Response.json({ onboarding: { ...nothing, has_manager_phone: true } }));
+    expect(await hasStarted()).toBe(true);
+  });
+
+  it("is true when unsure, so no switch is turned off by mistake", async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 500 }));
+    expect(await hasStarted()).toBe(true);
   });
 });

@@ -39,7 +39,13 @@ const NAVIGATION = [
 const LINE = { phone_number_id: "pn-1", display_phone_number: "+591 70000000", public_agent_enabled: true };
 
 const ANSWERS: Record<string, unknown> = {
-  "/dashboard/business": { id: "biz-1", name: "Panadería La Espiga de Oro del Centro" },
+  "/dashboard/business": {
+    id: "biz-1",
+    name: "Panadería La Espiga de Oro del Centro",
+    selling_enabled: true,
+    booking_enabled: false,
+    calendar_email: null,
+  },
   "/dashboard/whatsapp-line": LINE,
   "/dashboard/manager-phones": [{ phone: "59177777777" }],
   "/dashboard/pipeline": [
@@ -79,7 +85,14 @@ const ANSWERS: Record<string, unknown> = {
     free_messages_per_month: 1000,
     call_minutes_this_month: 42,
     call_minutes_per_month: 150,
-    onboarding: { line_connected: true, has_product: true, has_knowledge: false, has_manager_phone: true },
+    onboarding: {
+      line_connected: true,
+      has_product: true,
+      has_service: false,
+      has_hours: false,
+      has_knowledge: false,
+      has_manager_phone: true,
+    },
   },
   "/dashboard/orders": [
     {

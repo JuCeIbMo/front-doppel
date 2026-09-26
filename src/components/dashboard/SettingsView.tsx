@@ -11,6 +11,14 @@ import { Input } from "@/components/ui/Input";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
+import {
+  SWITCH_SAYS,
+  isOn,
+  turnSwitch,
+  useBusiness,
+  type Business,
+  type BusinessSwitch,
+} from "@/lib/business";
 import { startRehearsal, type Rehearsal } from "@/lib/rehearsal";
 import { signOut } from "@/lib/supabase";
 
@@ -39,10 +47,7 @@ function callsSettling(line: WhatsappLine | null | undefined): boolean {
 /** Every setting of the Business on one screen. */
 export function SettingsView() {
   const router = useRouter();
-  const business = useQuery({
-    queryKey: ["business"],
-    queryFn: () => readApi<{ name: string }>("/dashboard/business"),
-  });
+  const business = useBusiness();
   const line = useQuery({
     queryKey: ["whatsapp-line"],
     queryFn: () => readApi<WhatsappLine | null>("/dashboard/whatsapp-line"),
@@ -76,6 +81,8 @@ export function SettingsView() {
       )}
 
       {business.data && <BusinessName key={business.data.name} current={business.data.name} />}
+
+      {business.data && <WhatItDoes business={business.data} />}
 
       {line.isLoading ? (
         <div className="h-32 animate-pulse rounded-xl bg-bg-elevated" />
@@ -139,6 +146,140 @@ function BusinessName({ current }: { current: string }) {
         </Button>
       </form>
     </Card>
+  );
+}
+
+/** A switch that says its own name, for turning one setting on or off. */
+function Toggle({
+  label,
+  on,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  on: boolean;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onClick}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+        on ? "bg-accent" : "bg-border"
+      }`}
+    >
+      <span
+        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          on ? "translate-x-5" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
+
+const KINDS: { kind: BusinessSwitch; label: string }[] = [
+  { kind: "selling", label: "Vender productos" },
+  { kind: "booking", label: "Agendar citas" },
+];
+
+/** Selling and booking, each turned on or off apart; turning one off may be refused. */
+function WhatItDoes({ business }: { business: Business }) {
+  const queryClient = useQueryClient();
+  const [refused, setRefused] = useState<string | null>(null);
+  const turn = useMutation({
+    mutationFn: ({ kind, on }: { kind: BusinessSwitch; on: boolean }) => turnSwitch(kind, on),
+    onMutate: () => setRefused(null),
+    onSuccess: async (reason) => {
+      setRefused(reason);
+      await queryClient.invalidateQueries({ queryKey: ["business"] });
+      await queryClient.invalidateQueries({ queryKey: ["overview"] });
+    },
+    onError: (error) =>
+      setRefused(error instanceof Error ? error.message : "No se pudo cambiar. Intenta de nuevo."),
+  });
+
+  return (
+    <Card>
+      <CardHeader title="Qué hace tu negocio" />
+      <ul className="flex flex-col gap-4">
+        {KINDS.map(({ kind, label }) => (
+          <li key={kind} className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium text-text-primary">{label}</p>
+              <p className="text-sm text-text-secondary">{SWITCH_SAYS[kind]}</p>
+            </div>
+            <Toggle
+              label={label}
+              on={isOn(business, kind)}
+              disabled={turn.isPending}
+              onClick={() => turn.mutate({ kind, on: !isOn(business, kind) })}
+            />
+          </li>
+        ))}
+      </ul>
+      {refused && <p className="mt-4 text-sm text-danger">{refused}</p>}
+      {business.booking_enabled && <Reminders />}
+    </Card>
+  );
+}
+
+/** What `GET /dashboard/reminders` answers. */
+interface ReminderState {
+  template_name: string;
+  status: string;
+  rejected_reason: string | null;
+  sending: boolean;
+  cost_note: string;
+}
+
+const REMINDERS_SAY: Record<string, string> = {
+  APPROVED: "Tus clientes reciben un recordatorio el día antes de su cita.",
+  PENDING:
+    "Meta está revisando el mensaje del recordatorio. Hasta que lo apruebe, no se envían recordatorios.",
+  REJECTED: "Meta rechazó el mensaje del recordatorio, así que no se envían recordatorios.",
+  PAUSED:
+    "Meta pausó el mensaje del recordatorio por quejas de clientes; mientras siga pausado no se envían recordatorios.",
+  DISABLED: "Meta desactivó el mensaje del recordatorio, así que no se envían recordatorios.",
+  MISSING:
+    "Meta todavía no tiene el mensaje del recordatorio. Doppel se lo envía a revisar cuando haya un recordatorio por enviar; hasta que lo apruebe, no se envían recordatorios.",
+  NO_LINE: "Conecta tu WhatsApp para que tus clientes reciban recordatorios.",
+};
+
+/** Whether the reminder the day before goes out: only Meta knows if it approved it. */
+function Reminders() {
+  const reminders = useQuery({
+    queryKey: ["reminders"],
+    queryFn: () => readApi<ReminderState>("/dashboard/reminders"),
+  });
+  const state = reminders.data;
+
+  return (
+    <div className="mt-5 border-t border-border pt-4">
+      <p className="text-sm font-medium text-text-primary">Recordatorio del día antes</p>
+      {reminders.isLoading ? (
+        <div className="mt-2 h-10 animate-pulse rounded-lg bg-bg-elevated" />
+      ) : !state ? (
+        <p className="mt-1 text-sm text-danger">
+          No pudimos preguntarle a Meta por el recordatorio. Vuelve a intentarlo en un rato.
+        </p>
+      ) : (
+        <>
+          <p className={`mt-1 text-sm ${state.sending ? "text-text-secondary" : "text-danger"}`}>
+            {REMINDERS_SAY[state.status] ??
+              `Meta tiene el mensaje del recordatorio como ${state.status}, así que no se envían recordatorios.`}
+          </p>
+          {state.rejected_reason && (
+            <p className="mt-1 text-sm text-text-secondary">Motivo de Meta: {state.rejected_reason}</p>
+          )}
+          <p className="mt-2 text-xs text-text-muted">{state.cost_note}</p>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -224,23 +365,12 @@ function Calls({ line }: { line: WhatsappLine }) {
         <p className={refused ? "text-sm text-danger" : "text-sm text-text-secondary"}>
           {CALLS_SAY[line.calls_state]}
         </p>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={on}
-          aria-label="Llamadas"
+        <Toggle
+          label="Llamadas"
+          on={on}
           disabled={switchCalls.isPending}
           onClick={() => switchCalls.mutate(!on)}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-            on ? "bg-accent" : "bg-border"
-          }`}
-        >
-          <span
-            className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-              on ? "translate-x-5" : "translate-x-0.5"
-            }`}
-          />
-        </button>
+        />
       </div>
       {refused && (
         <div className="mt-4 flex flex-col gap-3">

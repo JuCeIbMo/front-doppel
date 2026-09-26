@@ -3,7 +3,9 @@ import Link from "next/link";
 export interface OnboardingStep {
   label: string;
   done: boolean;
-  href: string;
+  /** Where the step is done in the panel; without one, `hint` says how. */
+  href?: string;
+  hint?: string;
 }
 
 /** The first steps of a new Business; Inicio shows it only while one is missing. */
@@ -28,13 +30,18 @@ export function OnboardingChecklist({ steps }: { steps: OnboardingStep[] }) {
             </span>
             {step.done ? (
               <span className="text-sm text-text-secondary line-through">{step.label}</span>
-            ) : (
+            ) : step.href ? (
               <Link
                 href={step.href}
                 className="text-sm text-text-primary transition-colors hover:text-accent"
               >
                 {step.label} →
               </Link>
+            ) : (
+              <span className="text-sm text-text-primary">
+                {step.label}
+                {step.hint && <span className="block text-text-secondary">{step.hint}</span>}
+              </span>
             )}
           </li>
         ))}

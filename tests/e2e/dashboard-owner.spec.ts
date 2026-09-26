@@ -9,7 +9,9 @@ async function mockApi(page: Page, confirmed: string[]) {
     }
     const { pathname } = new URL(route.request().url());
     expect(route.request().headers()["authorization"]).toBe("Bearer e2e-access");
-    if (pathname === "/dashboard/business") return json(route, { id: "biz-1", name: "Panadería" });
+    if (pathname === "/dashboard/business") {
+      return json(route, { id: "biz-1", name: "Panadería", selling_enabled: true, booking_enabled: false });
+    }
     if (pathname === "/dashboard/whatsapp-line") {
       return json(route, {
         phone_number_id: "pn-1",
