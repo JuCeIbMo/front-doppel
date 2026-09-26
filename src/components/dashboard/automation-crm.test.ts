@@ -20,6 +20,7 @@ const conversations = [
     intervention_started_at: null,
     paused_until: null,
     reply_window_closes_at: "2026-06-18T12:00:00.000Z",
+    last_call_at: null,
   },
   {
     id: "c2",
@@ -30,6 +31,7 @@ const conversations = [
     intervention_started_at: "2026-06-17T11:05:00.000Z",
     paused_until: "2026-06-17T11:35:00.000Z",
     reply_window_closes_at: null,
+    last_call_at: "2026-06-17T10:00:00.000Z",
   },
 ];
 
@@ -45,6 +47,29 @@ describe("buildConversationSummaries", () => {
       humanTakeover: false,
     });
     expect(summaries[1].humanTakeover).toBe(true);
+  });
+
+  it("lists a Contact who only called by the time of the Call", () => {
+    const summaries = buildConversationSummaries(
+      [
+        ...conversations,
+        {
+          ...conversations[0],
+          id: "c3",
+          whatsapp_number: "59170000003",
+          last_message_at: null,
+          last_message_body: null,
+          last_call_at: "2026-06-17T13:00:00.000Z",
+        },
+      ],
+      {},
+    );
+
+    expect(summaries[0]).toMatchObject({
+      conversationId: "c3",
+      lastMessage: "Llamada",
+      lastActivityAt: "2026-06-17T13:00:00.000Z",
+    });
   });
 
   it("merges persisted CRM metadata into the conversation", () => {
@@ -86,6 +111,7 @@ describe("filterConversations", () => {
 
 describe("messageText", () => {
   const base = {
+    kind: "message" as const,
     id: "m",
     direction: "inbound" as const,
     body: "",

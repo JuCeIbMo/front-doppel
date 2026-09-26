@@ -20,10 +20,13 @@ export type PipelineConversation = {
   paused_until: string | null;
   /** Until when WhatsApp lets the Owner write freely; past it only a template gets through. */
   reply_window_closes_at: string | null;
+  /** When the Contact last called, answered or not. */
+  last_call_at: string | null;
 };
 
 /** One message as `GET /dashboard/pipeline/{id}/messages` returns it. */
 export type PipelineMessage = {
+  kind: "message";
   id: string;
   direction: "inbound" | "outbound";
   body: string;
@@ -35,6 +38,30 @@ export type PipelineMessage = {
   summary: string | null;
   media_state: string | null;
 };
+
+export type MissedReason =
+  | "manager_phone"
+  | "calls_disabled"
+  | "public_agent_disabled"
+  | "intervention"
+  | "allowance_spent"
+  | "no_capacity"
+  | "voice_model_unavailable";
+
+/** One Call as `GET /dashboard/pipeline/{id}/messages` returns it, between the messages. */
+export type PipelineCall = {
+  kind: "call";
+  id: string;
+  /** When the Call came in. */
+  created_at: string;
+  /** Null while the Call is still being answered. */
+  outcome: "answered" | "missed" | null;
+  missed_reason: MissedReason | null;
+  duration_seconds: number | null;
+  transcript: Array<{ who: "contact" | "public_agent"; text: string; at: string }>;
+};
+
+export type PipelineItem = PipelineMessage | PipelineCall;
 
 export type ConversationMeta = {
   leadStatus: LeadStatus;
@@ -51,8 +78,10 @@ export type ConversationSummary = {
   leadStatus: LeadStatus;
   notes: string;
   tags: string[];
+  /** The latest message, or "Llamada" when the Contact called after it. */
   lastMessage: string;
-  lastMessageAt: string | null;
+  /** When the latest message or Call happened. */
+  lastActivityAt: string | null;
   unreadCount: number;
   /** The bot is paused in this Conversation, because the Owner replied or it handed over. */
   humanTakeover: boolean;
@@ -126,6 +155,7 @@ export function buildConversationSummaries(
     .map((conversation) => {
       const phone = conversation.whatsapp_number;
       const meta = mergeConversationMeta(DEFAULT_META, persisted[phone] ?? {});
+      const called = calledLast(conversation);
       return {
         conversationId: conversation.id,
         contactCode: conversation.contact_code,
@@ -134,15 +164,19 @@ export function buildConversationSummaries(
         leadStatus: meta.leadStatus,
         notes: meta.notes,
         tags: meta.tags,
-        lastMessage: conversation.last_message_body ?? "",
-        lastMessageAt: conversation.last_message_at,
+        lastMessage: called ? "Llamada" : (conversation.last_message_body ?? ""),
+        lastActivityAt: called ? conversation.last_call_at : conversation.last_message_at,
         unreadCount: 0,
         humanTakeover: conversation.paused_until !== null,
         pausedUntil: conversation.paused_until,
         replyWindowClosesAt: conversation.reply_window_closes_at,
       };
     })
-    .sort((a, b) => timeOf(b.lastMessageAt) - timeOf(a.lastMessageAt));
+    .sort((a, b) => timeOf(b.lastActivityAt) - timeOf(a.lastActivityAt));
+}
+
+function calledLast(conversation: PipelineConversation): boolean {
+  return timeOf(conversation.last_call_at) > timeOf(conversation.last_message_at);
 }
 
 function timeOf(value: string | null): number {
@@ -162,6 +196,29 @@ export function messageText(message: PipelineMessage): string {
   if (message.summary) return message.summary;
   if (message.media_state === "pending") return `Procesando ${message.media_type ?? "archivo"}…`;
   return message.media_type ? `Mensaje tipo ${message.media_type}` : "";
+}
+
+const MISSED_REASON_TEXT: Record<MissedReason, string> = {
+  manager_phone: "Llamó desde un teléfono de encargado.",
+  calls_disabled: "Las llamadas estaban apagadas.",
+  public_agent_disabled: "El bot estaba apagado.",
+  intervention: "La conversación estaba en tus manos, así que el bot no contestó.",
+  allowance_spent: "Se acabaron los minutos de llamada del mes. Se invitó al cliente a escribir.",
+  no_capacity: "El servicio de voz estaba ocupado. Se invitó al cliente a escribir.",
+  voice_model_unavailable: "La voz del bot no se pudo conectar. Se invitó al cliente a escribir.",
+};
+
+/** Why a missed Call was not answered, in words the Owner understands. */
+export function missedReasonText(reason: MissedReason | null): string {
+  return reason ? MISSED_REASON_TEXT[reason] : "";
+}
+
+/** "1 min 35 s", as Meta timed the Call. */
+export function callDuration(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  if (minutes === 0) return `${rest} s`;
+  return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
 }
 
 export function filterConversations(

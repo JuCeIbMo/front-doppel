@@ -146,7 +146,7 @@ describe("DashboardView", () => {
     );
   });
 
-  function oneConversation(conversation: Record<string, unknown>) {
+  function oneConversation(conversation: Record<string, unknown>, thread: unknown[] = []) {
     mockFetch.mockImplementation(async (path: string) => {
       if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Tienda" });
       if (path === "/dashboard/whatsapp-line") {
@@ -172,9 +172,46 @@ describe("DashboardView", () => {
           },
         ]);
       }
+      if (path === "/dashboard/pipeline/c1/messages") return jsonResponse(thread);
       return jsonResponse([]);
     });
   }
+
+  it("shows each Call in the thread: an answered one with its transcript, a missed one with why", async () => {
+    oneConversation({}, [
+      {
+        kind: "call",
+        id: "call1",
+        created_at: "2026-06-17T10:00:00.000Z",
+        outcome: "answered",
+        missed_reason: null,
+        duration_seconds: 95,
+        transcript: [
+          { who: "public_agent", text: "Hola, soy la asistente virtual", at: "2026-06-17T10:00:05.000Z" },
+          { who: "contact", text: "¿Tienen café?", at: "2026-06-17T10:00:10.000Z" },
+        ],
+      },
+      {
+        kind: "call",
+        id: "call2",
+        created_at: "2026-06-17T11:00:00.000Z",
+        outcome: "missed",
+        missed_reason: "allowance_spent",
+        duration_seconds: null,
+        transcript: [],
+      },
+    ]);
+
+    render(<DashboardView />);
+
+    expect(await screen.findByText("Llamada atendida · 1 min 35 s")).toBeInTheDocument();
+    expect(screen.queryByText("¿Tienen café?")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver transcripción" }));
+    expect(screen.getByText("¿Tienen café?")).toBeInTheDocument();
+    expect(screen.getByText("Hola, soy la asistente virtual")).toBeInTheDocument();
+    expect(screen.getByText("Llamada perdida")).toBeInTheDocument();
+    expect(screen.getByText(/Se acabaron los minutos de llamada del mes/)).toBeInTheDocument();
+  });
 
   it("sends the Owner's reply to the selected Contact", async () => {
     oneConversation({});

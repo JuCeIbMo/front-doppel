@@ -17,10 +17,14 @@ import {
   writeConversationMetaMap,
   type ConversationFilter,
   type ConversationMeta,
+  callDuration,
   messageText,
+  missedReasonText,
   type ConversationSummary,
   type LeadStatus,
   type PipelineConversation,
+  type PipelineCall,
+  type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
 
@@ -101,13 +105,13 @@ function formatTimestamp(value: string) {
   }).format(new Date(value));
 }
 
-function groupMessagesByDay(messages: PipelineMessage[]) {
-  const groups = new Map<string, PipelineMessage[]>();
+function groupByDay(thread: PipelineItem[]) {
+  const groups = new Map<string, PipelineItem[]>();
 
-  for (const message of messages) {
-    const key = new Date(message.created_at).toISOString().slice(0, 10);
+  for (const item of thread) {
+    const key = new Date(item.created_at).toISOString().slice(0, 10);
     const day = groups.get(key) ?? [];
-    day.push(message);
+    day.push(item);
     groups.set(key, day);
   }
 
@@ -137,7 +141,11 @@ export function DashboardView() {
   const [business, setBusiness] = useState<Business | null>(null);
   const [line, setLine] = useState<WhatsappLine | null>(null);
   const [pipeline, setPipeline] = useState<PipelineConversation[]>([]);
-  const [messages, setMessages] = useState<PipelineMessage[]>([]);
+  const [thread, setThread] = useState<PipelineItem[]>([]);
+  const messages = useMemo(
+    () => thread.filter((item): item is PipelineMessage => item.kind !== "call"),
+    [thread],
+  );
   const [botError, setBotError] = useState("");
   const [togglingBot, setTogglingBot] = useState(false);
   const [query, setQuery] = useState("");
@@ -241,17 +249,17 @@ export function DashboardView() {
 
   const loadMessages = useCallback(async (conversationId: string) => {
     const res = await authenticatedFetch(`/dashboard/pipeline/${conversationId}/messages`);
-    return res.ok ? ((await res.json()) as PipelineMessage[]) : null;
+    return res.ok ? ((await res.json()) as PipelineItem[]) : null;
   }, []);
 
   useEffect(() => {
     if (!selectedConversationId) return;
     let active = true;
-    setMessages([]);
+    setThread([]);
     const load = () =>
       loadMessages(selectedConversationId)
         .then((loaded) => {
-          if (active && loaded) setMessages(loaded);
+          if (active && loaded) setThread(loaded);
         })
         .catch(() => undefined);
     void load();
@@ -266,7 +274,7 @@ export function DashboardView() {
     await refreshPipeline();
     if (!selectedConversationId) return;
     const loaded = await loadMessages(selectedConversationId);
-    if (loaded) setMessages(loaded);
+    if (loaded) setThread(loaded);
   }, [refreshPipeline, loadMessages, selectedConversationId]);
 
   const handleToggleBot = useCallback(async () => {
@@ -468,7 +476,7 @@ export function DashboardView() {
                       <p className="mt-1 text-xs text-text-secondary">{conversation.phone}</p>
                     </div>
                     <span className="shrink-0 text-[11px] text-text-secondary">
-                      {formatRelativeTime(conversation.lastMessageAt)}
+                      {formatRelativeTime(conversation.lastActivityAt)}
                     </span>
                   </div>
 
@@ -523,7 +531,7 @@ export function DashboardView() {
 
                   <div className="flex flex-wrap gap-2 text-xs text-text-secondary xl:max-w-[19rem] xl:justify-end">
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      Último mensaje {formatRelativeTime(selectedConversation.lastMessageAt)}
+                      Última actividad {formatRelativeTime(selectedConversation.lastActivityAt)}
                     </span>
                     <span className="rounded-full bg-white/5 px-3 py-1.5">
                       {messages.length} {messages.length === 1 ? "mensaje" : "mensajes"}
@@ -536,7 +544,7 @@ export function DashboardView() {
               </div>
 
               <div className="flex-1 space-y-6 overflow-auto px-5 py-5 xl:min-h-0">
-                {groupMessagesByDay(messages).map(([day, group]) => (
+                {groupByDay(thread).map(([day, group]) => (
                   <div key={day}>
                     <div className="mb-4 flex items-center justify-center">
                       <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-text-secondary">
@@ -545,12 +553,15 @@ export function DashboardView() {
                     </div>
 
                     <div className="space-y-3">
-                      {group.map((message) => (
+                      {group.map((item) =>
+                        item.kind === "call" ? (
+                          <CallEntry key={item.id} call={item} />
+                        ) : (
                         <div
-                          key={message.id}
+                          key={item.id}
                           className={cx(
                             "max-w-[85%] rounded-[24px] px-4 py-3",
-                            message.direction === "outbound"
+                            item.direction === "outbound"
                               ? "ml-auto border border-accent/20 bg-accent/8"
                               : "border border-white/8 bg-white/4",
                           )}
@@ -559,23 +570,24 @@ export function DashboardView() {
                             <span
                               className={cx(
                                 "text-[11px] uppercase tracking-[0.2em]",
-                                message.direction === "outbound"
+                                item.direction === "outbound"
                                   ? "text-accent"
                                   : "text-text-secondary",
                               )}
                             >
-                              {message.direction === "outbound" ? "Doppel" : "Cliente"}
+                              {item.direction === "outbound" ? "Doppel" : "Cliente"}
                             </span>
                             <span className="text-[11px] text-text-secondary">
-                              {formatTimestamp(message.created_at)}
+                              {formatTimestamp(item.created_at)}
                             </span>
                           </div>
-                          <MessageMedia message={message} />
+                          <MessageMedia message={item} />
                           <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                            {messageText(message)}
+                            {messageText(item)}
                           </p>
                         </div>
-                      ))}
+                        ),
+                      )}
                     </div>
                   </div>
                 ))}
@@ -640,10 +652,10 @@ export function DashboardView() {
                       </div>
                       <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
                         <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                          Último mensaje
+                          Última actividad
                         </p>
                         <p className="mt-2 text-sm text-text-primary">
-                          {formatRelativeTime(selectedConversation.lastMessageAt)}
+                          {formatRelativeTime(selectedConversation.lastActivityAt)}
                         </p>
                       </div>
                     </div>
@@ -721,7 +733,7 @@ export function DashboardView() {
                   <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Último</p>
                     <p className="mt-2 text-sm font-semibold text-text-primary">
-                      {formatRelativeTime(selectedConversation.lastMessageAt)}
+                      {formatRelativeTime(selectedConversation.lastActivityAt)}
                     </p>
                   </div>
                 </div>
@@ -1070,5 +1082,52 @@ function MessageMedia({ message }: { message: PipelineMessage }) {
     <a href={message.media_url} target="_blank" rel="noreferrer" className="mt-2 block text-sm text-accent hover:underline">
       Abrir archivo
     </a>
+  );
+}
+
+/** A Call in the thread: answered with its duration and a transcript to open, or missed and why. */
+function CallEntry({ call }: { call: PipelineCall }) {
+  const [open, setOpen] = useState(false);
+  const title =
+    call.outcome === "answered"
+      ? `Llamada atendida${call.duration_seconds !== null ? ` · ${callDuration(call.duration_seconds)}` : ""}`
+      : call.outcome === "missed"
+        ? "Llamada perdida"
+        : "Llamada entrante";
+  return (
+    <div className="mx-auto max-w-[85%] rounded-[24px] border border-white/8 bg-white/4 px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">{title}</span>
+        <span className="text-[11px] text-text-secondary">{formatTimestamp(call.created_at)}</span>
+      </div>
+      {call.outcome === "missed" && (
+        <p className="mt-2 text-sm leading-6 text-text-primary">
+          {missedReasonText(call.missed_reason)}
+        </p>
+      )}
+      {call.transcript.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="mt-2 text-sm text-accent hover:underline"
+          >
+            {open ? "Ocultar transcripción" : "Ver transcripción"}
+          </button>
+          {open && (
+            <div className="mt-2 space-y-1">
+              {call.transcript.map((line, index) => (
+                <p key={index} className="whitespace-pre-wrap text-sm leading-6 text-text-primary">
+                  <span className="text-text-secondary">
+                    {line.who === "contact" ? "Cliente" : "Doppel"}:
+                  </span>{" "}
+                  {line.text}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }
