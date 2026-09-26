@@ -31,10 +31,12 @@ describe("OwnerShell", () => {
 
     // The links behind a switch wait for the Business, so let it arrive first.
     await act(async () => {});
+    expect((await screen.findAllByRole("link", { name: /Servicios/ })).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Ventas" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Productos/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Inventario/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: /Horarios/ }).length).toBeGreaterThan(0);
     expect(readApi).toHaveBeenCalledWith("/dashboard/business");
   });
 
@@ -43,6 +45,8 @@ describe("OwnerShell", () => {
 
     expect(await screen.findByRole("link", { name: /Productos/ })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Pedidos" }).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("link", { name: /Servicios/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Horarios/ })).not.toBeInTheDocument();
   });
 
   it("keeps every screen in the menu when the Business cannot be read", async () => {

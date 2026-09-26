@@ -21,6 +21,8 @@ import {
   MessageSquareText,
   Menu,
   X,
+  Scissors,
+  CalendarClock,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
@@ -63,6 +65,20 @@ const coreLinks: NavLink[] = [
     icon: Boxes,
     feature: "inventory",
     needs: "selling",
+  },
+  {
+    href: "/dashboard/services",
+    label: "Servicios",
+    icon: Scissors,
+    feature: null,
+    needs: "booking",
+  },
+  {
+    href: "/dashboard/hours",
+    label: "Horarios",
+    icon: CalendarClock,
+    feature: null,
+    needs: "booking",
   },
   { href: "/dashboard/clients", label: "Clientes", icon: Users, feature: "clients" },
   { href: "/dashboard/finance", label: "Finanzas", icon: Wallet, feature: "finance" },

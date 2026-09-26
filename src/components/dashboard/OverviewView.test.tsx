@@ -73,8 +73,14 @@ describe("OverviewView", () => {
     renderView();
 
     expect(await screen.findByText("0 de 5 pasos listos.")).toBeInTheDocument();
-    expect(screen.getByText(/Agrega tu primer servicio/)).toBeInTheDocument();
-    expect(screen.getByText(/Dile a tu asistente tu horario/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Agrega tu primer servicio →" })).toHaveAttribute(
+      "href",
+      "/dashboard/services/new",
+    );
+    expect(screen.getByRole("link", { name: "Arma tu horario →" })).toHaveAttribute(
+      "href",
+      "/dashboard/hours",
+    );
     expect(screen.queryByText(/primer producto/)).not.toBeInTheDocument();
     expect(screen.queryByText("Pedidos por cobrar")).not.toBeInTheDocument();
   });

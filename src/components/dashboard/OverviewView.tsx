@@ -58,12 +58,12 @@ function firstSteps(
           {
             label: "Agrega tu primer servicio",
             done: onboarding.has_service,
-            hint: "Escríbele a tu asistente por WhatsApp: «corte, 30 minutos, 50 Bs».",
+            href: "/dashboard/services/new",
           },
           {
-            label: "Dile a tu asistente tu horario",
+            label: "Arma tu horario",
             done: onboarding.has_hours,
-            hint: "Por ejemplo: «atiendo de lunes a viernes de 9 a 18».",
+            href: "/dashboard/hours",
           },
         ]
       : []),
