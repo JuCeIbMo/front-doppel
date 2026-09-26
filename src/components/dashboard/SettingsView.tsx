@@ -19,6 +19,7 @@ import {
   type Business,
   type BusinessSwitch,
 } from "@/lib/business";
+import { runBookingOperation } from "@/lib/appointments";
 import { startRehearsal, type Rehearsal } from "@/lib/rehearsal";
 import { signOut } from "@/lib/supabase";
 
@@ -84,6 +85,13 @@ export function SettingsView() {
 
       {business.data && <WhatItDoes business={business.data} />}
 
+      {business.data?.booking_enabled && (
+        <CalendarEmail
+          key={business.data.calendar_email ?? ""}
+          current={business.data.calendar_email}
+        />
+      )}
+
       {line.isLoading ? (
         <div className="h-32 animate-pulse rounded-xl bg-bg-elevated" />
       ) : line.data ? (
@@ -141,6 +149,57 @@ function BusinessName({ current }: { current: string }) {
           type="submit"
           size="sm"
           disabled={save.isPending || !name.trim() || name.trim() === current}
+        >
+          {save.isPending ? "Guardando..." : "Guardar"}
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+/** Who sees the Appointments in Google. Google only shows them: Doppel is where they change. */
+function CalendarEmail({ current }: { current: string | null }) {
+  const queryClient = useQueryClient();
+  const [email, setEmail] = useState(current ?? "");
+  const save = useMutation({
+    mutationFn: () => runBookingOperation("set_calendar_email", { email: email.trim() }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["business"] });
+      toast.success("Listo. Google le enviará una invitación a ese email.");
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el email."),
+  });
+
+  return (
+    <Card>
+      <CardHeader title="Tu Google Calendar" />
+      <p className="mb-3 text-sm text-text-secondary">
+        Doppel pone tus citas en un calendario de Google compartido con este email. Es solo para
+        mirar: lo que cambies o borres en Google no cambia tus citas. Muévelas o cancélalas en la
+        Agenda o con tu asistente. Si cambias el email, el anterior deja de verlo.
+      </p>
+      <form
+        className="flex flex-col gap-3 sm:flex-row sm:items-end"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save.mutate();
+        }}
+      >
+        <div className="flex-1">
+          <Input
+            label="Email de Google"
+            type="email"
+            value={email}
+            placeholder="tu@gmail.com"
+            onChange={(event) => setEmail(event.target.value)}
+            maxLength={254}
+          />
+        </div>
+        <Button
+          type="submit"
+          size="sm"
+          disabled={save.isPending || !email.trim() || email.trim() === current}
         >
           {save.isPending ? "Guardando..." : "Guardar"}
         </Button>

@@ -70,6 +70,20 @@ const REFUSALS: Record<string, string> = {
   PROFESSIONAL_NOT_FOUND: "Esa persona ya no está en tu equipo. Recarga la página.",
   SERVICE_ALREADY_ARCHIVED: "Ese servicio ya estaba archivado.",
   SERVICE_NOT_ARCHIVED: "Ese servicio ya estaba en oferta.",
+  APPOINTMENT_NOT_FOUND: "Esa cita ya no está. Recarga la página.",
+  APPOINTMENT_ENDED: "Esa cita ya terminó o se canceló. Recarga la página.",
+  APPOINTMENT_STARTED: "Esa cita ya empezó: ya no se mueve ni se cancela.",
+  APPOINTMENT_NOT_STARTED: "Esa cita todavía no empezó. Si no va a venir, cancélala.",
+  APPOINTMENT_PAID: "Esa cita está pagada: para cancelarla, reembólsala.",
+  APPOINTMENT_NOT_PAID: "Solo se reembolsa una cita pagada.",
+  NOTHING_TO_PAY: "Esa cita no espera ningún pago.",
+  TIME_NOT_FREE: "Ese horario ya no está libre. Elige otro.",
+  TIME_TAKEN: "Alguien acaba de ocupar ese horario. Elige otro.",
+  TOO_SOON: "Ese horario ya pasó. Elige uno que todavía no llegó.",
+  TOO_FAR_AHEAD: "Las citas se agendan hasta 30 días adelante. Elige un día antes.",
+  SERVICE_NOT_PERFORMED:
+    "Esa persona ya no hace este servicio, así que la cita no se mueve con ella. Cancélala y agenda otra.",
+  INVALID_EMAIL: "Ese no es un email. Escríbelo como rosa@gmail.com.",
 };
 
 /**
@@ -86,6 +100,19 @@ export async function runBookingOperation<T>(
     throw new Error("Quedó pendiente de aprobación. Revísala en Aprobaciones.");
   }
   throw new Error(REFUSALS[answer.code] ?? answer.message);
+}
+
+/**
+ * Runs one booking Operation the Owner may have to approve first. Answers whether it was
+ * done or left waiting in Aprobaciones, or throws an Error the screen can show as is.
+ */
+export async function bookingAction(
+  name: string,
+  payload: Record<string, unknown>,
+): Promise<"executed" | "approval_created"> {
+  const answer = await runOperation(name, payload);
+  if (answer.status === "rejected") throw new Error(REFUSALS[answer.code] ?? answer.message);
+  return answer.status;
 }
 
 export const SERVICES_KEY = ["services"];
@@ -247,4 +274,206 @@ export function dayRanges(days: string[]): { first: string; last: string }[] {
     else ranges.push({ first: day, last: day });
   }
   return ranges;
+}
+
+export type AppointmentStatus =
+  | "booked"
+  | "paid"
+  | "attended"
+  | "no_show"
+  | "cancelled"
+  | "expired"
+  | "refunded";
+
+/** One row of `GET /dashboard/agenda`. Moments come in the Business's clock (-04:00). */
+export interface AgendaAppointment {
+  appointment_code: string;
+  starts_at: string;
+  ends_at: string;
+  status: AppointmentStatus;
+  service_code: string;
+  service: string;
+  professional_code: string;
+  professional: string;
+  /** Their name, or their WhatsApp number when nobody gave one. */
+  customer: string;
+  whatsapp_number: string;
+  price: string;
+  /** Still to be paid ahead; 0 once paid or when nothing is asked ahead. */
+  amount_due: string;
+  /** Until when it waits for that payment before it expires. */
+  pay_by: string | null;
+}
+
+/** One row of `GET /dashboard/pipeline/{id}/appointments`: the Contact's, latest first. */
+export interface ContactAppointment {
+  appointment_code: string;
+  starts_at: string;
+  status: AppointmentStatus;
+  service: string;
+  professional: string;
+  price: string;
+  amount_due: string;
+}
+
+export const APPOINTMENT_STATUS: Record<
+  AppointmentStatus,
+  { label: string; variant: "success" | "warning" | "danger" | "neutral" }
+> = {
+  booked: { label: "Agendada", variant: "warning" },
+  paid: { label: "Pagada", variant: "success" },
+  attended: { label: "Atendida", variant: "success" },
+  no_show: { label: "No vino", variant: "danger" },
+  cancelled: { label: "Cancelada", variant: "neutral" },
+  expired: { label: "Vencida sin pago", variant: "neutral" },
+  refunded: { label: "Reembolsada", variant: "neutral" },
+};
+
+/** The Business's clock: every day and time on these screens is read in it. */
+export const BUSINESS_TIME_ZONE = "America/La_Paz";
+
+const BUSINESS_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE });
+
+/** The day it is for the Business, as YYYY-MM-DD. */
+export function businessDay(now: Date): string {
+  return BUSINESS_DAY.format(now);
+}
+
+/** "10:00" from a moment the API gave in the Business's clock. */
+export function clockTime(moment: string): string {
+  return moment.slice(11, 16);
+}
+
+/** "martes, 6 de octubre · 10:00" from a moment in the Business's clock. */
+export function dayAndTime(moment: string): string {
+  return `${formatDay(moment.slice(0, 10))} · ${clockTime(moment)}`;
+}
+
+export function shiftDays(day: string, days: number): string {
+  const moved = new Date(`${day}T00:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
+}
+
+/** Seven days from this one. */
+export function weekFrom(first: string): string[] {
+  return Array.from({ length: 7 }, (_, index) => shiftDays(first, index));
+}
+
+/** What is paid ahead, in the Owner's words. */
+export function paymentSays(
+  appointment: Pick<AgendaAppointment, "status" | "amount_due" | "pay_by">,
+  format: (amount: number) => string,
+): string {
+  if (appointment.status === "paid") return "Pagado";
+  const due = Number(appointment.amount_due);
+  if (appointment.status === "booked" && due > 0) {
+    return appointment.pay_by
+      ? `Falta pagar ${format(due)} hasta el ${dayAndTime(appointment.pay_by)}`
+      : `Falta pagar ${format(due)}`;
+  }
+  return "Sin pago por adelantado";
+}
+
+export type AgendaActionName =
+  | "confirm_appointment_payment"
+  | "move"
+  | "cancel_appointment"
+  | "refund_appointment"
+  | "mark_no_show";
+
+export interface AgendaAction {
+  operation: AgendaActionName;
+  label: string;
+  /** Asked before doing it; moving asks for the new time instead. */
+  confirm?: string;
+}
+
+/** What the Owner can do with an Appointment now: change it until it starts, then say
+ * whether the Contact came. A paid one is refunded rather than cancelled. */
+export function agendaActions(appointment: AgendaAppointment, now: Date): AgendaAction[] {
+  const started = new Date(appointment.starts_at).getTime() <= now.getTime();
+  const actions: AgendaAction[] = [];
+  const { status } = appointment;
+  if (status === "booked" && Number(appointment.amount_due) > 0) {
+    actions.push({
+      operation: "confirm_appointment_payment",
+      label: "Confirmar pago",
+      confirm: "¿Confirmas que te llegó el pago de esta cita?",
+    });
+  }
+  if (!started && (status === "booked" || status === "paid")) {
+    actions.push({ operation: "move", label: "Mover" });
+  }
+  if (!started && status === "booked") {
+    actions.push({
+      operation: "cancel_appointment",
+      label: "Cancelar",
+      confirm: "¿Cancelar esta cita? Su horario queda libre y le avisamos al cliente.",
+    });
+  }
+  if (status === "paid") {
+    actions.push({
+      operation: "refund_appointment",
+      label: "Reembolsar",
+      confirm: "¿Reembolsar esta cita? Se cancela, su horario queda libre y le avisamos al cliente.",
+    });
+  }
+  if (started && (status === "booked" || status === "paid" || status === "attended")) {
+    actions.push({
+      operation: "mark_no_show",
+      label: "No vino",
+      confirm:
+        status === "attended"
+          ? "¿El cliente no vino? Se anula la venta que hizo esta cita."
+          : "¿El cliente no vino a esta cita?",
+    });
+  }
+  return actions;
+}
+
+export interface AgendaColumn {
+  professional_code: string;
+  name: string;
+  appointments: AgendaAppointment[];
+}
+
+/** A day by Professional: everyone on the team, then anyone retired who still had one. */
+export function byProfessional(
+  appointments: AgendaAppointment[],
+  team: { professional_code: string; name: string }[],
+): AgendaColumn[] {
+  const columns: AgendaColumn[] = team.map((member) => ({
+    professional_code: member.professional_code,
+    name: member.name,
+    appointments: [],
+  }));
+  for (const appointment of appointments) {
+    let column = columns.find((c) => c.professional_code === appointment.professional_code);
+    if (!column) {
+      column = {
+        professional_code: appointment.professional_code,
+        name: appointment.professional,
+        appointments: [],
+      };
+      columns.push(column);
+    }
+    column.appointments.push(appointment);
+  }
+  return columns;
+}
+
+export const AGENDA_KEY = ["agenda"];
+export const TIMES_TO_MOVE_KEY = ["times-to-move"];
+export const CONTACT_APPOINTMENTS_KEY = ["contact-appointments"];
+
+/** How far ahead an Appointment can be set, as the backend's BOOKING_HORIZON. */
+export const BOOKING_HORIZON_DAYS = 30;
+
+export function useAgenda(firstDay: string, lastDay: string) {
+  return useQuery({
+    queryKey: [...AGENDA_KEY, firstDay, lastDay],
+    queryFn: () =>
+      readApi<AgendaAppointment[]>(`/dashboard/agenda?first_day=${firstDay}&last_day=${lastDay}`),
+  });
 }

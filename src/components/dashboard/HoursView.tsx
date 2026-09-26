@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
@@ -491,7 +492,11 @@ function StillToHappen({
               : `Quedan ${appointments.length} citas agendadas en esos días`}
           </p>
           <p className="mt-0.5 text-sm text-text-secondary">
-            Siguen en pie hasta que las muevas o canceles; pídeselo a tu asistente por WhatsApp.
+            Siguen en pie hasta que las muevas o canceles en la{" "}
+            <Link href="/dashboard/agenda" className="text-accent hover:underline">
+              Agenda
+            </Link>
+            .
           </p>
         </div>
         <button

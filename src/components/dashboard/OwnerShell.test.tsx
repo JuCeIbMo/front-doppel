@@ -37,6 +37,7 @@ describe("OwnerShell", () => {
     expect(screen.queryByRole("link", { name: /Inventario/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Horarios/ }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /Agenda/ }).length).toBeGreaterThan(0);
     expect(readApi).toHaveBeenCalledWith("/dashboard/business");
   });
 
@@ -47,6 +48,7 @@ describe("OwnerShell", () => {
     expect(screen.getAllByRole("link", { name: "Pedidos" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Servicios/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Horarios/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Agenda/ })).not.toBeInTheDocument();
   });
 
   it("keeps every screen in the menu when the Business cannot be read", async () => {

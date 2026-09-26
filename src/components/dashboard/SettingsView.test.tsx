@@ -13,7 +13,8 @@ const runOperationOrThrow = vi.fn();
 const runOperation = vi.fn();
 vi.mock("@/lib/operations", () => ({
   readApi: (path: string) => readApi(path),
-  runOperation: (name: string) => runOperation(name),
+  runOperation: (name: string, payload?: unknown) =>
+    payload === undefined ? runOperation(name) : runOperation(name, payload),
   runOperationOrThrow: (name: string, payload?: unknown) => runOperationOrThrow(name, payload),
 }));
 
@@ -112,6 +113,38 @@ describe("SettingsView", () => {
 
     expect(readApi).not.toHaveBeenCalledWith("/dashboard/reminders");
     expect(screen.queryByText(/recordatorio/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Tu Google Calendar")).not.toBeInTheDocument();
+  });
+
+  it("shares the calendar with another Google email, and says Google only shows it", async () => {
+    answers(null, { ...BOOKS, calendar_email: "rosa@empresa.com" } as typeof BOOKS);
+    renderView();
+
+    const email = await screen.findByLabelText("Email de Google");
+    expect(email).toHaveValue("rosa@empresa.com");
+    expect(screen.getByText(/lo que cambies o borres en Google no cambia tus citas/)).toBeInTheDocument();
+    fireEvent.change(email, { target: { value: " rosa@gmail.com " } });
+    fireEvent.submit(email.closest("form")!);
+
+    await waitFor(() =>
+      expect(runOperation).toHaveBeenCalledWith("set_calendar_email", { email: "rosa@gmail.com" }),
+    );
+  });
+
+  it("says in Spanish when the Google email is not one", async () => {
+    const { toast } = await import("sonner");
+    answers(null, BOOKS);
+    runOperation.mockResolvedValueOnce({ status: "rejected", code: "INVALID_EMAIL", message: "x" });
+    renderView();
+
+    fireEvent.change(await screen.findByLabelText("Email de Google"), {
+      target: { value: "rosa" },
+    });
+    fireEvent.submit(screen.getByLabelText("Email de Google").closest("form")!);
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Ese no es un email. Escríbelo como rosa@gmail.com."),
+    );
   });
 
   it("says reminders go out once Meta approved them, and what each costs", async () => {

@@ -9,6 +9,7 @@ import { readApi, runOperation } from "@/lib/operations";
 import { placeholderCount, renderTemplate, type MessageTemplate } from "@/lib/templates";
 import { signOut } from "@/lib/supabase";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
+import { ContactAppointments } from "@/components/dashboard/ContactAppointments";
 import {
   buildConversationSummaries,
   canReplyFreely,
@@ -744,6 +745,10 @@ export function DashboardView() {
               </p>
             )}
           </Card>
+
+          {selectedConversation && (
+            <ContactAppointments conversationId={selectedConversation.conversationId} />
+          )}
 
           <Card>
             <CardHeader title="Cuenta conectada" />

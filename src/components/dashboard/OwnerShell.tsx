@@ -23,6 +23,7 @@ import {
   X,
   Scissors,
   CalendarClock,
+  CalendarDays,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
 import { isFeatureReady, type FeatureName } from "@/lib/features";
@@ -65,6 +66,13 @@ const coreLinks: NavLink[] = [
     icon: Boxes,
     feature: "inventory",
     needs: "selling",
+  },
+  {
+    href: "/dashboard/agenda",
+    label: "Agenda",
+    icon: CalendarDays,
+    feature: null,
+    needs: "booking",
   },
   {
     href: "/dashboard/services",

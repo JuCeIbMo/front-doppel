@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render as renderUi, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardView } from "@/components/dashboard/DashboardView";
 import { authenticatedFetch } from "@/lib/api";
@@ -29,6 +30,12 @@ vi.mock("@/lib/supabase", () => ({
 const mockFetch = vi.mocked(authenticatedFetch);
 const mockRun = vi.mocked(runOperation);
 const mockRead = vi.mocked(readApi);
+
+/** The Pipeline reads the Business through the shared query client, as the shell provides. */
+function render(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return renderUi(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
