@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
+import { startRehearsal, type Rehearsal } from "@/lib/rehearsal";
 import { signOut } from "@/lib/supabase";
 
 type CallsState = "off" | "turning_on" | "on" | "turning_off" | "refused";
@@ -22,7 +23,11 @@ interface WhatsappLine {
   public_agent_enabled: boolean;
   calls_state: CallsState;
   calls_refused_reason: CallsRefusedReason | null;
+  voice_instructions: string | null;
 }
+
+/** The backend's limit on the voice instructions. */
+const VOICE_INSTRUCTIONS_MAX_CHARS = 1000;
 
 /** While WhatsApp is applying the Owner's choice, the state is re-read until it settles. */
 const CALLS_SETTLING_POLL_MS = 3000;
@@ -78,6 +83,7 @@ export function SettingsView() {
         <>
           <ConnectedLine line={line.data} />
           <Calls line={line.data} />
+          <CallVoice current={line.data.voice_instructions} />
         </>
       ) : (
         !line.error && <WhatsAppDisconnectedNotice />
@@ -253,6 +259,95 @@ function Calls({ line }: { line: WhatsappLine }) {
           </div>
         </div>
       )}
+    </Card>
+  );
+}
+
+function CallVoice({ current }: { current: string | null }) {
+  const queryClient = useQueryClient();
+  const [instructions, setInstructions] = useState(current ?? "");
+  const [rehearsal, setRehearsal] = useState<Rehearsal | null>(null);
+  const [starting, setStarting] = useState(false);
+  const live = useRef<Rehearsal | null>(null);
+  live.current = rehearsal;
+  // Leaving Ajustes hangs up: an open rehearsal would keep spending the month's minutes.
+  useEffect(() => () => live.current?.stop(), []);
+  const save = useMutation({
+    mutationFn: () => runOperationOrThrow("set_voice_instructions", { instructions }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["whatsapp-line"] });
+      toast.success("Instrucciones guardadas.");
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : "No se pudieron guardar."),
+  });
+
+  const rehearse = async () => {
+    setStarting(true);
+    try {
+      setRehearsal(
+        await startRehearsal((failed) => {
+          setRehearsal(null);
+          if (failed) {
+            toast.error(
+              "No se pudo conectar el audio de la llamada de prueba. Prueba desde otra red (por ejemplo, Wi-Fi en vez de datos móviles).",
+            );
+          }
+        }),
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo iniciar la llamada de prueba.");
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader title="Voz del asistente en llamadas" />
+      <p className="mb-3 text-sm text-text-secondary">
+        Cómo quieres que suene tu asistente al teléfono: tono, acento, ritmo, palabras que
+        use. Solo se aplica a las llamadas; siempre se presenta como asistente virtual.
+      </p>
+      <label htmlFor="voice-instructions" className="sr-only">
+        Instrucciones de voz
+      </label>
+      <textarea
+        id="voice-instructions"
+        value={instructions}
+        onChange={(event) => setInstructions(event.target.value)}
+        maxLength={VOICE_INSTRUCTIONS_MAX_CHARS}
+        rows={3}
+        placeholder="Habla despacio, con acento boliviano, trata de usted."
+        className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
+      />
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
+        <span className="mr-auto text-xs text-text-muted">
+          {instructions.length}/{VOICE_INSTRUCTIONS_MAX_CHARS}
+        </span>
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => save.mutate()}
+          disabled={instructions === (current ?? "") || save.isPending}
+        >
+          {save.isPending ? "Guardando..." : "Guardar instrucciones"}
+        </Button>
+        {rehearsal ? (
+          <Button size="sm" variant="secondary" onClick={() => rehearsal.stop()}>
+            Colgar
+          </Button>
+        ) : (
+          <Button size="sm" onClick={() => void rehearse()} disabled={starting}>
+            {starting ? "Conectando..." : "Probar llamada"}
+          </Button>
+        )}
+      </div>
+      <p className="mt-3 text-xs text-text-muted">
+        {rehearsal
+          ? "Habla: tu asistente te escucha como a un cliente. Lee tu catálogo real, pero no crea pedidos ni envía mensajes."
+          : "La llamada de prueba usa tus instrucciones guardadas y cuenta en los minutos de llamadas del mes."}
+      </p>
     </Card>
   );
 }

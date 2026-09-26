@@ -15,6 +15,11 @@ vi.mock("@/lib/operations", () => ({
   runOperationOrThrow: (name: string, payload?: unknown) => runOperationOrThrow(name, payload),
 }));
 
+const startRehearsal = vi.fn();
+vi.mock("@/lib/rehearsal", () => ({
+  startRehearsal: (onEnded: (failed: boolean) => void) => startRehearsal(onEnded),
+}));
+
 import { SettingsView } from "./SettingsView";
 
 function answers(line: unknown) {
@@ -45,6 +50,7 @@ describe("SettingsView", () => {
       public_agent_enabled: true,
       calls_state: "off",
       calls_refused_reason: null,
+      voice_instructions: null,
     });
   });
 
@@ -109,6 +115,7 @@ describe("SettingsView", () => {
       public_agent_enabled: true,
       calls_state,
       calls_refused_reason,
+      voice_instructions: "Trata de usted.",
     });
   }
 
@@ -162,5 +169,80 @@ describe("SettingsView", () => {
     fireEvent.click(screen.getByRole("button", { name: "Intentar de nuevo" }));
 
     await waitFor(() => expect(runOperationOrThrow).toHaveBeenCalledWith("enable_calls", undefined));
+  });
+
+  it("saves the voice instructions the owner wrote", async () => {
+    lineWithCalls("on");
+    renderView();
+
+    const box = await screen.findByLabelText("Instrucciones de voz");
+    expect(box).toHaveValue("Trata de usted.");
+    fireEvent.change(box, { target: { value: "Habla despacio, con acento boliviano." } });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar instrucciones" }));
+
+    await waitFor(() =>
+      expect(runOperationOrThrow).toHaveBeenCalledWith("set_voice_instructions", {
+        instructions: "Habla despacio, con acento boliviano.",
+      }),
+    );
+  });
+
+  it("rehearses a call and hangs up", async () => {
+    const stop = vi.fn();
+    startRehearsal.mockResolvedValue({ stop });
+    lineWithCalls("off");
+    renderView();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Probar llamada" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Colgar" }));
+
+    expect(startRehearsal).toHaveBeenCalledTimes(1);
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("hangs up a rehearsal when the owner leaves Ajustes", async () => {
+    const stop = vi.fn();
+    startRehearsal.mockResolvedValue({ stop });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { unmount } = render(
+      <QueryClientProvider client={client}>
+        <SettingsView />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(await screen.findByRole("button", { name: "Probar llamada" }));
+    await screen.findByRole("button", { name: "Colgar" });
+    unmount();
+
+    expect(stop).toHaveBeenCalledTimes(1);
+  });
+
+  it("says when the rehearsal's audio could not connect", async () => {
+    startRehearsal.mockImplementation(async (onEnded: (failed: boolean) => void) => {
+      setTimeout(() => onEnded(true));
+      return { stop: vi.fn() };
+    });
+    const { toast } = await import("sonner");
+    renderView();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Probar llamada" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/No se pudo conectar el audio/)),
+    );
+    expect(await screen.findByRole("button", { name: "Probar llamada" })).toBeEnabled();
+  });
+
+  it("says why a rehearsal could not start", async () => {
+    startRehearsal.mockRejectedValue(new Error("Ya usaste los minutos de llamadas de este mes."));
+    const { toast } = await import("sonner");
+    renderView();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Probar llamada" }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("Ya usaste los minutos de llamadas de este mes."),
+    );
+    expect(screen.getByRole("button", { name: "Probar llamada" })).toBeEnabled();
   });
 });
