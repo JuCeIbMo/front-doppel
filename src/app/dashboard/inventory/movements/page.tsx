@@ -1,15 +1,5 @@
-import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpInventoryMovementsView } from "@/components/dashboard/ErpInventoryMovementsView";
+import { ComingSoon } from "@/components/dashboard/ComingSoon";
 
-export default async function DashboardInventoryMovementsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ product_id?: string }>;
-}) {
-  const params = await searchParams;
-  return (
-    <ComingSoonGate feature="inventory" title="Movimientos de inventario">
-      <ErpInventoryMovementsView initialProductId={params.product_id ?? ""} />
-    </ComingSoonGate>
-  );
+export default function DashboardInventoryMovementsPage() {
+  return <ComingSoon title="Movimientos de inventario" />;
 }

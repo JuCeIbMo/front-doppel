@@ -1,10 +1,5 @@
-import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpFinanceView } from "@/components/dashboard/ErpFinanceView";
+import { ComingSoon } from "@/components/dashboard/ComingSoon";
 
 export default function DashboardFinancePage() {
-  return (
-    <ComingSoonGate feature="finance" title="Finanzas">
-      <ErpFinanceView />
-    </ComingSoonGate>
-  );
+  return <ComingSoon title="Finanzas" />;
 }

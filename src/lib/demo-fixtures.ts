@@ -1,4 +1,45 @@
-import type { ErpDashboardResponse, ErpProduct, InventoryRow, SaleResponse } from "@/lib/erp-types";
+/** Sample data for the public /demo page; shaped like the old ERP responses. */
+interface ErpDashboardResponse {
+  period: Record<string, unknown>;
+  sales_total: number;
+  sales_count: number;
+  gross_margin: number;
+  gross_margin_pct: number;
+  new_clients: number;
+  low_stock_count: number;
+  top_product?: Record<string, unknown> | null;
+  cash_balances?: Array<Record<string, unknown>>;
+}
+
+interface ErpProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  sku: string | null;
+  barcode: string | null;
+  category: string | null;
+  image_url: string | null;
+  cost_price: number;
+  price: number;
+  unit: string;
+  available: boolean;
+  has_variants: boolean;
+  low_stock_threshold: number;
+  stock: number | null;
+  created_at: string | null;
+}
+
+interface InventoryRow {
+  product_id: string;
+  product_name: string;
+  variant_id: string | null;
+  variant_name?: string | null;
+  category: string | null;
+  unit: string;
+  quantity: number;
+  low_stock_threshold: number;
+}
+
 
 export const DEMO_DASHBOARD: ErpDashboardResponse = {
   period: { from: "2026-06-01", to: "2026-06-13" },
@@ -15,7 +56,7 @@ export const DEMO_DASHBOARD: ErpDashboardResponse = {
   ],
 };
 
-export const DEMO_PRODUCTS: ErpProduct[] = [
+const DEMO_PRODUCTS: ErpProduct[] = [
   {
     id: "prod_001", name: "Heineken 1L", description: "Cerveza Heineken botella 1L",
     sku: "HNK-1L", barcode: "7891234567890", category: "Cervezas",
@@ -49,21 +90,3 @@ export const DEMO_INVENTORY: InventoryRow[] = DEMO_PRODUCTS.map((p) => ({
   low_stock_threshold: p.low_stock_threshold,
 }));
 
-export const DEMO_SALES: SaleResponse[] = [
-  {
-    id: "sale_001", client_id: null, status: "completed",
-    payment_method: "cash", subtotal: 384, discount: 0, total: 384,
-    notes: null, actor: "Bot WhatsApp", created_at: "2026-06-13T09:15:00Z",
-    items: [
-      { id: "si_001", product_id: "prod_001", variant_id: null, product_name: "Heineken 1L", quantity: 6, unit_price: 64, unit_cost: 38, total: 384 },
-    ],
-  },
-  {
-    id: "sale_002", client_id: "client_001", status: "completed",
-    payment_method: "transfer", subtotal: 216, discount: 20, total: 196,
-    notes: "Cliente frecuente", actor: "dueño@ejemplo.com", created_at: "2026-06-13T08:30:00Z",
-    items: [
-      { id: "si_002", product_id: "prod_002", variant_id: null, product_name: "Marlboro Rojo", quantity: 3, unit_price: 72, unit_cost: 45, total: 216 },
-    ],
-  },
-];

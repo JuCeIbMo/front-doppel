@@ -27,6 +27,11 @@ export function ComingSoonGate({
   children: React.ReactNode;
 }) {
   if (isFeatureReady(feature)) return <>{children}</>;
+  return <ComingSoon title={title} />;
+}
+
+/** The "Próximamente" screen for a section that does not exist yet. */
+export function ComingSoon({ title }: { title: string }) {
   return (
     <section className="mx-auto max-w-xl py-16 text-center">
       <span className="inline-flex items-center rounded-md bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">

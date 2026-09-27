@@ -1,10 +1,5 @@
-import { ComingSoonGate } from "@/components/dashboard/ComingSoon";
-import { ErpInventoryView } from "@/components/dashboard/ErpInventoryView";
+import { ComingSoon } from "@/components/dashboard/ComingSoon";
 
 export default function DashboardInventoryPage() {
-  return (
-    <ComingSoonGate feature="inventory" title="Inventario">
-      <ErpInventoryView />
-    </ComingSoonGate>
-  );
+  return <ComingSoon title="Inventario" />;
 }
