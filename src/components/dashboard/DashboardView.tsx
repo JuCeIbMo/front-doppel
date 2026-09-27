@@ -2,12 +2,13 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { authenticatedFetch } from "@/lib/api";
+import { ApiError } from "@/lib/api-client";
+import { useBusiness } from "@/lib/business";
 import { readApi, runOperation } from "@/lib/operations";
 import { placeholderCount, renderTemplate, type MessageTemplate } from "@/lib/templates";
-import { signOut } from "@/lib/supabase";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import { ContactAppointments } from "@/components/dashboard/ContactAppointments";
 import {
@@ -28,11 +29,6 @@ import {
   type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
-
-interface Business {
-  id: string;
-  name: string;
-}
 
 interface WhatsappLine {
   phone_number_id: string;
@@ -137,16 +133,35 @@ function getPipelineCount(conversations: ConversationSummary[], statuses: LeadSt
 
 export function DashboardView() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
-  const [business, setBusiness] = useState<Business | null>(null);
-  const [line, setLine] = useState<WhatsappLine | null>(null);
-  const [pipeline, setPipeline] = useState<PipelineConversation[]>([]);
-  const [thread, setThread] = useState<PipelineItem[]>([]);
-  const messages = useMemo(
-    () => thread.filter((item): item is PipelineMessage => item.kind !== "call"),
-    [thread],
-  );
+  const queryClient = useQueryClient();
+  const businessQuery = useBusiness();
+  const lineQuery = useQuery({
+    queryKey: ["whatsapp-line"],
+    queryFn: () => readApi<WhatsappLine | null>("/dashboard/whatsapp-line"),
+  });
+  const phonesQuery = useQuery({
+    queryKey: ["manager-phones"],
+    queryFn: () => readApi<Array<{ phone: string }>>("/dashboard/manager-phones"),
+  });
+  const pipelineQuery = useQuery({
+    queryKey: ["pipeline"],
+    queryFn: () => readApi<PipelineConversation[]>("/dashboard/pipeline"),
+  });
+  const business = businessQuery.data ?? null;
+  // A Line that cannot be read counts as not connected, as a missing one does.
+  const line = lineQuery.data ?? null;
+  const phones = phonesQuery.data;
+  const pipeline = useMemo(() => pipelineQuery.data ?? [], [pipelineQuery.data]);
+  const loading =
+    businessQuery.isPending || lineQuery.isPending || phonesQuery.isPending || pipelineQuery.isPending;
+  const loadFailure =
+    (!businessQuery.data && businessQuery.error) || (!pipelineQuery.data && pipelineQuery.error);
+  const loadError = !loadFailure
+    ? ""
+    : loadFailure instanceof ApiError && loadFailure.status !== 0
+      ? "No se pudo cargar tu bandeja. Recarga la página en un momento."
+      : loadFailure.message || "No se pudo cargar tu bandeja.";
+
   const [botError, setBotError] = useState("");
   const [togglingBot, setTogglingBot] = useState(false);
   const [query, setQuery] = useState("");
@@ -156,69 +171,32 @@ export function DashboardView() {
   const [showBotSettings, setShowBotSettings] = useState(false);
   const [metaByPhone, setMetaByPhone] = useState<Record<string, ConversationMeta>>({});
 
-  const loadDashboard = useCallback(async () => {
-    const [businessRes, lineRes, phonesRes, pipelineRes] = await Promise.all([
-      authenticatedFetch("/dashboard/business"),
-      authenticatedFetch("/dashboard/whatsapp-line"),
-      authenticatedFetch("/dashboard/manager-phones"),
-      authenticatedFetch("/dashboard/pipeline"),
-    ]);
-
-    if (businessRes.status === 401) {
-      void signOut();
-      router.replace("/connect");
-      return;
-    }
-    if (!businessRes.ok || !pipelineRes.ok) {
-      setLoadError("No se pudo cargar tu bandeja. Recarga la página en un momento.");
-      return;
-    }
-
-    const businessData: Business = await businessRes.json();
-    setBusiness(businessData);
-    setMetaByPhone(readConversationMetaMap(businessData.id));
-
-    const lineData: WhatsappLine | null = lineRes.ok ? await lineRes.json() : null;
-    setLine(lineData);
-
-    if (lineData && phonesRes.ok) {
-      const phones: Array<{ phone: string }> = await phonesRes.json();
-      if (phones.length === 0) {
-        const params = new URLSearchParams();
-        params.set("phone", lineData.display_phone_number);
-        params.set("business", businessData.name);
-        router.replace(`/connect/manager?${params.toString()}`);
-        return;
-      }
-    }
-
-    setPipeline(await pipelineRes.json());
-  }, [router]);
-
+  // An Owner with a Line but no Manager phone finishes that step first.
   useEffect(() => {
-    loadDashboard()
-      .catch((error: unknown) =>
-        setLoadError(error instanceof Error ? error.message : "No se pudo cargar tu bandeja."),
-      )
-      .finally(() => setLoading(false));
-  }, [loadDashboard]);
+    if (!business || !line || !phones || phones.length > 0) return;
+    const params = new URLSearchParams();
+    params.set("phone", line.display_phone_number);
+    params.set("business", business.name);
+    router.replace(`/connect/manager?${params.toString()}`);
+  }, [business, line, phones, router]);
 
-  const refreshPipeline = useCallback(async () => {
-    const res = await authenticatedFetch("/dashboard/pipeline");
-    if (res.ok) setPipeline(await res.json());
-  }, []);
-
+  const refetchPipeline = pipelineQuery.refetch;
   useEffect(() => {
     const timer = window.setInterval(() => {
-      void refreshPipeline().catch(() => undefined);
+      void refetchPipeline();
     }, REFRESH_MS);
     return () => window.clearInterval(timer);
-  }, [refreshPipeline]);
+  }, [refetchPipeline]);
+
+  const businessId = business?.id;
+  useEffect(() => {
+    if (businessId) setMetaByPhone(readConversationMetaMap(businessId));
+  }, [businessId]);
 
   useEffect(() => {
-    if (!business?.id) return;
-    writeConversationMetaMap(business.id, metaByPhone);
-  }, [metaByPhone, business?.id]);
+    if (!businessId) return;
+    writeConversationMetaMap(businessId, metaByPhone);
+  }, [metaByPhone, businessId]);
 
   const conversations = useMemo(
     () => buildConversationSummaries(pipeline, metaByPhone),
@@ -248,35 +226,32 @@ export function DashboardView() {
 
   const selectedConversationId = selectedConversation?.conversationId ?? null;
 
-  const loadMessages = useCallback(async (conversationId: string) => {
-    const res = await authenticatedFetch(`/dashboard/pipeline/${conversationId}/messages`);
-    return res.ok ? ((await res.json()) as PipelineItem[]) : null;
-  }, []);
+  const messagesQuery = useQuery({
+    queryKey: ["pipeline", selectedConversationId, "messages"],
+    queryFn: () =>
+      readApi<PipelineItem[]>(`/dashboard/pipeline/${selectedConversationId}/messages`),
+    enabled: selectedConversationId !== null,
+  });
+  const thread = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
+  const messages = useMemo(
+    () => thread.filter((item): item is PipelineMessage => item.kind !== "call"),
+    [thread],
+  );
 
+  const refetchMessages = messagesQuery.refetch;
   useEffect(() => {
     if (!selectedConversationId) return;
-    let active = true;
-    setThread([]);
-    const load = () =>
-      loadMessages(selectedConversationId)
-        .then((loaded) => {
-          if (active && loaded) setThread(loaded);
-        })
-        .catch(() => undefined);
-    void load();
-    const timer = window.setInterval(load, REFRESH_MS);
-    return () => {
-      active = false;
-      window.clearInterval(timer);
-    };
-  }, [selectedConversationId, loadMessages]);
+    const timer = window.setInterval(() => {
+      void refetchMessages();
+    }, REFRESH_MS);
+    return () => window.clearInterval(timer);
+  }, [selectedConversationId, refetchMessages]);
 
   const refreshSelected = useCallback(async () => {
-    await refreshPipeline();
+    await refetchPipeline();
     if (!selectedConversationId) return;
-    const loaded = await loadMessages(selectedConversationId);
-    if (loaded) setThread(loaded);
-  }, [refreshPipeline, loadMessages, selectedConversationId]);
+    await refetchMessages();
+  }, [refetchPipeline, refetchMessages, selectedConversationId]);
 
   const handleToggleBot = useCallback(async () => {
     if (!line) return;
@@ -287,7 +262,9 @@ export function DashboardView() {
         line.public_agent_enabled ? "disable_public_agent" : "enable_public_agent",
       );
       if (answer.status === "executed") {
-        setLine({ ...line, public_agent_enabled: answer.result.enabled });
+        queryClient.setQueryData<WhatsappLine | null>(["whatsapp-line"], (current) =>
+          current ? { ...current, public_agent_enabled: answer.result.enabled } : current,
+        );
       } else if (answer.status === "approval_created") {
         setBotError("Quedó pendiente de aprobación.");
       } else {
@@ -298,7 +275,7 @@ export function DashboardView() {
     } finally {
       setTogglingBot(false);
     }
-  }, [line]);
+  }, [line, queryClient]);
 
   const updateSelectedMeta = useCallback(
     (patch: Partial<ConversationMeta>) => {
@@ -953,27 +930,21 @@ function TemplatePicker({
   contactCode: string;
   onSent: () => Promise<void>;
 }) {
-  const [templates, setTemplates] = useState<MessageTemplate[] | null>(null);
-  const [loadError, setLoadError] = useState("");
+  const templatesQuery = useQuery({
+    queryKey: ["templates"],
+    queryFn: () => readApi<MessageTemplate[]>("/dashboard/templates"),
+  });
+  const templates = useMemo(
+    () => templatesQuery.data?.filter((template) => template.status === "APPROVED") ?? null,
+    [templatesQuery.data],
+  );
+  const loadError =
+    templatesQuery.error && !templatesQuery.data ? "No se pudieron cargar tus plantillas de Meta." : "";
   const [chosen, setChosen] = useState("");
   const [values, setValues] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
-
-  useEffect(() => {
-    let active = true;
-    readApi<MessageTemplate[]>("/dashboard/templates")
-      .then((loaded) => {
-        if (active) setTemplates(loaded.filter((template) => template.status === "APPROVED"));
-      })
-      .catch(() => {
-        if (active) setLoadError("No se pudieron cargar tus plantillas de Meta.");
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   if (loadError) return <p className="text-sm text-red-400">{loadError}</p>;
   if (templates === null) return null;

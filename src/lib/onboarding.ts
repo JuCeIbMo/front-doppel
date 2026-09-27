@@ -1,4 +1,4 @@
-import { authenticatedFetch } from "@/lib/api";
+import { callApi } from "@/lib/api";
 
 /**
  * Whether the signed-in Owner already connected a WhatsApp Line. The API creates the
@@ -8,8 +8,7 @@ import { authenticatedFetch } from "@/lib/api";
  */
 export async function isOnboarded(): Promise<boolean> {
   try {
-    const res = await authenticatedFetch("/dashboard/whatsapp-line");
-    return res.ok && (await res.json()) !== null;
+    return Boolean(await callApi<object | null>("/dashboard/whatsapp-line"));
   } catch {
     return false;
   }
@@ -23,9 +22,9 @@ export async function isOnboarded(): Promise<boolean> {
  */
 export async function hasStarted(): Promise<boolean> {
   try {
-    const res = await authenticatedFetch("/dashboard/overview");
-    if (!res.ok) return true;
-    const { onboarding } = (await res.json()) as { onboarding: Record<string, boolean> };
+    const { onboarding } = await callApi<{ onboarding: Record<string, boolean> }>(
+      "/dashboard/overview",
+    );
     return (
       onboarding.has_product ||
       onboarding.has_service ||

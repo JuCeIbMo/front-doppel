@@ -1,31 +1,33 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { authenticatedFetch } from "@/lib/api";
+import { callApi } from "@/lib/api";
+import { ApiError } from "@/lib/api-client";
 import { hasStarted, isOnboarded } from "./onboarding";
 
-vi.mock("@/lib/api", () => ({ authenticatedFetch: vi.fn() }));
+vi.mock("@/lib/api", () => ({ callApi: vi.fn() }));
+vi.mock("@/lib/supabase", () => ({ getAccessToken: vi.fn() }));
 
-const mockFetch = vi.mocked(authenticatedFetch);
+const mockCall = vi.mocked(callApi);
 
 describe("isOnboarded", () => {
-  beforeEach(() => mockFetch.mockReset());
+  beforeEach(() => {
+    mockCall.mockReset();
+  });
 
   it("is true when the Business has a WhatsApp Line", async () => {
-    mockFetch.mockResolvedValue(Response.json({ phone_number_id: "1" }));
+    mockCall.mockResolvedValue({ phone_number_id: "1" });
     expect(await isOnboarded()).toBe(true);
-    expect(mockFetch).toHaveBeenCalledWith("/dashboard/whatsapp-line");
+    expect(mockCall).toHaveBeenCalledWith("/dashboard/whatsapp-line");
   });
 
   it("is false when the Business has no Line yet", async () => {
-    mockFetch.mockResolvedValue(Response.json(null));
+    mockCall.mockResolvedValue(null);
     expect(await isOnboarded()).toBe(false);
   });
 
-  it("is false when the response is unusable (treats errors as not onboarded)", async () => {
-    // A malformed/empty response: reading `.ok` throws inside isOnboarded, which
-    // the catch must swallow into `false` rather than crashing the login flow.
-    mockFetch.mockResolvedValue(undefined as never);
-    const result = await isOnboarded();
-    expect(result).toBe(false);
+  it("is false when the API cannot answer (treats errors as not onboarded)", async () => {
+    // The catch must swallow the error into `false` rather than crashing the login flow.
+    mockCall.mockRejectedValue(new ApiError({ status: 0, code: "network", message: "offline" }));
+    expect(await isOnboarded()).toBe(false);
   });
 });
 
@@ -39,21 +41,23 @@ describe("hasStarted", () => {
     has_manager_phone: false,
   };
 
-  beforeEach(() => mockFetch.mockReset());
+  beforeEach(() => {
+    mockCall.mockReset();
+  });
 
   it("is false for a Business with nothing of its own", async () => {
-    mockFetch.mockResolvedValue(Response.json({ onboarding: nothing }));
+    mockCall.mockResolvedValue({ onboarding: nothing });
     expect(await hasStarted()).toBe(false);
-    expect(mockFetch).toHaveBeenCalledWith("/dashboard/overview");
+    expect(mockCall).toHaveBeenCalledWith("/dashboard/overview");
   });
 
   it("is true once the Business has a product or a Manager phone", async () => {
-    mockFetch.mockResolvedValue(Response.json({ onboarding: { ...nothing, has_manager_phone: true } }));
+    mockCall.mockResolvedValue({ onboarding: { ...nothing, has_manager_phone: true } });
     expect(await hasStarted()).toBe(true);
   });
 
   it("is true when unsure, so no switch is turned off by mistake", async () => {
-    mockFetch.mockResolvedValue(new Response(null, { status: 500 }));
+    mockCall.mockRejectedValue(new ApiError({ status: 500, message: "boom" }));
     expect(await hasStarted()).toBe(true);
   });
 });

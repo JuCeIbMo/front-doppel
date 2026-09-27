@@ -1,6 +1,4 @@
-import { apiFetch, getBrowserSessionStore } from "@/lib/api-client";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { callApi } from "@/lib/api";
 
 /** One row of `GET /dashboard/products`. */
 export interface Product {
@@ -28,9 +26,7 @@ export function photoProblem(file: File): string | null {
 
 /** Stores the file and answers the code add_product and change_product_photo accept. */
 export async function uploadProductPhoto(file: File): Promise<string> {
-  const uploaded = await apiFetch<{ photo_upload_code: string }>("/dashboard/product-photos", {
-    baseUrl: API_URL,
-    session: getBrowserSessionStore(),
+  const uploaded = await callApi<{ photo_upload_code: string }>("/dashboard/product-photos", {
     method: "POST",
     headers: { "Content-Type": file.type },
     body: file,

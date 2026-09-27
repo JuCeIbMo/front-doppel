@@ -1,6 +1,4 @@
-import { apiFetch, getBrowserSessionStore } from "@/lib/api-client";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { callApi } from "@/lib/api";
 
 /** The same STUN server the voice service uses: both sides are behind a NAT. */
 const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
@@ -50,9 +48,7 @@ export async function startRehearsal(onEnded: (failed: boolean) => void): Promis
     microphone.getTracks().forEach((track) => connection.addTrack(track, microphone));
     await connection.setLocalDescription(await connection.createOffer());
     await gathered(connection);
-    const { sdp_answer } = await apiFetch<{ sdp_answer: string }>("/dashboard/calls/rehearsal", {
-      baseUrl: API_URL,
-      session: getBrowserSessionStore(),
+    const { sdp_answer } = await callApi<{ sdp_answer: string }>("/dashboard/calls/rehearsal", {
       method: "POST",
       body: JSON.stringify({ sdp_offer: connection.localDescription?.sdp }),
     });

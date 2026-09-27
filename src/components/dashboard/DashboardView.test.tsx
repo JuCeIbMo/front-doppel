@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render as renderUi, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DashboardView } from "@/components/dashboard/DashboardView";
-import { authenticatedFetch } from "@/lib/api";
+import { ApiError } from "@/lib/api-client";
 import { readApi, runOperation } from "@/lib/operations";
 
 const replace = vi.fn();
@@ -10,10 +10,6 @@ const replace = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ replace }),
   usePathname: () => "/dashboard/automation",
-}));
-
-vi.mock("@/lib/api", () => ({
-  authenticatedFetch: vi.fn(),
 }));
 
 vi.mock("@/lib/operations", () => ({
@@ -27,7 +23,6 @@ vi.mock("@/lib/supabase", () => ({
   getAccessToken: vi.fn(async () => "token"),
 }));
 
-const mockFetch = vi.mocked(authenticatedFetch);
 const mockRun = vi.mocked(runOperation);
 const mockRead = vi.mocked(readApi);
 
@@ -44,10 +39,18 @@ function jsonResponse(payload: unknown, status = 200) {
   });
 }
 
+/** Answers each read the screen makes as the API would: the body, or an ApiError. */
+function serve(handler: (path: string) => Promise<Response>) {
+  mockRead.mockImplementation(async (path: string) => {
+    const res = await handler(path);
+    if (!res.ok) throw new ApiError({ status: res.status, message: "boom" });
+    return res.json();
+  });
+}
+
 describe("DashboardView", () => {
   beforeEach(() => {
     replace.mockReset();
-    mockFetch.mockReset();
     mockRun.mockReset();
     mockRead.mockReset();
     mockRead.mockResolvedValue([]);
@@ -65,7 +68,7 @@ describe("DashboardView", () => {
       }),
     );
 
-    mockFetch.mockImplementation(async (path: string) => {
+    serve(async (path: string) => {
       if (path === "/dashboard/business") {
         return jsonResponse({ id: "biz_1", name: "Doppel Store" });
       }
@@ -133,7 +136,7 @@ describe("DashboardView", () => {
   });
 
   it("sends an Owner with a Line but no Manager phone to the manager step", async () => {
-    mockFetch.mockImplementation(async (path: string) => {
+    serve(async (path: string) => {
       if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Tienda" });
       if (path === "/dashboard/whatsapp-line") {
         return jsonResponse({
@@ -153,8 +156,12 @@ describe("DashboardView", () => {
     );
   });
 
-  function oneConversation(conversation: Record<string, unknown>, thread: unknown[] = []) {
-    mockFetch.mockImplementation(async (path: string) => {
+  function oneConversation(
+    conversation: Record<string, unknown>,
+    thread: unknown[] = [],
+    templates: unknown[] = [],
+  ) {
+    serve(async (path: string) => {
       if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Tienda" });
       if (path === "/dashboard/whatsapp-line") {
         return jsonResponse({
@@ -180,6 +187,7 @@ describe("DashboardView", () => {
         ]);
       }
       if (path === "/dashboard/pipeline/c1/messages") return jsonResponse(thread);
+      if (path === "/dashboard/templates") return jsonResponse(templates);
       return jsonResponse([]);
     });
   }
@@ -257,8 +265,7 @@ describe("DashboardView", () => {
   });
 
   it("sends an approved template once the 24 hours are over", async () => {
-    oneConversation({ reply_window_closes_at: "2020-01-01T00:00:00.000Z" });
-    mockRead.mockResolvedValue([
+    oneConversation({ reply_window_closes_at: "2020-01-01T00:00:00.000Z" }, [], [
       {
         name: "pedido_listo",
         category: "UTILITY",
@@ -317,7 +324,7 @@ describe("DashboardView", () => {
   it.each(["/dashboard/business", "/dashboard/pipeline"])(
     "says so when %s cannot load, instead of an empty inbox",
     async (failing) => {
-      mockFetch.mockImplementation(async (path: string) => {
+      serve(async (path: string) => {
         if (path === failing) return jsonResponse({ detail: "boom" }, 500);
         if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Doppel Store" });
         if (path === "/dashboard/whatsapp-line") return jsonResponse(null);
@@ -332,7 +339,7 @@ describe("DashboardView", () => {
   );
 
   it("passes on the network's Spanish message when the API cannot be reached", async () => {
-    mockFetch.mockRejectedValue(new Error("No pudimos conectar con Doppel. Revisa tu conexión."));
+    mockRead.mockRejectedValue(new Error("No pudimos conectar con Doppel. Revisa tu conexión."));
 
     render(<DashboardView />);
 

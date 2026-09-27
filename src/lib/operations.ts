@@ -1,6 +1,4 @@
-import { apiFetch, getBrowserSessionStore } from "@/lib/api-client";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+import { callApi } from "@/lib/api";
 
 /** What `POST /operations/{name}` answers. A refusal is a normal answer, not an HTTP error. */
 export type OperationResult<T> =
@@ -17,9 +15,7 @@ export async function runOperation<T>(
   payload: Record<string, unknown> = {},
   idempotencyKey: string = crypto.randomUUID(),
 ): Promise<OperationResult<T>> {
-  return apiFetch<OperationResult<T>>(`/operations/${name}`, {
-    baseUrl: API_URL,
-    session: getBrowserSessionStore(),
+  return callApi<OperationResult<T>>(`/operations/${name}`, {
     method: "POST",
     headers: { "Idempotency-Key": idempotencyKey },
     body: JSON.stringify(payload),
@@ -41,7 +37,7 @@ export async function runOperationOrThrow<T>(
 
 /** GET a Doppel read route as the signed-in Owner. */
 export async function readApi<T>(path: string): Promise<T> {
-  return apiFetch<T>(path, { baseUrl: API_URL, session: getBrowserSessionStore() });
+  return callApi<T>(path);
 }
 
 /** Approves or declines an Approval as the signed-in Owner. */
@@ -49,9 +45,7 @@ export async function answerApproval(
   approvalId: string,
   answer: "approve" | "decline",
 ): Promise<OperationResult<unknown>> {
-  return apiFetch<OperationResult<unknown>>(`/approvals/${approvalId}/${answer}`, {
-    baseUrl: API_URL,
-    session: getBrowserSessionStore(),
+  return callApi<OperationResult<unknown>>(`/approvals/${approvalId}/${answer}`, {
     method: "POST",
   });
 }
