@@ -1,4 +1,5 @@
 import { callApi } from "@/lib/api";
+import type { Schema } from "@/lib/api-types";
 
 /**
  * Whether the signed-in Owner already connected a WhatsApp Line. The API creates the
@@ -8,7 +9,7 @@ import { callApi } from "@/lib/api";
  */
 export async function isOnboarded(): Promise<boolean> {
   try {
-    return Boolean(await callApi<object | null>("/dashboard/whatsapp-line"));
+    return Boolean(await callApi<Schema<"WhatsappLineSummary"> | null>("/dashboard/whatsapp-line"));
   } catch {
     return false;
   }
@@ -22,7 +23,7 @@ export async function isOnboarded(): Promise<boolean> {
  */
 export async function hasStarted(): Promise<boolean> {
   try {
-    const { onboarding } = await callApi<{ onboarding: Record<string, boolean> }>(
+    const { onboarding } = await callApi<Schema<"Overview">>(
       "/dashboard/overview",
     );
     return (

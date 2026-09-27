@@ -1,52 +1,26 @@
 import { useQuery } from "@tanstack/react-query";
 import { readApi, runOperation } from "@/lib/operations";
 import { priceInput } from "@/lib/products";
+import type { Schema } from "@/lib/api-types";
 
-export type PaymentAhead = "none" | "deposit" | "full";
+export type PaymentAhead = Schema<"PaymentAhead">;
 
-/** One row of `GET /dashboard/services`. */
-export interface Service {
-  code: string;
-  name: string;
-  duration_minutes: number;
-  price: string;
-  payment_ahead: PaymentAhead;
-  /** What a Service that asks for a deposit asks ahead; null otherwise. */
-  deposit: string | null;
-  archived: boolean;
-}
+/** One row of `GET /dashboard/services`. `deposit` is null unless it asks for one. */
+export type Service = Schema<"ServiceSummary">;
 
-export type Weekday =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
+export type Weekday = Schema<"Weekday">;
 
 /** One stretch of a weekday, as `set_working_hours` takes it. */
-export interface WorkingBlock {
-  day: Weekday;
-  starts_at: string;
-  ends_at: string;
-}
+export type WorkingBlock = Schema<"WorkingBlock-Output">;
 
-export interface TeamMember {
-  professional_code: string;
-  name: string;
-  hours: WorkingBlock[];
-  /** The Services they perform; null when they perform every one, later ones too. */
-  services: { code: string; name: string }[] | null;
-  /** Their days off from today on, as YYYY-MM-DD. */
-  days_off: string[];
-}
+/**
+ * `services` is null when they perform every one, later ones too; `days_off` are
+ * YYYY-MM-DD from today on.
+ */
+export type TeamMember = Schema<"TeamMember">;
 
 /** What `GET /dashboard/team` answers. The first Professional is the Owner. */
-export interface Team {
-  professionals: TeamMember[];
-  business_closed: string[];
-}
+export type Team = Schema<"Team">;
 
 /** An Appointment still to happen on days just taken away, for the Owner to move or cancel. */
 export interface AppointmentToRearrange {
@@ -276,45 +250,17 @@ export function dayRanges(days: string[]): { first: string; last: string }[] {
   return ranges;
 }
 
-export type AppointmentStatus =
-  | "booked"
-  | "paid"
-  | "attended"
-  | "no_show"
-  | "cancelled"
-  | "expired"
-  | "refunded";
+/**
+ * One row of `GET /dashboard/agenda`. Moments come in the Business's clock (-04:00).
+ * `customer` is their name, or their WhatsApp number when nobody gave one; `amount_due`
+ * is still to be paid ahead, and `pay_by` is until when it waits for it.
+ */
+export type AgendaAppointment = Schema<"AgendaAppointment">;
 
-/** One row of `GET /dashboard/agenda`. Moments come in the Business's clock (-04:00). */
-export interface AgendaAppointment {
-  appointment_code: string;
-  starts_at: string;
-  ends_at: string;
-  status: AppointmentStatus;
-  service_code: string;
-  service: string;
-  professional_code: string;
-  professional: string;
-  /** Their name, or their WhatsApp number when nobody gave one. */
-  customer: string;
-  whatsapp_number: string;
-  price: string;
-  /** Still to be paid ahead; 0 once paid or when nothing is asked ahead. */
-  amount_due: string;
-  /** Until when it waits for that payment before it expires. */
-  pay_by: string | null;
-}
+export type AppointmentStatus = AgendaAppointment["status"];
 
 /** One row of `GET /dashboard/pipeline/{id}/appointments`: the Contact's, latest first. */
-export interface ContactAppointment {
-  appointment_code: string;
-  starts_at: string;
-  status: AppointmentStatus;
-  service: string;
-  professional: string;
-  price: string;
-  amount_due: string;
-}
+export type ContactAppointment = Schema<"ContactAppointment">;
 
 export const APPOINTMENT_STATUS: Record<
   AppointmentStatus,

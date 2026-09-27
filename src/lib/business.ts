@@ -1,14 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { readApi, runOperation } from "@/lib/operations";
+import type { Schema } from "@/lib/api-types";
 
 /** What `GET /dashboard/business` answers. */
-export interface Business {
-  id: string;
-  name: string;
-  selling_enabled: boolean;
-  booking_enabled: boolean;
-  calendar_email: string | null;
-}
+export type Business = Schema<"BusinessSummary">;
 
 /** Selling Products and booking Appointments: two switches a Business turns on apart. */
 export type BusinessSwitch = "selling" | "booking";

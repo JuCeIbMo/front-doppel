@@ -6,24 +6,10 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
+import type { Schema } from "@/lib/api-types";
 
-type KnowledgeTopic =
-  | "identidad"
-  | "horarios"
-  | "ubicacion"
-  | "medios_de_pago"
-  | "envios"
-  | "devoluciones"
-  | "preguntas_frecuentes"
-  | "otros"
-  | "tono"
-  | "reglas"
-  | "escalado";
-
-interface BusinessKnowledge {
-  knowledge: Array<{ topic: KnowledgeTopic; body: string }>;
-  unwritten_topics: KnowledgeTopic[];
-}
+type KnowledgeTopic = Schema<"KnowledgeTopic">;
+type BusinessKnowledge = Schema<"BusinessKnowledge">;
 
 /** The topics in the order the API lists them, with what each one is for. */
 const TOPICS: Array<{ id: KnowledgeTopic; label: string; hint: string }> = [

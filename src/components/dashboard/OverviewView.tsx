@@ -7,28 +7,10 @@ import { OnboardingChecklist, type OnboardingStep } from "@/components/dashboard
 import { readApi } from "@/lib/operations";
 import { isOn, useBusiness, type Business } from "@/lib/business";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { Schema } from "@/lib/api-types";
 
 /** What `GET /dashboard/overview` answers. */
-export interface Overview {
-  sold_today: string;
-  sales_today: number;
-  orders_to_collect: number;
-  orders_to_deliver: number;
-  pending_approvals: number;
-  handed_over: number;
-  messages_this_month: number;
-  free_messages_per_month: number;
-  call_minutes_this_month: number;
-  call_minutes_per_month: number;
-  onboarding: {
-    line_connected: boolean;
-    has_product: boolean;
-    has_service: boolean;
-    has_hours: boolean;
-    has_knowledge: boolean;
-    has_manager_phone: boolean;
-  };
-}
+export type Overview = Schema<"Overview">;
 
 /** The first steps of a new Business, following what it has on. */
 function firstSteps(

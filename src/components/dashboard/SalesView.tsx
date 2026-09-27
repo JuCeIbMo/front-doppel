@@ -8,18 +8,12 @@ import { Badge } from "@/components/ui/Badge";
 import { formatDateTime } from "@/lib/dates";
 import { readApi } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { Schema } from "@/lib/api-types";
 
 /** One row of `GET /dashboard/sales`. */
-export interface SaleSummary {
-  code: string;
-  total: string;
-  payment_method: "cash" | "transfer" | "card";
-  status: "registered" | "voided";
-  created_at: string;
-  voided_at: string | null;
-}
+export type SaleSummary = Schema<"SaleSummary">;
 
-export const PAYMENT: Record<SaleSummary["payment_method"], string> = {
+export const PAYMENT: Record<NonNullable<SaleSummary["payment_method"]>, string> = {
   cash: "Efectivo",
   transfer: "Transferencia",
   card: "Tarjeta",
@@ -80,7 +74,7 @@ export function SalesView() {
                   <Table.Cell className="hidden sm:table-cell text-text-secondary text-xs">
                     {formatDateTime(sale.created_at)}
                   </Table.Cell>
-                  <Table.Cell className="hidden sm:table-cell text-text-secondary">{PAYMENT[sale.payment_method]}</Table.Cell>
+                  <Table.Cell className="hidden sm:table-cell text-text-secondary">{sale.payment_method && PAYMENT[sale.payment_method]}</Table.Cell>
                   <Table.Cell className="text-text-primary font-semibold">
                     {format(Number(sale.total))}
                   </Table.Cell>

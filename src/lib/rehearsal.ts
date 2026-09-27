@@ -1,4 +1,5 @@
 import { callApi } from "@/lib/api";
+import type { Schema } from "@/lib/api-types";
 
 /** The same STUN server the voice service uses: both sides are behind a NAT. */
 const ICE_SERVERS: RTCIceServer[] = [{ urls: "stun:stun.l.google.com:19302" }];
@@ -48,7 +49,7 @@ export async function startRehearsal(onEnded: (failed: boolean) => void): Promis
     microphone.getTracks().forEach((track) => connection.addTrack(track, microphone));
     await connection.setLocalDescription(await connection.createOffer());
     await gathered(connection);
-    const { sdp_answer } = await callApi<{ sdp_answer: string }>("/dashboard/calls/rehearsal", {
+    const { sdp_answer } = await callApi<Schema<"RehearsalAnswer">>("/dashboard/calls/rehearsal", {
       method: "POST",
       body: JSON.stringify({ sdp_offer: connection.localDescription?.sdp }),
     });

@@ -1,3 +1,5 @@
+import type { Schema } from "@/lib/api-types";
+
 export type LeadStatus =
   | "new"
   | "contacted"
@@ -8,59 +10,22 @@ export type LeadStatus =
 
 export type ConversationFilter = "all" | "unread" | "warm" | "pending";
 
-/** One Contact Conversation as `GET /dashboard/pipeline` lists it. */
-export type PipelineConversation = {
-  id: string;
-  contact_code: string;
-  whatsapp_number: string;
-  last_message_at: string | null;
-  last_message_body: string | null;
-  intervention_started_at: string | null;
-  /** When the bot answers again; null when it is not paused. */
-  paused_until: string | null;
-  /** Until when WhatsApp lets the Owner write freely; past it only a template gets through. */
-  reply_window_closes_at: string | null;
-  /** When the Contact last called, answered or not. */
-  last_call_at: string | null;
-};
+/**
+ * One Contact Conversation as `GET /dashboard/pipeline` lists it. `paused_until` is when
+ * the bot answers again; past `reply_window_closes_at` only a template gets through.
+ */
+export type PipelineConversation = Schema<"ConversationSummary">;
 
 /** One message as `GET /dashboard/pipeline/{id}/messages` returns it. */
-export type PipelineMessage = {
-  kind: "message";
-  id: string;
-  direction: "inbound" | "outbound";
-  body: string;
-  created_at: string;
-  code: string;
-  media_type: string | null;
-  media_url: string | null;
-  transcript: string | null;
-  summary: string | null;
-  media_state: string | null;
-};
+export type PipelineMessage = Schema<"PipelineMessage">;
 
-export type MissedReason =
-  | "manager_phone"
-  | "calls_disabled"
-  | "public_agent_disabled"
-  | "intervention"
-  | "allowance_spent"
-  | "no_capacity"
-  | "voice_model_unavailable"
-  | "connection_failed";
+export type MissedReason = Schema<"MissedReason">;
 
-/** One Call as `GET /dashboard/pipeline/{id}/messages` returns it, between the messages. */
-export type PipelineCall = {
-  kind: "call";
-  id: string;
-  /** When the Call came in. */
-  created_at: string;
-  /** Null while the Call is still being answered. */
-  outcome: "answered" | "missed" | null;
-  missed_reason: MissedReason | null;
-  duration_seconds: number | null;
-  transcript: Array<{ who: "contact" | "public_agent"; text: string; at: string }>;
-};
+/**
+ * One Call as `GET /dashboard/pipeline/{id}/messages` returns it, between the messages.
+ * `outcome` is null while the Call is still being answered.
+ */
+export type PipelineCall = Schema<"PipelineCall">;
 
 export type PipelineItem = PipelineMessage | PipelineCall;
 

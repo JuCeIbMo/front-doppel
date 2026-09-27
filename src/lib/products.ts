@@ -1,17 +1,9 @@
 import { callApi } from "@/lib/api";
+import type { Schema } from "@/lib/api-types";
 
 /** One row of `GET /dashboard/products`. */
-export interface Product {
-  code: string;
-  name: string;
-  unit_price: string;
-  stock: number;
-  /** Units on the shelf already promised to Orders not delivered yet. */
-  reserved: number;
-  archived: boolean;
-  /** A link that stops working after an hour. */
-  signed_url: string | null;
-}
+/** `reserved`: units promised to Orders not delivered yet. `signed_url` expires in an hour. */
+export type Product = Schema<"Product">;
 
 /** The files the API accepts as a Product photo, mirrored so the Owner hears it at once. */
 export const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -26,7 +18,7 @@ export function photoProblem(file: File): string | null {
 
 /** Stores the file and answers the code add_product and change_product_photo accept. */
 export async function uploadProductPhoto(file: File): Promise<string> {
-  const uploaded = await callApi<{ photo_upload_code: string }>("/dashboard/product-photos", {
+  const uploaded = await callApi<Schema<"UploadedPhoto">>("/dashboard/product-photos", {
     method: "POST",
     headers: { "Content-Type": file.type },
     body: file,

@@ -8,16 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { readApi } from "@/lib/operations";
+import type { Schema } from "@/lib/api-types";
 
 /** One row of `GET /dashboard/operations`. */
-export interface LoggedOperation {
-  id: string;
-  operation: string;
+export type LoggedOperation = Omit<Schema<"LoggedOperation">, "actor"> & {
+  // The API declares it as a bare object; it names who ran the Operation.
   actor: { kind: "owner" | "public_agent" | "system" };
-  status: "executed" | "rejected" | "approval_created";
-  rejection_code: string | null;
-  created_at: string;
-}
+};
 
 type ActorFilter = "all" | "owner" | "public_agent" | "system";
 

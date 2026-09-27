@@ -1,13 +1,8 @@
+import type { Schema } from "@/lib/api-types";
+
 /** One Template as `GET /dashboard/templates` reads it from Meta. */
-export type MessageTemplate = {
-  name: string;
-  category: string;
-  language: string;
-  /** Meta's word: APPROVED, PENDING, REJECTED, PAUSED or DISABLED. */
-  status: string;
-  body: string;
-  rejected_reason: string | null;
-};
+/** Its status is Meta's word: APPROVED, PENDING, REJECTED, PAUSED or DISABLED. */
+export type MessageTemplate = Schema<"MessageTemplate">;
 
 export const TEMPLATE_STATUS: Record<string, string> = {
   APPROVED: "Aprobada",

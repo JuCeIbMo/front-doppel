@@ -19,18 +19,11 @@ import {
 } from "@/lib/business";
 import { runBookingOperation } from "@/lib/appointments";
 import { startRehearsal, type Rehearsal } from "@/lib/rehearsal";
+import type { Schema } from "@/lib/api-types";
 
-type CallsState = "off" | "turning_on" | "on" | "turning_off" | "refused";
-type CallsRefusedReason = "messaging_limit" | "payment_method" | "quality" | "other";
-
-interface WhatsappLine {
-  phone_number_id: string;
-  display_phone_number: string;
-  public_agent_enabled: boolean;
-  calls_state: CallsState;
-  calls_refused_reason: CallsRefusedReason | null;
-  voice_instructions: string | null;
-}
+type CallsState = Schema<"CallsState">;
+type CallsRefusedReason = Schema<"RefusedReason">;
+type WhatsappLine = Schema<"WhatsappLineSummary">;
 
 /** The backend's limit on the voice instructions. */
 const VOICE_INSTRUCTIONS_MAX_CHARS = 1000;
@@ -52,7 +45,7 @@ export function SettingsView() {
   });
   const phones = useQuery({
     queryKey: ["manager-phones"],
-    queryFn: () => readApi<Array<{ phone: string }>>("/dashboard/manager-phones"),
+    queryFn: () => readApi<Schema<"ManagerPhoneSummary">[]>("/dashboard/manager-phones"),
   });
 
   const failed = [business.error, line.error, phones.error].find(Boolean);
@@ -279,13 +272,7 @@ function WhatItDoes({ business }: { business: Business }) {
 }
 
 /** What `GET /dashboard/reminders` answers. */
-interface ReminderState {
-  template_name: string;
-  status: string;
-  rejected_reason: string | null;
-  sending: boolean;
-  cost_note: string;
-}
+type ReminderState = Schema<"Reminders">;
 
 const REMINDERS_SAY: Record<string, string> = {
   APPROVED: "Tus clientes reciben un recordatorio el día antes de su cita.",

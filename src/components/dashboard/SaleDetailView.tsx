@@ -7,17 +7,15 @@ import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Table } from "@/components/ui/Table";
-import { PAYMENT, type SaleSummary } from "@/components/dashboard/SalesView";
+import { PAYMENT } from "@/components/dashboard/SalesView";
 import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { Schema } from "@/lib/api-types";
 
 /** What `GET /dashboard/sales/{code}` answers. */
-export interface SaleDetail extends SaleSummary {
-  order_code: string | null;
-  lines: Array<{ product_code: string; name: string; quantity: number; unit_price: string }>;
-}
+export type SaleDetail = Schema<"SaleDetail">;
 
 export function SaleDetailView({ saleCode }: { saleCode: string }) {
   const queryClient = useQueryClient();
@@ -73,7 +71,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
             <div>
               <h1 className="text-xl font-semibold">Venta {sale.code}</h1>
               <p className="mt-0.5 text-sm text-text-secondary">
-                {formatDateTime(sale.created_at)} · {PAYMENT[sale.payment_method]}
+                {formatDateTime(sale.created_at)} · {sale.payment_method && PAYMENT[sale.payment_method]}
                 {sale.order_code && (
                   <>
                     {" · del pedido "}

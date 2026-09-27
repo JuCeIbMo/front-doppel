@@ -7,17 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { answerApproval, readApi } from "@/lib/operations";
+import type { Schema } from "@/lib/api-types";
 
 /** One row of `GET /dashboard/approvals`: a change waiting for the Owner's yes or no. */
-export interface PendingApproval {
-  id: string;
-  operation: string;
-  payload: Record<string, unknown>;
+export type PendingApproval = Omit<Schema<"ApprovalSummary">, "requested_by"> & {
+  // The API declares it as a bare object; it names who asked.
   requested_by: { kind?: string };
-  reason: string;
-  created_at: string;
-  expires_at: string;
-}
+};
 
 const REQUESTER: Record<string, string> = {
   owner: "Tú o tu agente",

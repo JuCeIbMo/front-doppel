@@ -29,12 +29,9 @@ import {
   type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
+import type { Schema } from "@/lib/api-types";
 
-interface WhatsappLine {
-  phone_number_id: string;
-  display_phone_number: string;
-  public_agent_enabled: boolean;
-}
+type WhatsappLine = Schema<"WhatsappLineSummary">;
 
 /** How often the inbox asks for new messages. */
 const REFRESH_MS = 5000;
@@ -141,7 +138,7 @@ export function DashboardView() {
   });
   const phonesQuery = useQuery({
     queryKey: ["manager-phones"],
-    queryFn: () => readApi<Array<{ phone: string }>>("/dashboard/manager-phones"),
+    queryFn: () => readApi<Schema<"ManagerPhoneSummary">[]>("/dashboard/manager-phones"),
   });
   const pipelineQuery = useQuery({
     queryKey: ["pipeline"],

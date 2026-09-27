@@ -10,38 +10,17 @@ import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { Schema } from "@/lib/api-types";
 
 type OrderStatus = "placed" | "paid" | "delivered" | "cancelled" | "refunded" | "expired";
 
+// The API declares an Order's status as a plain string; these are the ones it sends.
+
 /** One row of `GET /dashboard/orders`. */
-export interface OrderSummary {
-  code: string;
-  status: OrderStatus;
-  total: string;
-  contact_code: string;
-  whatsapp_number: string;
-  placed_at: string;
-  expires_at: string;
-}
+export type OrderSummary = Omit<Schema<"OrderSummary">, "status"> & { status: OrderStatus };
 
 /** `GET /dashboard/orders/{code}`. */
-export interface OrderDetail {
-  code: string;
-  status: OrderStatus;
-  total: string;
-  placed_at: string;
-  expires_at: string;
-  ended_at: string | null;
-  lines: Array<{ product_code: string; name: string; quantity: number; unit_price: string }>;
-  payment_proofs: Array<{
-    attached_at: string;
-    read_amount: string;
-    matches_order: boolean;
-    current: boolean;
-    photo_url: string | null;
-    summary: string | null;
-  }>;
-}
+export type OrderDetail = Omit<Schema<"OrderDetail">, "status"> & { status: OrderStatus };
 
 const STATUS: Record<OrderStatus, { label: string; variant: "success" | "warning" | "danger" | "neutral" }> = {
   placed: { label: "Esperando pago", variant: "warning" },

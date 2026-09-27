@@ -118,6 +118,7 @@ describe("messageText", () => {
     created_at: "2026-06-17T12:00:00.000Z",
     code: "M1",
     media_type: null,
+    choice_id: null,
     media_url: null,
     transcript: null,
     summary: null,

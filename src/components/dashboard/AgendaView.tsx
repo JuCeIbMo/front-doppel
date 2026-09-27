@@ -30,6 +30,7 @@ import {
 import { useBusiness } from "@/lib/business";
 import { readApi } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
+import type { Schema } from "@/lib/api-types";
 
 const WEEKDAY = new Intl.DateTimeFormat("es-BO", { weekday: "short", timeZone: "UTC" });
 
@@ -249,7 +250,7 @@ function MoveTo({
   const times = useQuery({
     queryKey: [...TIMES_TO_MOVE_KEY, appointment.appointment_code, day],
     queryFn: () =>
-      readApi<{ starts_at: string }[]>(
+      readApi<Schema<"FreeTime">[]>(
         `/dashboard/agenda/${appointment.appointment_code}/free-times?day=${day}`,
       ),
     enabled: Boolean(day),
