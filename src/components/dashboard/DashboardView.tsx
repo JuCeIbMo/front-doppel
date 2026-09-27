@@ -1,14 +1,17 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
-import { useBusiness } from "@/lib/business";
-import { readApi, runOperation } from "@/lib/operations";
-import { placeholderCount, renderTemplate, type MessageTemplate } from "@/lib/templates";
+import {
+  useApprovedTemplates,
+  useConversationThread,
+  useInbox,
+  useResumeBot,
+  useSendToContact,
+  useToggleBot,
+} from "@/lib/pipeline";
+import { placeholderCount, renderTemplate } from "@/lib/templates";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import { ContactAppointments } from "@/components/dashboard/ContactAppointments";
 import {
@@ -24,17 +27,10 @@ import {
   missedReasonText,
   type ConversationSummary,
   type LeadStatus,
-  type PipelineConversation,
   type PipelineCall,
   type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
-import type { Schema } from "@/lib/api-types";
-
-type WhatsappLine = Schema<"WhatsappLineSummary">;
-
-/** How often the inbox asks for new messages. */
-const REFRESH_MS = 5000;
 
 const FILTER_OPTIONS: Array<{ id: ConversationFilter; label: string }> = [
   { id: "all", label: "Todos" },
@@ -129,66 +125,28 @@ function getPipelineCount(conversations: ConversationSummary[], statuses: LeadSt
 }
 
 export function DashboardView() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const businessQuery = useBusiness();
-  const lineQuery = useQuery({
-    queryKey: ["whatsapp-line"],
-    queryFn: () => readApi<WhatsappLine | null>("/dashboard/whatsapp-line"),
-  });
-  const phonesQuery = useQuery({
-    queryKey: ["manager-phones"],
-    queryFn: () => readApi<Schema<"ManagerPhoneSummary">[]>("/dashboard/manager-phones"),
-  });
-  const pipelineQuery = useQuery({
-    queryKey: ["pipeline"],
-    queryFn: () => readApi<PipelineConversation[]>("/dashboard/pipeline"),
-  });
-  const business = businessQuery.data ?? null;
-  // A Line that cannot be read counts as not connected, as a missing one does.
-  const line = lineQuery.data ?? null;
-  const phones = phonesQuery.data;
-  const pipeline = useMemo(() => pipelineQuery.data ?? [], [pipelineQuery.data]);
-  const loading =
-    businessQuery.isPending || lineQuery.isPending || phonesQuery.isPending || pipelineQuery.isPending;
-  const loadFailure =
-    (!businessQuery.data && businessQuery.error) || (!pipelineQuery.data && pipelineQuery.error);
-  const loadError = !loadFailure
-    ? ""
-    : loadFailure instanceof ApiError && loadFailure.status !== 0
-      ? "No se pudo cargar tu bandeja. Recarga la página en un momento."
-      : loadFailure.message || "No se pudo cargar tu bandeja.";
+  const { business, line, conversations: pipelineData, refetchConversations, loading, loadError } =
+    useInbox();
+  const pipeline = useMemo(() => pipelineData ?? [], [pipelineData]);
+  const bot = useToggleBot(line);
+  const botError = bot.error;
+  const togglingBot = bot.toggling;
+  const handleToggleBot = bot.toggle;
 
-  const [botError, setBotError] = useState("");
-  const [togglingBot, setTogglingBot] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [activeFilter, setActiveFilter] = useState<ConversationFilter>("all");
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [showBotSettings, setShowBotSettings] = useState(false);
   const [metaByPhone, setMetaByPhone] = useState<Record<string, ConversationMeta>>({});
+  const [metaReadFor, setMetaReadFor] = useState<string | null>(null);
 
-  // An Owner with a Line but no Manager phone finishes that step first.
-  useEffect(() => {
-    if (!business || !line || !phones || phones.length > 0) return;
-    const params = new URLSearchParams();
-    params.set("phone", line.display_phone_number);
-    params.set("business", business.name);
-    router.replace(`/connect/manager?${params.toString()}`);
-  }, [business, line, phones, router]);
-
-  const refetchPipeline = pipelineQuery.refetch;
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      void refetchPipeline();
-    }, REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [refetchPipeline]);
-
+  // Once the Business is known, what this browser kept for its Contacts is read back.
   const businessId = business?.id;
-  useEffect(() => {
-    if (businessId) setMetaByPhone(readConversationMetaMap(businessId));
-  }, [businessId]);
+  if (businessId && metaReadFor !== businessId) {
+    setMetaReadFor(businessId);
+    setMetaByPhone(readConversationMetaMap(businessId));
+  }
 
   useEffect(() => {
     if (!businessId) return;
@@ -205,16 +163,14 @@ export function DashboardView() {
     [activeFilter, conversations, deferredQuery],
   );
 
-  useEffect(() => {
-    if (visibleConversations.length === 0) {
-      setSelectedPhone(null);
-      return;
-    }
-
-    if (!selectedPhone || !visibleConversations.some((item) => item.phone === selectedPhone)) {
-      setSelectedPhone(visibleConversations[0].phone);
-    }
-  }, [selectedPhone, visibleConversations]);
+  // The chosen Conversation, or the first one shown once it is filtered out.
+  const phoneToSelect =
+    visibleConversations.length === 0
+      ? null
+      : selectedPhone && visibleConversations.some((item) => item.phone === selectedPhone)
+        ? selectedPhone
+        : visibleConversations[0].phone;
+  if (phoneToSelect !== selectedPhone) setSelectedPhone(phoneToSelect);
 
   const selectedConversation = useMemo(
     () => visibleConversations.find((conversation) => conversation.phone === selectedPhone) ?? null,
@@ -223,56 +179,19 @@ export function DashboardView() {
 
   const selectedConversationId = selectedConversation?.conversationId ?? null;
 
-  const messagesQuery = useQuery({
-    queryKey: ["pipeline", selectedConversationId, "messages"],
-    queryFn: () =>
-      readApi<PipelineItem[]>(`/dashboard/pipeline/${selectedConversationId}/messages`),
-    enabled: selectedConversationId !== null,
-  });
-  const thread = useMemo(() => messagesQuery.data ?? [], [messagesQuery.data]);
+  const threadQuery = useConversationThread(selectedConversationId);
+  const thread = useMemo(() => threadQuery.data ?? [], [threadQuery.data]);
   const messages = useMemo(
     () => thread.filter((item): item is PipelineMessage => item.kind !== "call"),
     [thread],
   );
 
-  const refetchMessages = messagesQuery.refetch;
-  useEffect(() => {
-    if (!selectedConversationId) return;
-    const timer = window.setInterval(() => {
-      void refetchMessages();
-    }, REFRESH_MS);
-    return () => window.clearInterval(timer);
-  }, [selectedConversationId, refetchMessages]);
-
+  const refetchThread = threadQuery.refetch;
   const refreshSelected = useCallback(async () => {
-    await refetchPipeline();
+    await refetchConversations();
     if (!selectedConversationId) return;
-    await refetchMessages();
-  }, [refetchPipeline, refetchMessages, selectedConversationId]);
-
-  const handleToggleBot = useCallback(async () => {
-    if (!line) return;
-    setTogglingBot(true);
-    setBotError("");
-    try {
-      const answer = await runOperation<{ enabled: boolean }>(
-        line.public_agent_enabled ? "disable_public_agent" : "enable_public_agent",
-      );
-      if (answer.status === "executed") {
-        queryClient.setQueryData<WhatsappLine | null>(["whatsapp-line"], (current) =>
-          current ? { ...current, public_agent_enabled: answer.result.enabled } : current,
-        );
-      } else if (answer.status === "approval_created") {
-        setBotError("Quedó pendiente de aprobación.");
-      } else {
-        setBotError(answer.message);
-      }
-    } catch {
-      setBotError("No se pudo cambiar el estado del bot.");
-    } finally {
-      setTogglingBot(false);
-    }
-  }, [line, queryClient]);
+    await refetchThread();
+  }, [refetchConversations, refetchThread, selectedConversationId]);
 
   const updateSelectedMeta = useCallback(
     (patch: Partial<ConversationMeta>) => {
@@ -816,53 +735,39 @@ function ConversationFooter({
   onChanged: () => Promise<void>;
 }) {
   const [draft, setDraft] = useState("");
-  const [sending, setSending] = useState(false);
-  const [resuming, setResuming] = useState(false);
   const [error, setError] = useState("");
-  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
+  const reply = useSendToContact("reply_to_contact", async () => {
+    setDraft("");
+    await onChanged();
+  });
+  const resumeBot = useResumeBot(onChanged);
+  const sending = reply.isPending;
+  const resuming = resumeBot.isPending;
   const windowOpen = canReplyFreely(conversation);
 
   async function send() {
     const body = draft.trim();
     if (!body || sending) return;
-    setSending(true);
     setError("");
     try {
-      const answer = await runOperation(
-        "reply_to_contact",
-        { contact_code: conversation.contactCode, body },
-        sendKey,
-      );
+      const answer = await reply.mutateAsync({ contact_code: conversation.contactCode, body });
       if (answer.status === "rejected") {
         setError(REJECTION_TEXT[answer.code] ?? "No se pudo enviar el mensaje.");
-        return;
       }
-      setDraft("");
-      setSendKey(crypto.randomUUID());
-      await onChanged();
     } catch {
       setError("No se pudo enviar el mensaje. Revisa tu conexión e inténtalo de nuevo.");
-    } finally {
-      setSending(false);
     }
   }
 
   async function resume() {
-    setResuming(true);
     setError("");
     try {
-      const answer = await runOperation("resume_public_agent", {
-        contact_code: conversation.contactCode,
-      });
+      const answer = await resumeBot.mutateAsync(conversation.contactCode);
       if (answer.status === "rejected") {
         setError(REJECTION_TEXT[answer.code] ?? "No se pudo reactivar el bot.");
-        return;
       }
-      await onChanged();
     } catch {
       setError("No se pudo reactivar el bot.");
-    } finally {
-      setResuming(false);
     }
   }
 
@@ -927,21 +832,16 @@ function TemplatePicker({
   contactCode: string;
   onSent: () => Promise<void>;
 }) {
-  const templatesQuery = useQuery({
-    queryKey: ["templates"],
-    queryFn: () => readApi<MessageTemplate[]>("/dashboard/templates"),
-  });
-  const templates = useMemo(
-    () => templatesQuery.data?.filter((template) => template.status === "APPROVED") ?? null,
-    [templatesQuery.data],
-  );
-  const loadError =
-    templatesQuery.error && !templatesQuery.data ? "No se pudieron cargar tus plantillas de Meta." : "";
+  const { templates, loadError } = useApprovedTemplates();
   const [chosen, setChosen] = useState("");
   const [values, setValues] = useState<string[]>([]);
-  const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
-  const [sendKey, setSendKey] = useState(() => crypto.randomUUID());
+  const sendTemplate = useSendToContact("send_template", async () => {
+    setChosen("");
+    setValues([]);
+    await onSent();
+  });
+  const sending = sendTemplate.isPending;
 
   if (loadError) return <p className="text-sm text-red-400">{loadError}</p>;
   if (templates === null) return null;
@@ -964,31 +864,19 @@ function TemplatePicker({
   async function send() {
     if (!template || !ready || sending) return;
     if (!confirm("¿Enviar esta plantilla? WhatsApp cobra cada envío.")) return;
-    setSending(true);
     setError("");
     try {
-      const answer = await runOperation(
-        "send_template",
-        {
-          contact_code: contactCode,
-          template_name: template.name,
-          body: template.body,
-          values: filled.map((value) => value.trim()),
-        },
-        sendKey,
-      );
+      const answer = await sendTemplate.mutateAsync({
+        contact_code: contactCode,
+        template_name: template.name,
+        body: template.body,
+        values: filled.map((value) => value.trim()),
+      });
       if (answer.status === "rejected") {
         setError(REJECTION_TEXT[answer.code] ?? answer.message);
-        return;
       }
-      setChosen("");
-      setValues([]);
-      setSendKey(crypto.randomUUID());
-      await onSent();
     } catch {
       setError("No se pudo enviar la plantilla.");
-    } finally {
-      setSending(false);
     }
   }
 
