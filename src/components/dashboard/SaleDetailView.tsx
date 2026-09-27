@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +11,6 @@ import { PAYMENT, type SaleSummary } from "@/components/dashboard/SalesView";
 import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 /** What `GET /dashboard/sales/{code}` answers. */
@@ -22,7 +20,6 @@ export interface SaleDetail extends SaleSummary {
 }
 
 export function SaleDetailView({ saleCode }: { saleCode: string }) {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const { format } = useCurrency();
   const query = useQuery({
@@ -49,11 +46,6 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
       toast.error(error instanceof Error ? error.message : "No se pudo anular la venta."),
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const sale = query.data;
 

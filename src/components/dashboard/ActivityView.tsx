@@ -1,16 +1,13 @@
 "use client";
 
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { readApi } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 
 /** One row of `GET /dashboard/operations`. */
 export interface LoggedOperation {
@@ -49,7 +46,6 @@ function pageUrl(before: string | null): string {
 
 /** Everything that happened in the Business, newest first, a page at a time. */
 export function ActivityView() {
-  const router = useRouter();
   const [actor, setActor] = useState<ActorFilter>("all");
   const query = useInfiniteQuery({
     queryKey: ["operation-log"],
@@ -58,11 +54,6 @@ export function ActivityView() {
     getNextPageParam: (lastPage) => lastPage.at(-1)?.created_at ?? null,
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const rows = (query.data?.pages ?? []).flat();
   const visible = actor === "all" ? rows : rows.filter((row) => row.actor.kind === actor);

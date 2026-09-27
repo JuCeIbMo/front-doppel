@@ -3,14 +3,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ImageOff, Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import { readApi } from "@/lib/operations";
 import type { Product } from "@/lib/products";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 export const PRODUCTS_KEY = ["products"];
@@ -24,16 +21,10 @@ export function useProducts() {
 
 /** The catalog the bot sells from, and the archived Products the Owner can bring back. */
 export function ProductsView() {
-  const router = useRouter();
   const { format } = useCurrency();
   const [showArchived, setShowArchived] = useState(false);
   const query = useProducts();
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const products = (query.data ?? []).filter((product) => product.archived === showArchived);
   const archivedCount = (query.data ?? []).filter((product) => product.archived).length;

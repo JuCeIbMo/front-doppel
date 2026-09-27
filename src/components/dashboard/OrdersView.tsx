@@ -1,17 +1,14 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 type OrderStatus = "placed" | "paid" | "delivered" | "cancelled" | "refunded" | "expired";
@@ -68,18 +65,12 @@ const ACTIONS: Partial<Record<OrderStatus, Array<{ operation: string; label: str
 };
 
 export function OrdersView() {
-  const router = useRouter();
   const [open, setOpen] = useState<string | null>(null);
   const query = useQuery({
     queryKey: ["orders"],
     queryFn: () => readApi<OrderSummary[]>("/dashboard/orders"),
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const orders = query.data ?? [];
 

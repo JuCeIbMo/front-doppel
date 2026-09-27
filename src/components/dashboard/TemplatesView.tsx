@@ -2,14 +2,11 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 import {
   TEMPLATE_CATEGORY,
   TEMPLATE_STATUS,
@@ -27,7 +24,6 @@ const STATUS_TONE: Record<string, string> = {
 
 /** Templates: the messages Meta lets a Business send once a Contact's 24 hours are over. */
 export function TemplatesView() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["templates"],
@@ -37,11 +33,6 @@ export function TemplatesView() {
       current.state.data?.some((template) => template.status === "PENDING") ? 30000 : false,
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const templates = query.data ?? [];
 

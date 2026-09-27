@@ -1,15 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
 import { answerApproval, readApi } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 
 /** One row of `GET /dashboard/approvals`: a change waiting for the Owner's yes or no. */
 export interface PendingApproval {
@@ -29,7 +26,6 @@ const REQUESTER: Record<string, string> = {
 };
 
 export function ApprovalsView() {
-  const router = useRouter();
   const queryClient = useQueryClient();
   const query = useQuery({
     queryKey: ["approvals"],
@@ -51,11 +47,6 @@ export function ApprovalsView() {
     },
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const pending = query.data ?? [];
 

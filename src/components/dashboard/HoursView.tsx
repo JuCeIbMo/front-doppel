@@ -3,13 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import {
   TEAM_KEY,
@@ -26,25 +24,18 @@ import {
   type Weekday,
   type WorkingBlock,
 } from "@/lib/appointments";
-import { signOut } from "@/lib/supabase";
 
 /**
  * When the Business takes Appointments. A Business of one sees only its own week; a team
  * picks whose week, and each one's Services and days off.
  */
 export function HoursView() {
-  const router = useRouter();
   const team = useTeam();
   const services = useServices();
   const [chosen, setChosen] = useState<string | null>(null);
   // Appointments left on days just taken away: they stay until the Owner deals with them.
   const [rearrange, setRearrange] = useState<AppointmentToRearrange[]>([]);
 
-  if (team.error instanceof ApiError && team.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const professionals = team.data?.professionals ?? [];
   const member =

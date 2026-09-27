@@ -2,14 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
-import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
 import {
   SWITCH_SAYS,
@@ -21,7 +19,6 @@ import {
 } from "@/lib/business";
 import { runBookingOperation } from "@/lib/appointments";
 import { startRehearsal, type Rehearsal } from "@/lib/rehearsal";
-import { signOut } from "@/lib/supabase";
 
 type CallsState = "off" | "turning_on" | "on" | "turning_off" | "refused";
 type CallsRefusedReason = "messaging_limit" | "payment_method" | "quality" | "other";
@@ -47,7 +44,6 @@ function callsSettling(line: WhatsappLine | null | undefined): boolean {
 
 /** Every setting of the Business on one screen. */
 export function SettingsView() {
-  const router = useRouter();
   const business = useBusiness();
   const line = useQuery({
     queryKey: ["whatsapp-line"],
@@ -60,11 +56,6 @@ export function SettingsView() {
   });
 
   const failed = [business.error, line.error, phones.error].find(Boolean);
-  if (failed instanceof ApiError && failed.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">

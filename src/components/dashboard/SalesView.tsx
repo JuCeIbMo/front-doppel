@@ -2,14 +2,11 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
-import { ApiError } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/dates";
 import { readApi } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 /** One row of `GET /dashboard/sales`. */
@@ -29,18 +26,12 @@ export const PAYMENT: Record<SaleSummary["payment_method"], string> = {
 };
 
 export function SalesView() {
-  const router = useRouter();
   const { format } = useCurrency();
   const query = useQuery({
     queryKey: ["sales"],
     queryFn: () => readApi<SaleSummary[]>("/dashboard/sales"),
   });
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const sales = query.data ?? [];
 

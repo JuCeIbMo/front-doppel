@@ -2,26 +2,17 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import { useServices, type Service } from "@/lib/appointments";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 /** The Services the bot books, and the archived ones the Owner can bring back. */
 export function ServicesView() {
-  const router = useRouter();
   const [showArchived, setShowArchived] = useState(false);
   const query = useServices();
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const services = (query.data ?? []).filter((service) => service.archived === showArchived);
   const archivedCount = (query.data ?? []).filter((service) => service.archived).length;

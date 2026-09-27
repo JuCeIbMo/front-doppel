@@ -2,13 +2,11 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { ApiError } from "@/lib/api-client";
 import {
   AGENDA_KEY,
   APPOINTMENT_STATUS,
@@ -31,7 +29,6 @@ import {
 } from "@/lib/appointments";
 import { useBusiness } from "@/lib/business";
 import { readApi } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 const WEEKDAY = new Intl.DateTimeFormat("es-BO", { weekday: "short", timeZone: "UTC" });
@@ -43,7 +40,6 @@ function shortDay(day: string): string {
 
 /** The Appointments of a week, one day at a time, by Professional. */
 export function AgendaView() {
-  const router = useRouter();
   const today = businessDay(new Date());
   const [firstDay, setFirstDay] = useState(today);
   const [day, setDay] = useState(today);
@@ -51,11 +47,6 @@ export function AgendaView() {
   const agenda = useAgenda(firstDay, days[6]);
   const team = useTeam();
 
-  if (agenda.error instanceof ApiError && agenda.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const appointments = agenda.data ?? [];
   const ofDay = appointments.filter((appointment) => appointment.starts_at.startsWith(day));

@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ApiError } from "@/lib/api-client";
 import { readApi, runOperationOrThrow } from "@/lib/operations";
-import { signOut } from "@/lib/supabase";
 
 type KnowledgeTopic =
   | "identidad"
@@ -43,7 +42,7 @@ const TOPICS: Array<{ id: KnowledgeTopic; label: string; hint: string }> = [
 
 /** What the bot knows about the Business and how it serves, topic by topic. */
 export function KnowledgeView() {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [bodies, setBodies] = useState<Partial<Record<KnowledgeTopic, string>>>({});
   const [saved, setSaved] = useState<Partial<Record<KnowledgeTopic, string>>>({});
@@ -53,23 +52,24 @@ export function KnowledgeView() {
 
   const load = useCallback(async () => {
     try {
-      const knowledge = await readApi<BusinessKnowledge>("/dashboard/knowledge");
+      // Through the query cache so a 401 reaches the one handler in AppProviders.
+      const knowledge = await queryClient.fetchQuery({
+        queryKey: ["knowledge"],
+        queryFn: () => readApi<BusinessKnowledge>("/dashboard/knowledge"),
+        retry: false,
+      });
       const written = Object.fromEntries(knowledge.knowledge.map((k) => [k.topic, k.body]));
       setBodies(written);
       setSaved(written);
     } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        void signOut();
-        router.replace("/connect");
-        return;
-      }
+      if (error instanceof ApiError && error.status === 401) return;
       // Empty boxes would invite overwriting what is already saved, so none are shown.
       setLoadFailed(true);
       setErrorMessage(
         error instanceof Error ? error.message : "No se pudo cargar lo que sabe el bot.",
       );
     }
-  }, [router]);
+  }, [queryClient]);
 
   useEffect(() => {
     load().finally(() => setLoading(false));

@@ -2,13 +2,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { StatCard } from "@/components/ui/StatCard";
 import { OnboardingChecklist, type OnboardingStep } from "@/components/dashboard/OnboardingChecklist";
-import { ApiError } from "@/lib/api-client";
 import { readApi } from "@/lib/operations";
 import { isOn, useBusiness, type Business } from "@/lib/business";
-import { signOut } from "@/lib/supabase";
 import { useCurrency } from "@/hooks/useCurrency";
 
 /** What `GET /dashboard/overview` answers. */
@@ -81,7 +78,6 @@ function firstSteps(
 }
 
 export function OverviewView() {
-  const router = useRouter();
   const { format } = useCurrency();
   const query = useQuery({
     queryKey: ["overview"],
@@ -90,11 +86,6 @@ export function OverviewView() {
   });
   const { data: business, isError: businessUnknown } = useBusiness();
 
-  if (query.error instanceof ApiError && query.error.status === 401) {
-    void signOut();
-    router.replace("/connect");
-    return null;
-  }
 
   const overview = query.data;
   // Without the Business, the steps that follow a switch are left out, not the checklist.
