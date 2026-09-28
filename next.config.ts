@@ -18,17 +18,19 @@ const supabaseSocket = supabase.map((origin) => origin.replace(/^http/, "ws"));
 // The Facebook SDK loads from connect.facebook.net, talks to *.facebook.com and opens the
 // Embedded Signup popup and its iframes there; its images come from fbcdn.
 const facebook = ["https://*.facebook.com", "https://*.facebook.net"];
+// Dev-only allowance so impeccable live mode can load its local helper.
+const impeccableLive = isDev ? ["http://localhost:8400"] : [];
 
 const contentSecurityPolicy = [
   ["default-src", "'self'"],
   // Next.js inlines its bootstrap scripts; React needs eval only in development.
-  ["script-src", "'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), "https://connect.facebook.net"],
+  ["script-src", "'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : []), "https://connect.facebook.net", ...impeccableLive],
   ["style-src", "'self'", "'unsafe-inline'"],
   // Product photos and WhatsApp media are signed Supabase Storage links; a picked photo is a blob.
   ["img-src", "'self'", "data:", "blob:", ...supabase, ...facebook, "https://*.fbcdn.net"],
   ["media-src", "'self'", "blob:", ...supabase],
   ["font-src", "'self'", "data:"],
-  ["connect-src", "'self'", ...api, ...supabase, ...supabaseSocket, ...facebook, ...(isDev ? ["ws:"] : [])],
+  ["connect-src", "'self'", ...api, ...supabase, ...supabaseSocket, ...facebook, ...(isDev ? ["ws:"] : []), ...impeccableLive],
   ["frame-src", ...facebook],
   ["worker-src", "'self'", "blob:"],
   ["object-src", "'none'"],
