@@ -48,13 +48,13 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
   const sale = query.data;
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/dashboard/sales" className="text-sm text-text-secondary hover:text-text-primary">
         ← Ventas
       </Link>
 
       {query.isLoading ? (
-        <div className="h-64 animate-pulse rounded-xl bg-bg-elevated" />
+        <div className="h-64 animate-pulse bg-bg-elevated" />
       ) : !sale ? (
         <Card>
           <p className="text-sm text-text-secondary">
@@ -69,13 +69,13 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
         <>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h1 className="text-xl font-semibold">Venta {sale.code}</h1>
+              <h1>Venta {sale.code}</h1>
               <p className="mt-0.5 text-sm text-text-secondary">
                 {formatDateTime(sale.created_at)} · {sale.payment_method && PAYMENT[sale.payment_method]}
                 {sale.order_code && (
                   <>
                     {" · del pedido "}
-                    <Link href="/dashboard/orders" className="text-accent hover:underline">
+                    <Link href="/dashboard/orders" className="font-bold underline underline-offset-4">
                       {sale.order_code}
                     </Link>
                   </>

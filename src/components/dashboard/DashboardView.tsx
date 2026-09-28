@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import Link from "next/link";
+import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { ArrowLeft, PhoneCall, Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   useApprovedTemplates,
@@ -9,721 +10,447 @@ import {
   useInbox,
   useResumeBot,
   useSendToContact,
-  useToggleBot,
 } from "@/lib/pipeline";
 import { placeholderCount, renderTemplate } from "@/lib/templates";
+import { BUSINESS_TIME_ZONE } from "@/lib/appointments";
+import { formatPhone } from "@/lib/phone";
 import { WhatsAppDisconnectedNotice } from "@/components/dashboard/WhatsAppDisconnectedNotice";
 import { ContactAppointments } from "@/components/dashboard/ContactAppointments";
 import {
   buildConversationSummaries,
   canReplyFreely,
-  filterConversations,
-  readConversationMetaMap,
-  writeConversationMetaMap,
-  type ConversationFilter,
-  type ConversationMeta,
   callDuration,
   messageText,
   missedReasonText,
   type ConversationSummary,
-  type LeadStatus,
   type PipelineCall,
   type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
 
-const FILTER_OPTIONS: Array<{ id: ConversationFilter; label: string }> = [
-  { id: "all", label: "Todos" },
-  { id: "unread", label: "Sin leer" },
-  { id: "warm", label: "Calientes" },
-  { id: "pending", label: "Pendientes" },
-];
-
-const LEAD_STATUS_OPTIONS: Array<{ id: LeadStatus; label: string }> = [
-  { id: "new", label: "Nuevo" },
-  { id: "contacted", label: "Contactado" },
-  { id: "warm", label: "Caliente" },
-  { id: "negotiation", label: "Negociación" },
-  { id: "customer", label: "Cliente" },
-  { id: "no_response", label: "Sin respuesta" },
-];
-
-const statusTone: Record<LeadStatus, string> = {
-  new: "bg-white/6 text-text-secondary border border-white/8",
-  contacted: "bg-sky-500/10 text-sky-300 border border-sky-400/20",
-  warm: "bg-amber-500/12 text-amber-300 border border-amber-400/20",
-  negotiation: "bg-violet-500/12 text-violet-300 border border-violet-400/20",
-  customer: "bg-accent/12 text-accent border border-accent/20",
-  no_response: "bg-rose-500/12 text-rose-300 border border-rose-400/20",
-};
+type Filter = "all" | "you";
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-function formatRelativeTime(value: string | null) {
-  if (!value) return "—";
-  const date = new Date(value);
-  const diffMs = date.getTime() - Date.now();
-  const diffMinutes = Math.round(diffMs / 60000);
-  const formatter = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
+const dayKey = (value: string | Date) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE }).format(new Date(value));
 
-  if (Math.abs(diffMinutes) < 60) {
-    return formatter.format(diffMinutes, "minute");
-  }
-
-  const diffHours = Math.round(diffMinutes / 60);
-  if (Math.abs(diffHours) < 24) {
-    return formatter.format(diffHours, "hour");
-  }
-
-  const diffDays = Math.round(diffHours / 24);
-  return formatter.format(diffDays, "day");
-}
-
-function formatThreadDate(value: string) {
-  return new Intl.DateTimeFormat("es", {
+/** When something last happened, as the list says it: "14:32" today, "ayer", or "12 sep". */
+export function listTime(value: string | null, now: Date = new Date()): string {
+  if (!value) return "";
+  const day = dayKey(value);
+  if (day === dayKey(now)) return formatTimestamp(value);
+  if (day === dayKey(new Date(now.getTime() - 86400000))) return "ayer";
+  return new Intl.DateTimeFormat("es-BO", {
+    timeZone: BUSINESS_TIME_ZONE,
     day: "numeric",
     month: "short",
-  }).format(new Date(value));
+  })
+    .format(new Date(value))
+    .replace(".", "");
 }
 
 function formatTimestamp(value: string) {
-  return new Intl.DateTimeFormat("es", {
+  return new Intl.DateTimeFormat("es-BO", {
+    timeZone: BUSINESS_TIME_ZONE,
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   }).format(new Date(value));
+}
+
+function writtenDay(value: string) {
+  const text = new Intl.DateTimeFormat("es-BO", {
+    timeZone: BUSINESS_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(value));
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 function groupByDay(thread: PipelineItem[]) {
   const groups = new Map<string, PipelineItem[]>();
-
   for (const item of thread) {
-    const key = new Date(item.created_at).toISOString().slice(0, 10);
-    const day = groups.get(key) ?? [];
-    day.push(item);
-    groups.set(key, day);
+    const key = dayKey(item.created_at);
+    groups.set(key, [...(groups.get(key) ?? []), item]);
   }
-
   return Array.from(groups.entries());
 }
 
-function getSummaryText(isConnected: boolean, totalConversations: number, businessName: string | null) {
-  if (!isConnected) {
-    return "Reconecta tu línea para reactivar el inbox y el seguimiento comercial.";
-  }
-
-  if (totalConversations === 0) {
-    return `${businessName ?? "Tu negocio"} está conectado. El inbox se activará cuando lleguen nuevos mensajes.`;
-  }
-
-  return `${businessName ?? "Tu negocio"} tiene ${totalConversations} ${totalConversations === 1 ? "conversación operativa lista" : "conversaciones operativas listas"} para seguimiento.`;
-}
-
-function getPipelineCount(conversations: ConversationSummary[], statuses: LeadStatus[]) {
-  return conversations.filter((conversation) => statuses.includes(conversation.leadStatus)).length;
-}
-
+/**
+ * Conversaciones: who is talking with the Business, the ones that need the Owner first,
+ * and the thread of the one chosen. On a computer the list and the thread sit side by
+ * side; on a phone the thread opens over the list, with a way back.
+ */
 export function DashboardView() {
-  const { business, line, conversations: pipelineData, refetchConversations, loading, loadError } =
+  const { line, conversations: pipelineData, refetchConversations, loading, loadError } =
     useInbox();
-  const pipeline = useMemo(() => pipelineData ?? [], [pipelineData]);
-  const bot = useToggleBot(line);
-  const botError = bot.error;
-  const togglingBot = bot.toggling;
-  const handleToggleBot = bot.toggle;
-
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const [activeFilter, setActiveFilter] = useState<ConversationFilter>("all");
-  const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
-  const [showBotSettings, setShowBotSettings] = useState(false);
-  const [metaByPhone, setMetaByPhone] = useState<Record<string, ConversationMeta>>({});
-  const [metaReadFor, setMetaReadFor] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [threadOpen, setThreadOpen] = useState(false);
 
-  // Once the Business is known, what this browser kept for its Contacts is read back.
-  const businessId = business?.id;
-  if (businessId && metaReadFor !== businessId) {
-    setMetaReadFor(businessId);
-    setMetaByPhone(readConversationMetaMap(businessId));
-  }
+  const conversations = useMemo(() => {
+    const all = buildConversationSummaries(pipelineData ?? [], {});
+    // The ones the Owner is attending come first, then by latest activity.
+    return [...all.filter((item) => item.humanTakeover), ...all.filter((item) => !item.humanTakeover)];
+  }, [pipelineData]);
+  const yours = conversations.filter((item) => item.humanTakeover).length;
 
-  useEffect(() => {
-    if (!businessId) return;
-    writeConversationMetaMap(businessId, metaByPhone);
-  }, [metaByPhone, businessId]);
+  const visible = useMemo(() => {
+    const text = deferredQuery.trim().toLowerCase();
+    const digits = text.replace(/\D/g, "");
+    return conversations.filter((item) => {
+      if (filter === "you" && !item.humanTakeover) return false;
+      if (!text) return true;
+      return (
+        item.displayName.toLowerCase().includes(text) ||
+        item.contactCode.toLowerCase().includes(text) ||
+        (digits !== "" && item.phone.includes(digits))
+      );
+    });
+  }, [conversations, filter, deferredQuery]);
 
-  const conversations = useMemo(
-    () => buildConversationSummaries(pipeline, metaByPhone),
-    [pipeline, metaByPhone],
-  );
-
-  const visibleConversations = useMemo(
-    () => filterConversations(conversations, { filter: activeFilter, query: deferredQuery }),
-    [activeFilter, conversations, deferredQuery],
-  );
-
-  // The chosen Conversation, or the first one shown once it is filtered out.
-  const phoneToSelect =
-    visibleConversations.length === 0
-      ? null
-      : selectedPhone && visibleConversations.some((item) => item.phone === selectedPhone)
-        ? selectedPhone
-        : visibleConversations[0].phone;
-  if (phoneToSelect !== selectedPhone) setSelectedPhone(phoneToSelect);
-
-  const selectedConversation = useMemo(
-    () => visibleConversations.find((conversation) => conversation.phone === selectedPhone) ?? null,
-    [selectedPhone, visibleConversations],
-  );
-
-  const selectedConversationId = selectedConversation?.conversationId ?? null;
-
-  const threadQuery = useConversationThread(selectedConversationId);
-  const thread = useMemo(() => threadQuery.data ?? [], [threadQuery.data]);
-  const messages = useMemo(
-    () => thread.filter((item): item is PipelineMessage => item.kind !== "call"),
-    [thread],
-  );
-
+  const selected =
+    visible.find((item) => item.conversationId === selectedId) ?? visible[0] ?? null;
+  const threadQuery = useConversationThread(selected?.conversationId ?? null);
   const refetchThread = threadQuery.refetch;
   const refreshSelected = useCallback(async () => {
     await refetchConversations();
-    if (!selectedConversationId) return;
     await refetchThread();
-  }, [refetchConversations, refetchThread, selectedConversationId]);
-
-  const updateSelectedMeta = useCallback(
-    (patch: Partial<ConversationMeta>) => {
-      if (!selectedConversation) return;
-      setMetaByPhone((current) => {
-        const existing = current[selectedConversation.phone] ?? {
-          leadStatus: "new" as LeadStatus,
-          notes: "",
-          tags: [],
-          displayName: null,
-        };
-        return {
-          ...current,
-          [selectedConversation.phone]: {
-            leadStatus: patch.leadStatus ?? existing.leadStatus,
-            notes: patch.notes ?? existing.notes,
-            tags: patch.tags ?? existing.tags,
-            displayName: patch.displayName ?? existing.displayName,
-          },
-        };
-      });
-    },
-    [selectedConversation],
-  );
+  }, [refetchConversations, refetchThread]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="flex flex-col gap-4" aria-busy="true" aria-label="Cargando conversaciones">
+        <div className="h-8 w-56 animate-pulse bg-paper-rule/50" />
+        {[0, 1, 2, 3].map((row) => (
+          <div key={row} className="h-16 animate-pulse bg-paper-rule/30" />
+        ))}
       </div>
     );
   }
 
   if (loadError) {
     return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold">Inbox de automatización</h1>
-        <Card>
-          <p className="text-sm text-danger">{loadError}</p>
-        </Card>
+      <div className="flex flex-col gap-4">
+        <h1>Conversaciones</h1>
+        <p className="font-hand text-lg font-bold text-danger">{loadError}</p>
+        <Button variant="secondary" className="self-start" onClick={() => void refetchConversations()}>
+          Reintentar
+        </Button>
       </div>
     );
   }
 
-  const phoneDisplay = line?.display_phone_number ?? "-";
   const isConnected = line !== null;
-  const canReply = Boolean(line?.public_agent_enabled);
-  const summaryText = getSummaryText(isConnected, conversations.length, business?.name ?? null);
-  const inboundCount = messages.filter((message) => message.direction === "inbound").length;
-  const outboundCount = messages.length - inboundCount;
-  const pipelineWarm = getPipelineCount(conversations, ["warm", "negotiation"]);
-  const pipelinePending = getPipelineCount(conversations, ["new", "contacted", "no_response"]);
-  const pipelineCustomers = getPipelineCount(conversations, ["customer"]);
+  const botOn = Boolean(line?.public_agent_enabled);
+
+  const list = (
+    <section
+      aria-label="Lista de conversaciones"
+      className={cx(
+        "flex min-h-0 flex-col lg:border-r-2 lg:border-ink lg:pr-0",
+        threadOpen && "max-lg:hidden",
+      )}
+    >
+      <div className="flex flex-col gap-3 pb-3 lg:pr-4">
+        <div role="tablist" aria-label="Filtrar" className="flex border-2 border-ink">
+          {(
+            [
+              { id: "all", label: "Todas", count: conversations.length },
+              { id: "you", label: "Te necesitan", count: yours },
+            ] as const
+          ).map((option) => {
+            const active = filter === option.id;
+            return (
+              <button
+                key={option.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setFilter(option.id)}
+                className={cx(
+                  "flex min-h-11 flex-1 items-center justify-center gap-2 text-sm font-bold transition-colors",
+                  active ? "bg-ink text-paper" : "text-ink hover:bg-ink/[0.07]",
+                )}
+              >
+                {option.label}
+                <span
+                  className={cx(
+                    "min-w-5 px-1 font-display text-xs font-black tabular-nums",
+                    option.id === "you" && option.count > 0 && "bg-waiting text-paper",
+                  )}
+                >
+                  {option.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <label className="relative block">
+          <span className="sr-only">Buscar por nombre, número o código</span>
+          <Search
+            aria-hidden
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar nombre o número"
+            className="min-h-11 w-full border border-ink/35 bg-paper pl-9 pr-3 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink"
+          />
+        </label>
+      </div>
+
+      <ul className="min-h-0 flex-1 overflow-y-auto border-t-2 border-ink lg:pr-0">
+        {visible.length === 0 ? (
+          <li className="px-1 py-10 text-[15px] text-ink-muted">
+            {conversations.length === 0
+              ? isConnected
+                ? "Todavía nadie le escribió a tu negocio. Cuando alguien lo haga, aparece aquí."
+                : "Conecta tu WhatsApp para empezar a recibir mensajes."
+              : filter === "you" && !query
+                ? "Ninguna conversación te necesita. El bot se encarga."
+                : "Nada coincide con tu búsqueda."}
+          </li>
+        ) : (
+          visible.map((conversation) => (
+            <ConversationRow
+              key={conversation.conversationId}
+              conversation={conversation}
+              active={selected?.conversationId === conversation.conversationId}
+              onOpen={() => {
+                setSelectedId(conversation.conversationId);
+                setThreadOpen(true);
+              }}
+            />
+          ))
+        )}
+      </ul>
+    </section>
+  );
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(37,211,102,0.12),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-6 lg:flex-row lg:items-end lg:justify-between">
-        <div className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.24em] text-text-secondary">
-            Automatización comercial
+    <div className="flex flex-col gap-5 lg:h-[calc(100vh-4rem)]">
+      <header className={cx("flex flex-wrap items-end justify-between gap-3", threadOpen && "max-lg:hidden")}>
+        <div>
+          <h1>Conversaciones</h1>
+          <p className="mt-2 flex items-center gap-2 text-sm text-ink-muted">
+            <span
+              aria-hidden
+              className={cx("h-2.5 w-2.5", botOn ? "bg-settled" : "bg-waiting")}
+            />
+            {!isConnected
+              ? "Sin WhatsApp conectado"
+              : botOn
+                ? `El bot responde en ${line?.display_phone_number}`
+                : "El bot está apagado: nadie responde a tus clientes"}
+            {isConnected && !botOn && (
+              <Link href="/dashboard/knowledge" className="font-bold text-ink underline underline-offset-4">
+                Encenderlo
+              </Link>
+            )}
           </p>
-          <h1 className="text-3xl font-semibold tracking-tight">Inbox de automatización</h1>
-          <p className="max-w-3xl text-sm text-text-secondary">{summaryText}</p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <span
-            className={cx(
-              "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
-              isConnected ? "bg-accent/12 text-accent" : "bg-white/8 text-text-secondary",
-            )}
-          >
-            {isConnected ? `Línea activa ${phoneDisplay}` : "Sin línea conectada"}
-          </span>
-          <span
-            className={cx(
-              "inline-flex items-center rounded-full px-3 py-1.5 text-xs font-medium",
-              canReply ? "bg-accent/12 text-accent" : "bg-amber-500/12 text-amber-300",
-            )}
-          >
-            {canReply ? "Bot respondiendo" : "Bot pausado"}
-          </span>
-          <Button
-            variant="secondary"
-            onClick={() => setShowBotSettings((current) => !current)}
-          >
-            {showBotSettings ? "Ocultar configuración" : "Configurar bot"}
-          </Button>
-        </div>
-      </div>
+      </header>
 
       {!isConnected && <WhatsAppDisconnectedNotice />}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[17.5rem_minmax(0,1fr)] 2xl:grid-cols-[18.5rem_minmax(0,1.25fr)_21rem]">
-        <Card className="overflow-hidden p-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-7rem)]">
-          <div className="border-b border-white/8 px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Conversaciones</p>
-                <p className="text-xs text-text-secondary">
-                  {visibleConversations.length} visibles de {conversations.length}
-                </p>
-              </div>
-            </div>
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar contacto, teléfono o nota"
-              className="mt-4 w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
+      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[22rem_minmax(0,1fr)]">
+        {list}
+        <section
+          aria-label="Conversación"
+          className={cx("flex min-h-0 flex-col lg:pl-6", !threadOpen && "max-lg:hidden")}
+        >
+          {selected ? (
+            <Thread
+              key={selected.conversationId}
+              conversation={selected}
+              thread={threadQuery.data ?? []}
+              loadingThread={threadQuery.isLoading}
+              botEnabled={botOn}
+              onBack={() => setThreadOpen(false)}
+              onChanged={refreshSelected}
             />
-            <div className="mt-4 flex flex-wrap gap-2">
-              {FILTER_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setActiveFilter(option.id)}
-                  className={cx(
-                    "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                    activeFilter === option.id
-                      ? "bg-accent/12 text-accent"
-                      : "bg-white/5 text-text-secondary hover:text-text-primary",
-                  )}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] text-text-secondary">Calientes</p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">{pipelineWarm}</p>
-              </div>
-              <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] text-text-secondary">Pendientes</p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">{pipelinePending}</p>
-              </div>
-              <div className="rounded-2xl border border-white/8 bg-white/4 px-3 py-3">
-                <p className="text-[11px] text-text-secondary">Clientes</p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">{pipelineCustomers}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-h-[42rem] overflow-auto p-2 xl:max-h-[calc(100vh-13rem)]">
-            {visibleConversations.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-white/10 bg-white/3 px-4 py-10 text-center">
-                <p className="text-sm font-medium text-text-primary">Aún no hay conversaciones registradas</p>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Cuando lleguen mensajes nuevos, el inbox se organizará aquí por contacto.
-                </p>
-              </div>
-            ) : (
-              visibleConversations.map((conversation) => (
-                <button
-                  key={conversation.conversationId}
-                  type="button"
-                  onClick={() => {
-                    setSelectedPhone(conversation.phone);
-                    // Below xl the thread sits under the list, out of sight on a phone.
-                    if (!window.matchMedia?.("(min-width: 1280px)").matches) {
-                      document.getElementById("conversation-thread")?.scrollIntoView?.({ behavior: "smooth" });
-                    }
-                  }}
-                  className={cx(
-                    "mb-2 w-full rounded-[24px] border px-4 py-4 text-left transition",
-                    selectedConversation?.phone === conversation.phone
-                      ? "border-accent/30 bg-accent/8 shadow-[0_0_0_1px_rgba(37,211,102,0.16)]"
-                      : "border-white/6 bg-white/3 hover:border-white/12 hover:bg-white/4",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-text-primary">
-                        {conversation.displayName}
-                      </p>
-                      <p className="mt-1 text-xs text-text-secondary">{conversation.phone}</p>
-                    </div>
-                    <span className="shrink-0 text-[11px] text-text-secondary">
-                      {formatRelativeTime(conversation.lastActivityAt)}
-                    </span>
-                  </div>
-
-                  <p className="mt-3 line-clamp-2 text-sm text-text-secondary">
-                    {conversation.lastMessage}
-                  </p>
-
-                  <div className="mt-4 flex items-center justify-between gap-3">
-                    <span
-                      className={cx(
-                        "inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium",
-                        statusTone[conversation.leadStatus],
-                      )}
-                    >
-                      {LEAD_STATUS_OPTIONS.find((item) => item.id === conversation.leadStatus)?.label}
-                    </span>
-                    <span className="text-[11px] text-text-secondary">
-                      {conversation.humanTakeover ? "Atiendes tú" : "Atiende el bot"}
-                    </span>
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
-        </Card>
-
-        <Card className="min-h-[42rem] p-0 xl:max-h-[calc(100vh-7rem)] xl:overflow-hidden">
-          {selectedConversation ? (
-            <div id="conversation-thread" className="flex h-full scroll-mt-4 flex-col">
-              <div className="border-b border-white/8 px-5 py-5">
-                <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-xl font-semibold text-text-primary">
-                        {selectedConversation.displayName}
-                      </h2>
-                      <span
-                        className={cx(
-                          "inline-flex rounded-full px-2.5 py-1 text-[11px] font-medium",
-                          statusTone[selectedConversation.leadStatus],
-                        )}
-                      >
-                        {
-                          LEAD_STATUS_OPTIONS.find(
-                            (item) => item.id === selectedConversation.leadStatus,
-                          )?.label
-                        }
-                      </span>
-                    </div>
-                    <p className="mt-1 text-sm text-text-secondary">{selectedConversation.phone}</p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2 text-xs text-text-secondary xl:max-w-[19rem] xl:justify-end">
-                    <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      Última actividad {formatRelativeTime(selectedConversation.lastActivityAt)}
-                    </span>
-                    <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      {messages.length} {messages.length === 1 ? "mensaje" : "mensajes"}
-                    </span>
-                    <span className="rounded-full bg-white/5 px-3 py-1.5">
-                      Línea {phoneDisplay}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex-1 space-y-6 overflow-auto px-5 py-5 xl:min-h-0">
-                {groupByDay(thread).map(([day, group]) => (
-                  <div key={day}>
-                    <div className="mb-4 flex items-center justify-center">
-                      <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                        {formatThreadDate(group[0].created_at)}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      {group.map((item) =>
-                        item.kind === "call" ? (
-                          <CallEntry key={item.id} call={item} />
-                        ) : (
-                        <div
-                          key={item.id}
-                          className={cx(
-                            "max-w-[85%] rounded-[24px] px-4 py-3",
-                            item.direction === "outbound"
-                              ? "ml-auto border border-accent/20 bg-accent/8"
-                              : "border border-white/8 bg-white/4",
-                          )}
-                        >
-                          <div className="flex items-center justify-between gap-4">
-                            <span
-                              className={cx(
-                                "text-[11px] uppercase tracking-[0.2em]",
-                                item.direction === "outbound"
-                                  ? "text-accent"
-                                  : "text-text-secondary",
-                              )}
-                            >
-                              {item.direction === "outbound" ? "Doppel" : "Cliente"}
-                            </span>
-                            <span className="text-[11px] text-text-secondary">
-                              {formatTimestamp(item.created_at)}
-                            </span>
-                          </div>
-                          <MessageMedia message={item} />
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                            {messageText(item)}
-                          </p>
-                        </div>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <ConversationFooter
-                key={selectedConversation.conversationId}
-                conversation={selectedConversation}
-                botEnabled={canReply}
-                onChanged={refreshSelected}
-              />
-            </div>
           ) : (
-            <div className="flex h-full min-h-[42rem] items-center justify-center px-6 text-center">
-              <div className="max-w-sm">
-                <p className="text-lg font-medium text-text-primary">Selecciona una conversación</p>
-                <p className="mt-2 text-sm text-text-secondary">
-                  El hilo completo, el contexto comercial y las próximas acciones aparecerán aquí.
-                </p>
-              </div>
-            </div>
+            <p className="hidden py-16 text-center text-[15px] text-ink-muted lg:block">
+              Elige una conversación para leerla.
+            </p>
           )}
-        </Card>
+        </section>
+      </div>
+    </div>
+  );
+}
 
-        <div className="flex flex-col gap-6 xl:col-span-2 2xl:sticky 2xl:top-6 2xl:col-span-1 2xl:max-h-[calc(100vh-7rem)] 2xl:overflow-auto">
-          <Card>
-            <CardHeader title="Ficha comercial" />
-            {selectedConversation ? (
-              <div className="space-y-5">
-                <div className="rounded-[24px] border border-white/8 bg-white/4 p-4">
-                  <p className="text-xs uppercase tracking-[0.24em] text-text-secondary">
-                    Contacto
-                  </p>
-                  <div className="mt-4 space-y-3">
-                    <div>
-                      <label className="mb-2 block text-xs text-text-secondary">Nombre visible</label>
-                      <input
-                        value={selectedConversation.displayName === selectedConversation.phone ? "" : selectedConversation.displayName}
-                        onChange={(event) =>
-                          updateSelectedMeta({
-                            displayName: event.target.value.trim() ? event.target.value : null,
-                          })
-                        }
-                        placeholder="Asignar nombre"
-                        className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                      />
-                    </div>
-                    <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                        Teléfono
-                      </p>
-                      <p className="mt-2 text-sm text-text-primary">{selectedConversation.phone}</p>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-                      <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                          Primer mensaje
-                        </p>
-                        <p className="mt-2 text-sm text-text-primary">
-                          {messages[0] ? formatThreadDate(messages[0].created_at) : "—"}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl border border-white/6 bg-black/10 px-4 py-3">
-                        <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">
-                          Última actividad
-                        </p>
-                        <p className="mt-2 text-sm text-text-primary">
-                          {formatRelativeTime(selectedConversation.lastActivityAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs uppercase tracking-[0.24em] text-text-secondary">
-                    Estado del lead
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {LEAD_STATUS_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => updateSelectedMeta({ leadStatus: option.id })}
-                        className={cx(
-                          "rounded-full px-3 py-1.5 text-xs font-medium transition",
-                          selectedConversation.leadStatus === option.id
-                            ? statusTone[option.id]
-                            : "bg-white/5 text-text-secondary hover:text-text-primary",
-                        )}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.24em] text-text-secondary">
-                    Etiquetas
-                  </label>
-                  <input
-                    value={selectedConversation.tags.join(", ")}
-                    onChange={(event) =>
-                      updateSelectedMeta({
-                        tags: event.target.value
-                          .split(",")
-                          .map((item) => item.trim())
-                          .filter(Boolean),
-                      })
-                    }
-                    placeholder="vip, mayoreo, seguimiento"
-                    className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-xs uppercase tracking-[0.24em] text-text-secondary">
-                    Nota rápida
-                  </label>
-                  <textarea
-                    value={selectedConversation.notes}
-                    onChange={(event) => updateSelectedMeta({ notes: event.target.value })}
-                    rows={5}
-                    placeholder="Qué pidió, objeciones, siguiente paso..."
-                    className="w-full rounded-[24px] border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 2xl:grid-cols-1">
-                  <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Recibidos</p>
-                    <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {inboundCount}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Enviados</p>
-                    <p className="mt-2 text-lg font-semibold text-text-primary">
-                      {outboundCount}
-                    </p>
-                  </div>
-                  <div className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3">
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">Último</p>
-                    <p className="mt-2 text-sm font-semibold text-text-primary">
-                      {formatRelativeTime(selectedConversation.lastActivityAt)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-text-secondary">
-                Selecciona un chat para editar su estado comercial, notas y etiquetas.
-              </p>
-            )}
-          </Card>
-
-          {selectedConversation && (
-            <ContactAppointments conversationId={selectedConversation.conversationId} />
+function ConversationRow({
+  conversation,
+  active,
+  onOpen,
+}: {
+  conversation: ConversationSummary;
+  active: boolean;
+  onOpen: () => void;
+}) {
+  const called = conversation.lastMessage === "Llamada";
+  return (
+    <li className="border-b border-paper-rule">
+      <button
+        type="button"
+        onClick={onOpen}
+        aria-current={active ? "true" : undefined}
+        className={cx(
+          "flex w-full flex-col gap-1 px-2 py-3 text-left transition-colors",
+          active ? "lg:bg-ink/[0.07]" : "hover:bg-ink/[0.04]",
+        )}
+      >
+        <span className="flex items-baseline justify-between gap-3">
+          <span className={cx("truncate text-[15px]", conversation.humanTakeover ? "font-extrabold" : "font-semibold")}>
+            {conversation.displayName === conversation.phone
+              ? formatPhone(conversation.phone)
+              : conversation.displayName}
+          </span>
+          <span className="shrink-0 text-xs text-ink-muted tabular-nums">
+            {listTime(conversation.lastActivityAt)}
+          </span>
+        </span>
+        <span className="flex items-center gap-2">
+          {conversation.humanTakeover && (
+            <span className="shrink-0 bg-waiting px-1.5 py-px text-[11px] font-bold text-paper">
+              Atiendes tú
+            </span>
           )}
+          <span className="flex min-w-0 items-center gap-1.5 truncate text-sm text-ink-muted">
+            {called && <PhoneCall aria-hidden size={13} />}
+            <span className="truncate">{conversation.lastMessage || "Sin mensajes"}</span>
+          </span>
+        </span>
+      </button>
+    </li>
+  );
+}
 
-          <Card>
-            <CardHeader title="Cuenta conectada" />
-            <div className="space-y-3 text-sm">
-              <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-text-secondary">Negocio</p>
-                <p className="mt-2 font-medium text-text-primary">{business?.name ?? "-"}</p>
-              </div>
-              <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-text-secondary">WhatsApp</p>
-                <p className="mt-2 font-medium text-text-primary">{phoneDisplay}</p>
-              </div>
-            </div>
-          </Card>
+function Thread({
+  conversation,
+  thread,
+  loadingThread,
+  botEnabled,
+  onBack,
+  onChanged,
+}: {
+  conversation: ConversationSummary;
+  thread: PipelineItem[];
+  loadingThread: boolean;
+  botEnabled: boolean;
+  onBack: () => void;
+  onChanged: () => Promise<void>;
+}) {
+  const name =
+    conversation.displayName === conversation.phone
+      ? formatPhone(conversation.phone)
+      : conversation.displayName;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex items-center gap-2 border-b-2 border-ink pb-3">
+        <button
+          type="button"
+          onClick={onBack}
+          aria-label="Volver a la lista"
+          className="-ml-2 flex h-11 w-11 items-center justify-center lg:hidden"
+        >
+          <ArrowLeft size={22} />
+        </button>
+        <div className="min-w-0">
+          <h2 className="truncate text-2xl leading-tight">{name}</h2>
+          <p className="text-sm text-ink-muted">
+            {name === formatPhone(conversation.phone)
+              ? conversation.contactCode
+              : `${formatPhone(conversation.phone)} · ${conversation.contactCode}`}
+          </p>
         </div>
       </div>
 
-      {showBotSettings && (
-        <Card>
-          <CardHeader
-            title="Configuración del bot"
-            action={
-              <span className="text-xs text-text-secondary">
-                {canReply
-                  ? "Responde automáticamente mensajes entrantes."
-                  : "Está pausado o sin línea conectada."}
-              </span>
-            }
-          />
-
-          <div className="rounded-[24px] border border-white/8 bg-white/4 p-4">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-text-primary">Estado del bot</p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {!isConnected
-                    ? "Conecta tu WhatsApp para activarlo."
-                    : canReply
-                      ? "Está listo para responder en esta línea."
-                      : "Está pausado: nadie responde a tus clientes automáticamente."}
-                </p>
-                {botError && <p className="mt-2 text-sm text-red-400">{botError}</p>}
-              </div>
-              <label className="inline-flex items-center gap-3 text-sm text-text-primary">
-                <span>{canReply ? "Activado" : "Pausado"}</span>
-                <button
-                  type="button"
-                  aria-label={canReply ? "Pausar el bot" : "Activar el bot"}
-                  onClick={handleToggleBot}
-                  disabled={!isConnected || togglingBot}
-                  className={cx(
-                    "h-7 w-12 rounded-full transition-colors disabled:opacity-50",
-                    canReply ? "bg-accent" : "bg-white/10",
-                  )}
-                >
-                  <span
-                    className={cx(
-                      "block h-5 w-5 rounded-full bg-black transition-transform",
-                      canReply ? "translate-x-6" : "translate-x-1",
-                    )}
-                  />
-                </button>
-              </label>
-            </div>
+      <div className="min-h-[40vh] flex-1 overflow-y-auto py-4 lg:min-h-0">
+        {loadingThread ? (
+          <div className="flex flex-col gap-3">
+            <div className="h-14 w-2/3 animate-pulse bg-paper-rule/40" />
+            <div className="ml-auto h-14 w-2/3 animate-pulse bg-paper-rule/40" />
           </div>
-        </Card>
-      )}
+        ) : thread.length === 0 ? (
+          <p className="py-10 text-center text-[15px] text-ink-muted">Todavía no hay mensajes.</p>
+        ) : (
+          groupByDay(thread).map(([day, group]) => (
+            <div key={day} className="mb-5">
+              <p className="mb-3 text-center font-hand text-lg font-bold text-steps">
+                {writtenDay(group[0].created_at)}
+              </p>
+              <div className="flex flex-col gap-2.5">
+                {group.map((item) =>
+                  item.kind === "call" ? (
+                    <CallEntry key={item.id} call={item} />
+                  ) : (
+                    <MessageBubble key={item.id} message={item} />
+                  ),
+                )}
+              </div>
+            </div>
+          ))
+        )}
+        <div className="mt-2">
+          <ContactAppointments conversationId={conversation.conversationId} />
+        </div>
+      </div>
 
+      <ConversationFooter conversation={conversation} botEnabled={botEnabled} onChanged={onChanged} />
+    </div>
+  );
+}
+
+function MessageBubble({ message }: { message: PipelineMessage }) {
+  const fromBusiness = message.direction === "outbound";
+  return (
+    <div
+      className={cx(
+        "max-w-[85%] px-3.5 py-2.5",
+        fromBusiness
+          ? "ml-auto bg-ink/[0.07]"
+          : "border border-ink/30 bg-paper",
+      )}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <span
+          className={cx(
+            "font-display text-[11px] font-extrabold uppercase tracking-[0.12em]",
+            fromBusiness ? "text-settled" : "text-ink-muted",
+          )}
+        >
+          {fromBusiness ? "Doppel" : "Cliente"}
+        </span>
+        <span className="text-[11px] text-ink-muted tabular-nums">{formatTimestamp(message.created_at)}</span>
+      </div>
+      <MessageMedia message={message} />
+      <p className="mt-1 whitespace-pre-wrap text-[15px] leading-6">{messageText(message)}</p>
     </div>
   );
 }
 
 const REJECTION_TEXT: Record<string, string> = {
   CONTACT_WINDOW_CLOSED:
-    "Este cliente no escribió en las últimas 24 horas. WhatsApp solo deja escribirle con una plantilla aprobada.",
+    "Pasaron 24 horas desde su último mensaje. Solo puedes escribirle con una plantilla aprobada.",
   WHATSAPP_LINE_NOT_CONNECTED: "Conecta tu WhatsApp antes de responder.",
   CONTACT_NOT_FOUND: "Este cliente ya no existe.",
 };
 
 /**
- * Below a Conversation: whether the bot is paused there, and the box the Owner replies
- * with while WhatsApp still lets them write.
+ * Below a Conversation: whether the Owner is attending it, and the box they reply with
+ * while WhatsApp still lets them write; after 24 hours, only an approved template.
  */
 function ConversationFooter({
   conversation,
@@ -764,29 +491,34 @@ function ConversationFooter({
     try {
       const answer = await resumeBot.mutateAsync(conversation.contactCode);
       if (answer.status === "rejected") {
-        setError(REJECTION_TEXT[answer.code] ?? "No se pudo reactivar el bot.");
+        setError(REJECTION_TEXT[answer.code] ?? "No se pudo devolver al bot.");
       }
     } catch {
-      setError("No se pudo reactivar el bot.");
+      setError("No se pudo devolver al bot.");
     }
   }
 
   return (
-    <div className="space-y-3 border-t border-white/8 px-5 py-4">
+    <div className="flex flex-col gap-3 border-t-2 border-ink pt-3">
       {conversation.pausedUntil && botEnabled && (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
-          <p className="text-sm text-amber-200">
-            Bot en pausa hasta las {formatTimestamp(conversation.pausedUntil)}
+        <div className="chakana flex flex-wrap items-center justify-between gap-3 bg-waiting px-4 pb-3 pt-5 text-paper">
+          <p className="text-[15px] font-bold">
+            Atiendes tú. El bot vuelve a las {formatTimestamp(conversation.pausedUntil)}.
           </p>
-          <Button variant="secondary" onClick={resume} disabled={resuming}>
-            {resuming ? "Reactivando..." : "Reactivar bot"}
-          </Button>
+          <button
+            type="button"
+            onClick={resume}
+            disabled={resuming}
+            className="min-h-11 border-2 border-paper px-4 text-sm font-bold transition-colors hover:bg-paper hover:text-waiting disabled:opacity-60"
+          >
+            {resuming ? "Devolviendo…" : "Devolver al bot"}
+          </button>
         </div>
       )}
 
       {windowOpen ? (
         <form
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex items-end gap-2"
           onSubmit={(event) => {
             event.preventDefault();
             void send();
@@ -802,24 +534,32 @@ function ConversationFooter({
               }
             }}
             rows={2}
-            placeholder="Escribe tu respuesta. El bot se pausa 30 minutos en este chat."
+            placeholder="Escribe un mensaje…"
             aria-label="Respuesta al cliente"
-            className="min-h-[3rem] w-full flex-1 resize-none rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40 focus:ring-1 focus:ring-accent/30"
+            aria-describedby="reply-pauses-bot"
+            className="min-h-12 w-full flex-1 resize-none border border-ink/35 bg-paper px-3 py-2.5 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink"
           />
           <Button type="submit" disabled={sending || !draft.trim()}>
-            {sending ? "Enviando..." : "Enviar"}
+            {sending ? "Enviando…" : "Enviar"}
           </Button>
         </form>
       ) : (
-        <div className="space-y-3">
-          <p className="rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-secondary">
-            {REJECTION_TEXT.CONTACT_WINDOW_CLOSED}
-          </p>
+        <div className="flex flex-col gap-3">
+          <p className="text-[15px] text-ink-muted">{REJECTION_TEXT.CONTACT_WINDOW_CLOSED}</p>
           <TemplatePicker contactCode={conversation.contactCode} onSent={onChanged} />
         </div>
       )}
+      {windowOpen && (
+        <p id="reply-pauses-bot" className="text-xs text-ink-muted">
+          Al responder, el bot se pausa 30 minutos en este chat.
+        </p>
+      )}
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && (
+        <p role="alert" className="font-hand text-base font-bold text-danger">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -843,15 +583,15 @@ function TemplatePicker({
   });
   const sending = sendTemplate.isPending;
 
-  if (loadError) return <p className="text-sm text-red-400">{loadError}</p>;
+  if (loadError) return <p className="text-sm text-danger">{loadError}</p>;
   if (templates === null) return null;
   if (templates.length === 0) {
     return (
-      <p className="text-sm text-text-secondary">
+      <p className="text-[15px]">
         No tienes plantillas aprobadas.{" "}
-        <a href="/dashboard/templates" className="text-accent hover:underline">
+        <Link href="/dashboard/templates" className="font-bold underline underline-offset-4">
           Crear una
-        </a>
+        </Link>
       </p>
     );
   }
@@ -860,6 +600,8 @@ function TemplatePicker({
   const gaps = template ? placeholderCount(template.body) : 0;
   const filled = Array.from({ length: gaps }, (_, index) => values[index] ?? "");
   const ready = template !== null && filled.every((value) => value.trim());
+  const field =
+    "min-h-11 w-full border border-ink/35 bg-paper px-3 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink";
 
   async function send() {
     if (!template || !ready || sending) return;
@@ -881,7 +623,7 @@ function TemplatePicker({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <select
         aria-label="Plantilla"
         value={chosen}
@@ -889,7 +631,7 @@ function TemplatePicker({
           setChosen(event.target.value);
           setValues([]);
         }}
-        className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary outline-none focus:border-accent/40"
+        className={field}
       >
         <option value="">Elegir plantilla</option>
         {templates.map((item) => (
@@ -911,18 +653,18 @@ function TemplatePicker({
                 setValues(next);
               }}
               placeholder={`Valor para {{${index + 1}}}`}
-              className="w-full rounded-2xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none focus:border-accent/40"
+              className={field}
             />
           ))}
-          <p className="whitespace-pre-wrap rounded-2xl border border-accent/20 bg-accent/8 px-4 py-3 text-sm text-text-primary">
+          <p className="whitespace-pre-wrap bg-ink/[0.07] px-3.5 py-2.5 text-[15px]">
             {renderTemplate(template.body, filled)}
           </p>
-          <Button onClick={send} disabled={!ready || sending}>
-            {sending ? "Enviando..." : "Enviar plantilla"}
+          <Button onClick={send} disabled={!ready || sending} className="self-start">
+            {sending ? "Enviando…" : "Enviar plantilla"}
           </Button>
         </>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
     </div>
   );
 }
@@ -933,14 +675,19 @@ function MessageMedia({ message }: { message: PipelineMessage }) {
   if (message.media_type === "image" || message.media_type === "sticker") {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- a signed Storage link that expires
-      <img src={message.media_url} alt="" className="mt-2 max-h-64 rounded-2xl" />
+      <img src={message.media_url} alt="" loading="lazy" className="mt-2 max-h-64" />
     );
   }
   if (message.media_type === "audio") {
     return <audio controls src={message.media_url} className="mt-2 w-full" />;
   }
   return (
-    <a href={message.media_url} target="_blank" rel="noreferrer" className="mt-2 block text-sm text-accent hover:underline">
+    <a
+      href={message.media_url}
+      target="_blank"
+      rel="noreferrer"
+      className="mt-2 block text-sm font-bold underline underline-offset-4"
+    >
       Abrir archivo
     </a>
   );
@@ -954,33 +701,35 @@ function CallEntry({ call }: { call: PipelineCall }) {
       ? `Llamada atendida${call.duration_seconds !== null ? ` · ${callDuration(call.duration_seconds)}` : ""}`
       : call.outcome === "missed"
         ? "Llamada perdida"
-        : "Llamada entrante";
+        : "Llamada en curso";
   return (
-    <div className="mx-auto max-w-[85%] rounded-[24px] border border-white/8 bg-white/4 px-4 py-3">
+    <div className="mx-auto w-full max-w-[85%] border-y border-dashed border-ink/40 px-3.5 py-2.5">
       <div className="flex items-center justify-between gap-4">
-        <span className="text-[11px] uppercase tracking-[0.2em] text-text-secondary">{title}</span>
-        <span className="text-[11px] text-text-secondary">{formatTimestamp(call.created_at)}</span>
+        <span className="flex items-center gap-2 text-sm font-bold">
+          <PhoneCall aria-hidden size={15} />
+          {title}
+        </span>
+        <span className="text-[11px] text-ink-muted tabular-nums">{formatTimestamp(call.created_at)}</span>
       </div>
       {call.outcome === "missed" && (
-        <p className="mt-2 text-sm leading-6 text-text-primary">
-          {missedReasonText(call.missed_reason)}
-        </p>
+        <p className="mt-1 text-[15px]">{missedReasonText(call.missed_reason)}</p>
       )}
       {call.transcript.length > 0 && (
         <>
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
-            className="mt-2 text-sm text-accent hover:underline"
+            aria-expanded={open}
+            className="mt-1 min-h-9 text-sm font-bold underline underline-offset-4"
           >
             {open ? "Ocultar transcripción" : "Ver transcripción"}
           </button>
           {open && (
-            <div className="mt-2 space-y-1">
+            <div className="mt-1 flex flex-col gap-1">
               {call.transcript.map((line, index) => (
-                <p key={index} className="whitespace-pre-wrap text-sm leading-6 text-text-primary">
-                  <span className="text-text-secondary">
-                    {line.who === "contact" ? "Cliente" : "Doppel"}:
+                <p key={index} className="whitespace-pre-wrap text-[15px] leading-6">
+                  <span className="font-bold text-ink-muted">
+                    {line.who === "contact" ? "Cliente" : "Bot"}:
                   </span>{" "}
                   {line.text}
                 </p>

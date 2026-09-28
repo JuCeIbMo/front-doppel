@@ -53,7 +53,7 @@ describe("products", () => {
     renderWith(<ProductsView />);
 
     expect(await screen.findByText("Café")).toBeInTheDocument();
-    expect(screen.getByText(/17 disponibles · 3 reservados/)).toBeInTheDocument();
+    expect(screen.getByText(/Disponible 17 · 3 reservados/)).toBeInTheDocument();
     expect(screen.queryByText("Té")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Archivados (1)" }));

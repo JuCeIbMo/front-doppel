@@ -34,7 +34,7 @@ export function ComingSoonGate({
 export function ComingSoon({ title }: { title: string }) {
   return (
     <section className="mx-auto max-w-xl py-16 text-center">
-      <span className="inline-flex items-center rounded-md bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+      <span className="inline-flex items-center bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
         Próximamente
       </span>
       <h1 className="mt-4 text-2xl font-semibold text-text-primary">{title}</h1>
@@ -43,7 +43,7 @@ export function ComingSoon({ title }: { title: string }) {
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {AVAILABLE.map((link) => (
-          <Link key={link.href} href={link.href} className="text-accent hover:underline">
+          <Link key={link.href} href={link.href} className="font-bold underline underline-offset-4">
             {link.label}
           </Link>
         ))}

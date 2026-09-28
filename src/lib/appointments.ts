@@ -34,7 +34,7 @@ export interface AppointmentToRearrange {
 
 /** The refusals an Owner can meet on these screens, in words they can act on. */
 const REFUSALS: Record<string, string> = {
-  SWITCHED_OFF: "Agendar citas está apagado. Préndelo en Ajustes.",
+  SWITCHED_OFF: "Agendar citas está apagado. Préndelo en Cuenta.",
   INVALID_HOURS: "Revisa el horario: hay un tramo que termina antes de empezar o dos que se cruzan.",
   INVALID_DAYS: "Revisa las fechas: el último día va después del primero, y como mucho un año.",
   INVALID_PAYMENT_AHEAD: "Revisa el pago por adelantado: la seña no puede ser más que el precio.",

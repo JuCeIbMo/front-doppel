@@ -33,7 +33,7 @@ export function ProductsView() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Productos</h1>
+          <h1>Productos</h1>
           <p className="mt-0.5 text-sm text-text-secondary">
             Lo que el bot ofrece por WhatsApp. Un producto archivado deja de ofrecerse y sigue en
             tus ventas pasadas.
@@ -54,10 +54,10 @@ export function ProductsView() {
             key={tab.label}
             type="button"
             onClick={() => setShowArchived(tab.archived)}
-            className={`rounded-full px-3 py-1.5 text-sm ${
+            className={`inline-flex min-h-11 items-center border-2 px-4 text-sm font-bold transition-colors ${
               showArchived === tab.archived
-                ? "bg-accent/15 text-accent"
-                : "bg-white/5 text-text-secondary"
+                ? "border-ink bg-ink text-paper"
+                : "border-ink/30 text-ink hover:border-ink"
             }`}
           >
             {tab.label}
@@ -68,7 +68,7 @@ export function ProductsView() {
       {query.isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((index) => (
-            <div key={index} className="h-64 animate-pulse rounded-xl bg-bg-elevated" />
+            <div key={index} className="h-64 animate-pulse bg-bg-elevated" />
           ))}
         </div>
       ) : query.error ? (
@@ -91,7 +91,7 @@ export function ProductsView() {
             <li key={product.code}>
               <Link
                 href={`/dashboard/products/${product.code}`}
-                className="block overflow-hidden rounded-xl border border-border bg-bg-secondary transition-colors hover:border-white/12"
+                className="block overflow-hidden border border-border bg-bg-secondary transition-colors hover:border-ink/40"
               >
                 <div className="flex aspect-[4/3] items-center justify-center bg-bg-elevated">
                   {product.signed_url ? (
@@ -107,10 +107,14 @@ export function ProductsView() {
                 </div>
                 <div className="flex flex-col gap-1 p-4">
                   <p className="font-medium">{product.name}</p>
-                  <p className="text-lg font-semibold">{format(Number(product.unit_price))}</p>
-                  <p className="text-xs text-text-secondary">
-                    {product.stock - product.reserved} disponibles
-                    {product.reserved > 0 && ` · ${product.reserved} reservados en pedidos`}
+                  <p className="font-hand text-xl font-bold text-steps">{format(Number(product.unit_price))}</p>
+                  <p className="text-sm text-text-secondary">
+                    {product.stock - product.reserved <= 0 ? (
+                      <span className="bg-money px-1.5 font-bold text-ink">Sin stock</span>
+                    ) : (
+                      `Disponible ${product.stock - product.reserved}`
+                    )}
+                    {product.reserved > 0 && ` · ${product.reserved} reservados`}
                   </p>
                 </div>
               </Link>

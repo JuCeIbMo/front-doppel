@@ -76,7 +76,7 @@ test("a signed-in Owner reads the inbox, confirms an Order's payment and sees wh
   page.on("dialog", (dialog) => dialog.accept());
 
   await page.goto("/dashboard/automation");
-  await expect(page.getByRole("heading", { name: "Inbox de automatización" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Conversaciones" })).toBeVisible();
   await expect(page.getByText("Quiero dos barras").first()).toBeVisible();
 
   await page.getByRole("link", { name: "Pedidos" }).first().click();
@@ -85,7 +85,8 @@ test("a signed-in Owner reads the inbox, confirms an Order's payment and sees wh
   await page.getByRole("button", { name: "Confirmar pago" }).click();
   await expect.poll(() => confirmed).toEqual(["ORDER1"]);
 
-  await page.getByRole("link", { name: /Finanzas/ }).first().click();
-  await expect(page.getByText("Próximamente")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Finanzas" })).toBeVisible();
+  // What the panel does not have yet is not offered, and its address leads to Inicio.
+  await expect(page.getByRole("link", { name: /Finanzas/ })).toHaveCount(0);
+  await page.goto("/dashboard/finance");
+  await expect(page).toHaveURL(/\/dashboard$/);
 });

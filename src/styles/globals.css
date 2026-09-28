@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Inside the Owner panel, where the notebook world applies to the shared primitives too. */
+@custom-variant paper (&:where(.theme-paper, .theme-paper *));
+
 @theme {
   --color-bg-primary:    #0A0A0A;
   --color-bg-secondary:  #111111;
@@ -34,8 +37,8 @@
 }
 
 /*
- * The paper panel. A screen already redrawn as the notebook wears it, and the shell's
- * own tokens turn into paper and ink around it; the screens still to redraw keep the old look.
+ * The paper panel. Every Owner screen wears it: the shell's own tokens turn into paper
+ * and ink, so the shared primitives and the screens read the same notebook.
  */
 .theme-paper {
   --color-bg-primary:    var(--color-paper);
@@ -44,11 +47,13 @@
   --color-border:        var(--color-paper-rule);
   --color-text-primary:  var(--color-ink);
   --color-text-secondary:var(--color-ink-muted);
-  --color-text-muted:    var(--color-paper-rule);
+  --color-text-muted:    var(--color-ink-muted);
   /* Red means "te espera" and nothing else: the shell marks where you are in ink. */
   --color-accent:        var(--color-ink);
   --color-accent-dim:    rgba(35, 26, 22, 0.07);
   --color-danger:        var(--color-waiting);
+  /* The aguayo yellow is for money; a warning written on paper needs a darker amber to read. */
+  --color-warning:       #8A5A00;
   font-family: var(--font-body);
   color: var(--color-ink);
   background-color: var(--color-paper);
@@ -68,6 +73,35 @@
 .theme-paper :focus-visible {
   outline: 2px solid var(--color-ink);
   outline-offset: 2px;
+}
+
+@layer base {
+  /* Every screen's title, in the notebook's condensed heavy hand. */
+  .theme-paper h1 {
+    font-family: var(--font-display);
+    font-size: 30px;
+    font-weight: 900;
+    line-height: 1;
+    font-stretch: 78%;
+    letter-spacing: -0.01em;
+  }
+  .theme-paper h1 + p {
+    margin-top: 8px;
+  }
+  .theme-paper h2 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-stretch: 85%;
+  }
+  .theme-paper input,
+  .theme-paper select,
+  .theme-paper textarea {
+    border-radius: 0;
+  }
+  .theme-paper input[type="checkbox"],
+  .theme-paper input[type="radio"] {
+    accent-color: var(--color-ink);
+  }
 }
 
 /* The stepped top corners of a cholet facade, on every color plane of the notebook. */

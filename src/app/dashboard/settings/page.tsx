@@ -3,7 +3,7 @@ import { SettingsView } from "@/components/dashboard/SettingsView";
 
 export default function DashboardSettingsPage() {
   return (
-    <ComingSoonGate feature="settings" title="Ajustes">
+    <ComingSoonGate feature="settings" title="Cuenta">
       <SettingsView />
     </ComingSoonGate>
   );

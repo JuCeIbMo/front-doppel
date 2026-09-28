@@ -41,7 +41,7 @@ describe("ApprovalsView", () => {
       </QueryClientProvider>,
     );
 
-    expect(await screen.findByText("Venta anulada")).toBeInTheDocument();
+    expect(await screen.findByText("Anular la venta SALE01")).toBeInTheDocument();
     expect(screen.getByText(/El bot, hablando con un cliente/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Rechazar" }));
     await waitFor(() => expect(answerApproval).toHaveBeenCalledWith("a1", "decline"));

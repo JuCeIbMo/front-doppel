@@ -47,7 +47,7 @@ describe("SalesView", () => {
 
     renderView();
 
-    expect(await screen.findByRole("link", { name: "SALE01" })).toHaveAttribute(
+    expect(await screen.findByRole("link", { name: /SALE01/ })).toHaveAttribute(
       "href",
       "/dashboard/sales/SALE01",
     );

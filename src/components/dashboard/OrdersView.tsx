@@ -3,14 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
 import { readApi, runOperation } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { Schema } from "@/lib/api-types";
+import { formatPhone } from "@/lib/phone";
 
 type OrderStatus = "placed" | "paid" | "delivered" | "cancelled" | "refunded" | "expired";
 
@@ -43,53 +42,106 @@ const ACTIONS: Partial<Record<OrderStatus, Array<{ operation: string; label: str
   ],
 };
 
-export function OrdersView() {
+/** The three piles an Order sits in, as the Owner thinks of them. */
+const PILES = [
+  { id: "placed", label: "Por cobrar", has: ["placed"] },
+  { id: "paid", label: "Por entregar", has: ["paid"] },
+  { id: "done", label: "Terminados", has: ["delivered", "cancelled", "expired", "refunded"] },
+] as const satisfies ReadonlyArray<{ id: string; label: string; has: readonly OrderStatus[] }>;
+
+type Pile = (typeof PILES)[number]["id"];
+
+function isPile(value: string | undefined): value is Pile {
+  return PILES.some((pile) => pile.id === value);
+}
+
+/**
+ * Pedidos: what is to collect, what is to deliver, and what is done. Inicio links here
+ * with `?estado=placed` or `?estado=paid`; without one, the first pile that has something.
+ */
+export function OrdersView({ initialStatus }: { initialStatus?: string } = {}) {
   const [open, setOpen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<Pile | null>(isPile(initialStatus) ? initialStatus : null);
   const query = useQuery({
     queryKey: ["orders"],
     queryFn: () => readApi<OrderSummary[]>("/dashboard/orders"),
   });
 
-
   const orders = query.data ?? [];
+  const inPile = (pile: Pile) =>
+    orders.filter((order) =>
+      (PILES.find((item) => item.id === pile)?.has as readonly OrderStatus[]).includes(order.status),
+    );
+  const pile: Pile =
+    chosen ?? (inPile("placed").length > 0 ? "placed" : inPile("paid").length > 0 ? "paid" : "done");
+  const shown = inPile(pile);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Pedidos</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">
+        <h1>Pedidos</h1>
+        <p className="text-sm text-text-secondary">
           Los pedidos que tus clientes hicieron por WhatsApp, los más nuevos primero.
         </p>
       </div>
 
-      <Card>
-        <CardHeader title="Pedidos" />
-        {query.isLoading ? (
-          <Table>
-            <Table.Loading rows={5} cols={5} />
-          </Table>
-        ) : query.error ? (
-          <p className="text-sm text-danger">
-            {query.error instanceof Error ? query.error.message : "No se pudieron cargar los pedidos."}
+      {query.isLoading ? (
+        <div className="flex flex-col gap-2" aria-busy="true">
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="h-14 animate-pulse bg-paper-rule/40" />
+          ))}
+        </div>
+      ) : query.error ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="font-hand text-lg font-bold text-danger">
+            {query.error instanceof Error ? query.error.message : "No pudimos cargar tus pedidos."}
           </p>
-        ) : orders.length === 0 ? (
-          <Table>
-            <Table.Empty>Todavía no hay pedidos.</Table.Empty>
-          </Table>
-        ) : (
-          <Table>
-            <Table.Head>
-              <tr>
-                <Table.Th>Código</Table.Th>
-                <Table.Th className="hidden sm:table-cell">Cliente</Table.Th>
-                <Table.Th className="hidden sm:table-cell">Fecha</Table.Th>
-                <Table.Th>Total</Table.Th>
-                <Table.Th>Estado</Table.Th>
-                <Table.Th className="text-right">Detalle</Table.Th>
-              </tr>
-            </Table.Head>
-            <Table.Body>
-              {orders.map((order) => (
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Reintentar
+          </Button>
+        </div>
+      ) : (
+        <section>
+          <div role="tablist" aria-label="Estado" className="flex max-w-xl border-2 border-ink">
+            {PILES.map((item) => {
+              const active = item.id === pile;
+              const count = inPile(item.id).length;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => {
+                    setChosen(item.id);
+                    setOpen(null);
+                  }}
+                  className={`flex min-h-11 flex-1 items-center justify-center gap-1.5 px-2 text-sm font-bold transition-colors ${
+                    active ? "bg-ink text-paper" : "text-ink hover:bg-ink/[0.07]"
+                  }`}
+                >
+                  {item.label}
+                  {item.id !== "done" && count > 0 && (
+                    <span className="font-display text-xs font-black tabular-nums">{count}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {shown.length === 0 ? (
+            <p className="py-10 text-[15px] text-ink-muted">
+              {orders.length === 0
+                ? "Todavía no hay pedidos. Cuando un cliente pida por WhatsApp, aparece aquí."
+                : pile === "placed"
+                  ? "No hay pedidos por cobrar."
+                  : pile === "paid"
+                    ? "No hay pedidos por entregar."
+                    : "Todavía no terminaste ningún pedido."}
+            </p>
+          ) : (
+            <ul className="mt-4 border-t-2 border-ink">
+              {shown.map((order) => (
                 <OrderRow
                   key={order.code}
                   order={order}
@@ -97,12 +149,21 @@ export function OrdersView() {
                   onToggle={() => setOpen(open === order.code ? null : order.code)}
                 />
               ))}
-            </Table.Body>
-          </Table>
-        )}
-      </Card>
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
+}
+
+/** "vence en 2 h", "vence en 25 min", or "venció", for an Order still waiting for payment. */
+function expiresIn(moment: string, now: Date = new Date()): string {
+  const minutes = Math.round((new Date(moment).getTime() - now.getTime()) / 60000);
+  if (minutes <= 0) return "venció";
+  if (minutes < 60) return `vence en ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `vence en ${hours} h` : `vence en ${Math.round(hours / 24)} días`;
 }
 
 function OrderRow({
@@ -116,35 +177,41 @@ function OrderRow({
 }) {
   const { format } = useCurrency();
   return (
-    <>
-      <Table.Row>
-        <Table.Cell className="text-text-muted font-mono text-xs">{order.code}</Table.Cell>
-        <Table.Cell className="hidden sm:table-cell text-text-secondary">{order.whatsapp_number}</Table.Cell>
-        <Table.Cell className="hidden sm:table-cell text-text-secondary text-xs">
-          {formatDateTime(order.placed_at)}
-        </Table.Cell>
-        <Table.Cell className="text-text-primary font-semibold">{format(Number(order.total))}</Table.Cell>
-        <Table.Cell>
-          <Badge variant={STATUS[order.status].variant}>{STATUS[order.status].label}</Badge>
-        </Table.Cell>
-        <Table.Cell className="text-right">
-          <button
-            type="button"
-            onClick={onToggle}
-            className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-          >
-            {open ? "Ocultar" : "Ver"}
-          </button>
-        </Table.Cell>
-      </Table.Row>
+    <li className="border-b border-paper-rule">
+      <div className="flex items-center gap-3 py-3">
+        <div className="min-w-0 flex-1">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-[15px]">
+            <span className="font-bold tabular-nums">{order.code}</span>
+            <span className="text-ink-muted">·</span>
+            <span className="truncate">{formatPhone(order.whatsapp_number)}</span>
+          </p>
+          <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
+            <Badge variant={STATUS[order.status].variant}>{STATUS[order.status].label}</Badge>
+            <span>
+              {order.status === "placed"
+                ? expiresIn(order.expires_at)
+                : formatDateTime(order.placed_at)}
+            </span>
+          </p>
+        </div>
+        <span className="font-hand text-xl font-bold text-steps tabular-nums">
+          {format(Number(order.total))}
+        </span>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className="min-h-11 min-w-16 border-2 border-ink px-3 text-sm font-bold transition-colors hover:bg-ink hover:text-paper"
+        >
+          {open ? "Ocultar" : "Ver"}
+        </button>
+      </div>
       {open && (
-        <tr>
-          <td colSpan={6} className="px-4 pb-4">
-            <OrderDetailPanel code={order.code} />
-          </td>
-        </tr>
+        <div className="pb-4">
+          <OrderDetailPanel code={order.code} />
+        </div>
       )}
-    </>
+    </li>
   );
 }
 
@@ -175,12 +242,12 @@ function OrderDetailPanel({ code }: { code: string }) {
     },
   });
 
-  if (detail.isLoading) return <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />;
+  if (detail.isLoading) return <div className="h-16 animate-pulse bg-bg-elevated" />;
   if (!detail.data) return <p className="text-sm text-danger">No se pudo cargar el pedido.</p>;
   const order = detail.data;
 
   return (
-    <div className="rounded-lg border border-border bg-bg-elevated/40 p-4 space-y-4">
+    <div className="space-y-4 bg-bg-elevated p-4">
       <ul className="text-sm space-y-1">
         {order.lines.map((line) => (
           <li key={line.product_code} className="flex justify-between gap-4">
@@ -194,12 +261,12 @@ function OrderDetailPanel({ code }: { code: string }) {
 
       {order.payment_proofs.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs uppercase tracking-wide text-text-muted">Comprobantes de pago</p>
+          <p className="font-display text-xs font-extrabold uppercase tracking-[0.12em]">Comprobantes de pago</p>
           {order.payment_proofs.map((proof) => (
             <div key={proof.attached_at} className="flex items-start gap-3 text-sm">
               {proof.photo_url && (
                 // eslint-disable-next-line @next/next/no-img-element -- a signed Storage link that expires
-                <img src={proof.photo_url} alt="" className="h-24 rounded object-cover" />
+                <img src={proof.photo_url} alt="" className="h-24 object-cover" />
               )}
               <div>
                 <p>
@@ -222,8 +289,7 @@ function OrderDetailPanel({ code }: { code: string }) {
         {(ACTIONS[order.status] ?? []).map((option) => (
           <Button
             key={option.operation}
-            variant={option.operation === "cancel_order" || option.operation === "refund_order" ? "ghost" : "primary"}
-            size="sm"
+            variant={option.operation === "cancel_order" || option.operation === "refund_order" ? "secondary" : "primary"}
             disabled={action.isPending}
             onClick={() => {
               if (confirm(option.confirm)) action.mutate(option.operation);

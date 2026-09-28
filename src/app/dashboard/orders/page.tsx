@@ -1,5 +1,10 @@
 import { OrdersView } from "@/components/dashboard/OrdersView";
 
-export default function DashboardOrdersPage() {
-  return <OrdersView />;
+export default async function DashboardOrdersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ estado?: string }>;
+}) {
+  const { estado } = await searchParams;
+  return <OrdersView initialStatus={estado} />;
 }

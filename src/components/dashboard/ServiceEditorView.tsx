@@ -29,7 +29,7 @@ export function ServiceEditorView({ serviceCode }: { serviceCode?: string }) {
     return <ServiceForm />;
   }
   if (query.isLoading) {
-    return <div className="h-96 animate-pulse rounded-xl bg-bg-elevated" />;
+    return <div className="h-96 animate-pulse bg-bg-elevated" />;
   }
   const service = query.data?.find((candidate) => candidate.code === serviceCode);
   if (!service) {
@@ -89,9 +89,9 @@ function ServiceForm({ service }: { service?: Service }) {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">{service ? service.name : "Nuevo servicio"}</h1>
+        <h1>{service ? service.name : "Nuevo servicio"}</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
           {service?.archived
             ? "Archivado: el bot no lo ofrece. Restáuralo para volver a agendarlo."
@@ -129,7 +129,7 @@ function ServiceForm({ service }: { service?: Service }) {
           </div>
 
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
+            <legend className="mb-1.5 font-display text-xs font-extrabold uppercase tracking-[0.12em] text-ink">
               Pago por adelantado
             </legend>
             {(Object.keys(PAYMENT_AHEAD_SAYS) as PaymentAhead[]).map((kind) => (

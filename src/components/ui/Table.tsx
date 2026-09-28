@@ -7,12 +7,12 @@ function TableRoot({ children, className = "" }: { children: React.ReactNode; cl
 }
 
 function THead({ children }: { children: React.ReactNode }) {
-  return <thead className="border-b border-border">{children}</thead>;
+  return <thead className="border-b border-border paper:border-b-2 paper:border-ink">{children}</thead>;
 }
 
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <th className={`py-3 pr-4 text-xs font-medium text-text-muted uppercase tracking-wide first:pl-0 ${className}`}>
+    <th className={`py-3 pr-4 text-xs font-medium text-text-muted uppercase tracking-wide first:pl-0 paper:font-display paper:font-extrabold paper:tracking-[0.12em] paper:text-ink ${className}`}>
       {children}
     </th>
   );
@@ -29,7 +29,7 @@ function Tr({ children, className = "" }: { children: React.ReactNode; className
 }
 
 function Td({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <td className={`py-3.5 pr-4 text-sm first:pl-0 ${className}`}>{children}</td>;
+  return <td className={`py-3.5 pr-4 text-sm first:pl-0 tabular-nums ${className}`}>{children}</td>;
 }
 
 function Loading({ rows = 4, cols = 4 }: { rows?: number; cols?: number }) {
@@ -39,7 +39,7 @@ function Loading({ rows = 4, cols = 4 }: { rows?: number; cols?: number }) {
         <tr key={i} className="border-b border-border">
           {Array.from({ length: cols }).map((_, j) => (
             <td key={j} className="py-3.5 pr-4">
-              <div className="h-4 rounded-md bg-bg-elevated animate-pulse" />
+              <div className="h-4 rounded-md bg-bg-elevated animate-pulse paper:rounded-none" />
             </td>
           ))}
         </tr>

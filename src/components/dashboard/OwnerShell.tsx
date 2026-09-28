@@ -3,22 +3,19 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Package,
-  Boxes,
   ShoppingCart,
-  Users,
-  Wallet,
-  BarChart2,
   BookOpen,
   Activity,
-  Bot,
   Settings,
   LogOut,
   ClipboardList,
   ShieldCheck,
   MessageSquareText,
+  MessagesSquare,
   Menu,
   X,
   Scissors,
@@ -26,92 +23,91 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { signOut } from "@/lib/supabase";
-import { isFeatureReady, type FeatureName } from "@/lib/features";
+import { readApi } from "@/lib/operations";
+import type { Schema } from "@/lib/api-types";
 import { isOn, useBusiness, type BusinessSwitch } from "@/lib/business";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
+
+type Overview = Schema<"Overview">;
+
+/** What waits on a screen, counted from the overview; shown next to its link. */
+type Waiting = "conversations" | "approvals";
 
 type NavLink = {
   href: string;
   label: string;
   icon: React.ElementType;
-  feature: null | FeatureName;
-  /** Shown only while the Business has this switch on. */
-  needs?: BusinessSwitch;
+  /** Shown while the Business has any of these switches on. */
+  needs?: BusinessSwitch[];
+  waiting?: Waiting;
 };
 
-const coreLinks: NavLink[] = [
-  { href: "/dashboard/automation", label: "Automatización", icon: Bot, feature: null },
+/** The panel's screens in the three groups of the spec: the day, the setup and the record. */
+const GROUPS: { title: string; links: NavLink[] }[] = [
   {
-    href: "/dashboard/orders",
-    label: "Pedidos",
-    icon: ClipboardList,
-    feature: null,
-    needs: "selling",
-  },
-  { href: "/dashboard/templates", label: "Plantillas", icon: MessageSquareText, feature: null },
-  { href: "/dashboard/knowledge", label: "Lo que sabe el bot", icon: BookOpen, feature: null },
-  { href: "/dashboard/approvals", label: "Aprobaciones", icon: ShieldCheck, feature: null },
-  { href: "/dashboard/sales", label: "Ventas", icon: ShoppingCart, feature: null },
-  { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, feature: "overview" },
-  {
-    href: "/dashboard/products",
-    label: "Productos",
-    icon: Package,
-    feature: "products",
-    needs: "selling",
-  },
-  {
-    href: "/dashboard/inventory",
-    label: "Inventario",
-    icon: Boxes,
-    feature: "inventory",
-    needs: "selling",
-  },
-  {
-    href: "/dashboard/agenda",
-    label: "Agenda",
-    icon: CalendarDays,
-    feature: null,
-    needs: "booking",
+    title: "Día a día",
+    links: [
+      { href: "/dashboard", label: "Inicio", icon: LayoutDashboard },
+      {
+        href: "/dashboard/automation",
+        label: "Conversaciones",
+        icon: MessagesSquare,
+        waiting: "conversations",
+      },
+      { href: "/dashboard/orders", label: "Pedidos", icon: ClipboardList, needs: ["selling"] },
+      {
+        href: "/dashboard/sales",
+        label: "Ventas",
+        icon: ShoppingCart,
+        needs: ["selling", "booking"],
+      },
+      { href: "/dashboard/agenda", label: "Agenda", icon: CalendarDays, needs: ["booking"] },
+      {
+        href: "/dashboard/approvals",
+        label: "Aprobaciones",
+        icon: ShieldCheck,
+        waiting: "approvals",
+      },
+    ],
   },
   {
-    href: "/dashboard/services",
-    label: "Servicios",
-    icon: Scissors,
-    feature: null,
-    needs: "booking",
+    title: "Configuración",
+    links: [
+      { href: "/dashboard/products", label: "Productos", icon: Package, needs: ["selling"] },
+      { href: "/dashboard/services", label: "Servicios", icon: Scissors, needs: ["booking"] },
+      { href: "/dashboard/hours", label: "Horarios", icon: CalendarClock, needs: ["booking"] },
+      { href: "/dashboard/knowledge", label: "El bot", icon: BookOpen },
+      { href: "/dashboard/templates", label: "Plantillas", icon: MessageSquareText },
+    ],
   },
   {
-    href: "/dashboard/hours",
-    label: "Horarios",
-    icon: CalendarClock,
-    feature: null,
-    needs: "booking",
+    title: "Control",
+    links: [
+      { href: "/dashboard/activity", label: "Bitácora", icon: Activity },
+      { href: "/dashboard/settings", label: "Cuenta", icon: Settings },
+    ],
   },
-  { href: "/dashboard/clients", label: "Clientes", icon: Users, feature: "clients" },
-  { href: "/dashboard/finance", label: "Finanzas", icon: Wallet, feature: "finance" },
 ];
 
-const toolLinks: NavLink[] = [
-  { href: "/dashboard/reports", label: "Reportes", icon: BarChart2, feature: "reports" },
-  { href: "/dashboard/activity", label: "Bitácora", icon: Activity, feature: null },
-  { href: "/dashboard/settings", label: "Ajustes", icon: Settings, feature: "settings" },
-];
-
-/** The screens already redrawn as the paper notebook; the shell turns to paper on them. */
-const PAPER_SCREENS = ["/dashboard"];
+const ALL_LINKS = GROUPS.flatMap((group) => group.links);
 
 /**
- * The screens a phone keeps in its bottom bar, in order and under a short name; the rest
- * are under "Más". Pedidos and Agenda share one place: the first the Business has on.
+ * The tabs a phone keeps at the bottom, by what the Business does: Pedidos for one that
+ * sells, Agenda for one that books, both for one that does both, and then Aprobaciones
+ * moves into "Más" (its count still shows on Inicio and on "Más").
  */
-const MOBILE_BAR: { href: string; short: string; slot: string }[] = [
-  { href: "/dashboard", short: "Inicio", slot: "inicio" },
-  { href: "/dashboard/automation", short: "Chats", slot: "chats" },
-  { href: "/dashboard/orders", short: "Pedidos", slot: "work" },
-  { href: "/dashboard/agenda", short: "Agenda", slot: "work" },
-  { href: "/dashboard/approvals", short: "Aprobar", slot: "approvals" },
-];
+function barHrefs(selling: boolean, booking: boolean): string[] {
+  const work = [selling && "/dashboard/orders", booking && "/dashboard/agenda"].filter(
+    (href): href is string => Boolean(href),
+  );
+  const tail = work.length === 2 ? [] : ["/dashboard/approvals"];
+  return ["/dashboard", "/dashboard/automation", ...work, ...tail];
+}
+
+const SHORT: Record<string, string> = {
+  "/dashboard/automation": "Chats",
+  "/dashboard/approvals": "Aprobar",
+};
 
 /**
  * The links a Business may use. Those behind a switch wait until the Business is known,
@@ -119,104 +115,139 @@ const MOBILE_BAR: { href: string; short: string; slot: string }[] = [
  */
 function useOffered(links: NavLink[]): NavLink[] {
   const { data: business, isError } = useBusiness();
-  return links.filter((link) => !link.needs || isError || isOn(business, link.needs));
+  return links.filter(
+    (link) => !link.needs || isError || link.needs.some((kind) => isOn(business, kind)),
+  );
+}
+
+/** How many things wait on each screen, from the same overview Inicio polls. */
+function useWaiting(): Record<Waiting, number> {
+  const { data } = useQuery({
+    queryKey: ["overview"],
+    queryFn: () => readApi<Overview>("/dashboard/overview"),
+    refetchInterval: 30000,
+  });
+  return {
+    conversations: data?.handed_over ?? 0,
+    approvals: data?.pending_approvals ?? 0,
+  };
 }
 
 function isActiveLink(pathname: string, href: string) {
   return pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 }
 
+/** A red count: something there waits on the Owner. Red means that and nothing else. */
+function Count({ value, className = "" }: { value: number; className?: string }) {
+  if (value <= 0) return null;
+  return (
+    <span
+      className={`inline-flex min-w-5 items-center justify-center bg-waiting px-1 font-display text-[11px] font-black leading-5 text-paper tabular-nums ${className}`}
+    >
+      {value > 99 ? "99+" : value}
+    </span>
+  );
+}
+
 function NavItem({
-  href,
-  label,
-  icon: Icon,
-  feature,
+  link,
   active,
+  count,
   onNavigate,
-}: NavLink & { active: boolean; onNavigate?: () => void }) {
-  const soon = feature !== null && !isFeatureReady(feature);
+}: {
+  link: NavLink;
+  active: boolean;
+  count: number;
+  onNavigate?: () => void;
+}) {
+  const Icon = link.icon;
   return (
     <Link
-      href={href}
+      href={link.href}
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-3 py-2.5 pl-4 pr-4 text-sm transition-colors ${
+      className={`flex min-h-11 items-center gap-3 px-3 text-[15px] transition-colors ${
         active
-          ? "bg-accent-dim font-semibold text-text-primary"
-          : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+          ? "bg-ink font-bold text-paper"
+          : "text-ink hover:bg-ink/[0.07]"
       }`}
     >
-      <Icon size={16} strokeWidth={1.75} />
-      <span>{label}</span>
-      {soon && (
-        <span className="ml-auto bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
-          Pronto
-        </span>
-      )}
+      <Icon aria-hidden size={18} strokeWidth={active ? 2.25 : 1.75} />
+      <span className="flex-1">{link.label}</span>
+      <Count value={count} />
+      {count > 0 && <span className="sr-only">pendientes</span>}
     </Link>
   );
 }
 
-/** Every screen, the core ones first and the tools after a separator. */
+/** Every screen the Business uses, under its group's name. */
 function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
-  const core = useOffered(coreLinks);
-  const tools = useOffered(toolLinks);
+  const offered = useOffered(ALL_LINKS);
+  const waiting = useWaiting();
   return (
     <>
-      {core.map((link) => (
-        <NavItem
-          key={link.href}
-          {...link}
-          active={isActiveLink(pathname, link.href)}
-          onNavigate={onNavigate}
-        />
-      ))}
-      <div className="h-px bg-border mx-4 my-2" />
-      {tools.map((link) => (
-        <NavItem
-          key={link.href}
-          {...link}
-          active={isActiveLink(pathname, link.href)}
-          onNavigate={onNavigate}
-        />
-      ))}
+      {GROUPS.map((group) => {
+        const links = group.links.filter((link) => offered.includes(link));
+        if (links.length === 0) return null;
+        return (
+          <div key={group.title} className="mb-5">
+            <p className="mb-1.5 px-3 font-display text-[11px] font-extrabold uppercase tracking-[0.16em] text-ink-muted">
+              {group.title}
+            </p>
+            <div className="flex flex-col gap-px">
+              {links.map((link) => (
+                <NavItem
+                  key={link.href}
+                  link={link}
+                  active={isActiveLink(pathname, link.href)}
+                  count={link.waiting ? waiting[link.waiting] : 0}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </>
   );
 }
 
-function MobileNav({
-  pathname,
-  onLogout,
-}: {
-  pathname: string;
-  onLogout: () => void;
-}) {
+function MobileNav({ pathname, onLogout }: { pathname: string; onLogout: () => void }) {
   const [open, setOpen] = useState(false);
-  const offered = useOffered(coreLinks);
-  const barLinks = MOBILE_BAR.flatMap((place) => {
-    const link = offered.find((candidate) => candidate.href === place.href);
-    return link ? [{ ...link, short: place.short, slot: place.slot }] : [];
-  }).filter((link, index, all) => all.findIndex((other) => other.slot === link.slot) === index);
+  const { data: business, isError } = useBusiness();
+  const waiting = useWaiting();
+  const selling = isError || isOn(business, "selling");
+  const booking = isError || isOn(business, "booking");
+  const hrefs = barHrefs(selling, booking);
+  const barLinks = hrefs.flatMap((href) => ALL_LINKS.filter((link) => link.href === href));
+  // What waits behind "Más": Aprobaciones when it left the bar.
+  const hiddenWaiting = hrefs.includes("/dashboard/approvals") ? 0 : waiting.approvals;
+  const inMore = !hrefs.some((href) => isActiveLink(pathname, href));
   const close = () => setOpen(false);
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t-2 border-text-primary flex">
-        {barLinks.map(({ href, short, icon: Icon }) => {
-          const active = isActiveLink(pathname, href);
+      <nav
+        aria-label="Principal"
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 flex border-t-2 border-ink bg-paper pb-[env(safe-area-inset-bottom)]"
+      >
+        {barLinks.map((link) => {
+          const Icon = link.icon;
+          const active = isActiveLink(pathname, link.href);
+          const count = link.waiting ? waiting[link.waiting] : 0;
           return (
             <Link
-              key={href}
-              href={href}
+              key={link.href}
+              href={link.href}
               aria-current={active ? "page" : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-2 text-[11px] transition-colors ${
-                active
-                  ? "font-bold text-text-primary shadow-[inset_0_3px_0_currentColor]"
-                  : "text-text-secondary"
+              className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 pb-2 pt-2.5 text-[11px] transition-colors ${
+                active ? "bg-ink font-bold text-paper" : "text-ink"
               }`}
             >
               <Icon aria-hidden size={20} strokeWidth={active ? 2.25 : 1.75} />
-              <span>{short}</span>
+              <span>{SHORT[link.href] ?? link.label}</span>
+              <Count value={count} className="absolute right-[calc(50%-22px)] top-1" />
+              {count > 0 && <span className="sr-only">, {count} pendientes</span>}
             </Link>
           );
         })}
@@ -224,10 +255,14 @@ function MobileNav({
           type="button"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-2 text-[11px] text-text-secondary transition-colors"
+          className={`relative flex min-h-14 flex-1 flex-col items-center justify-center gap-1 pb-2 pt-2.5 text-[11px] transition-colors ${
+            inMore ? "bg-ink font-bold text-paper" : "text-ink"
+          }`}
         >
           <Menu aria-hidden size={20} strokeWidth={1.75} />
           <span>Más</span>
+          <Count value={hiddenWaiting} className="absolute right-[calc(50%-22px)] top-1" />
+          {hiddenWaiting > 0 && <span className="sr-only">, {hiddenWaiting} pendientes</span>}
         </button>
       </nav>
 
@@ -237,7 +272,7 @@ function MobileNav({
             type="button"
             aria-label="Cerrar menú"
             onClick={close}
-            className="absolute inset-0 bg-black/60"
+            className="absolute inset-0 bg-ink/50"
           />
           <div
             role="dialog"
@@ -246,28 +281,28 @@ function MobileNav({
             onKeyDown={(event) => {
               if (event.key === "Escape") close();
             }}
-            className="relative max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-border bg-bg-secondary px-2 pb-6 pt-4"
+            className="chakana paste relative max-h-[85vh] overflow-y-auto border-t-2 border-ink bg-paper px-3 pb-8 pt-6"
           >
-            <div className="flex items-center justify-between px-4 pb-2">
-              <span className="text-sm font-semibold text-text-primary">Menú</span>
+            <div className="flex items-center justify-between px-3 pb-4">
+              <span className="font-display text-2xl font-black [font-stretch:78%]">Menú</span>
               <button
                 type="button"
                 aria-label="Cerrar"
                 autoFocus
                 onClick={close}
-                className="text-text-secondary hover:text-text-primary"
+                className="flex h-11 w-11 items-center justify-center text-ink"
               >
-                <X size={18} />
+                <X size={22} />
               </button>
             </div>
-            <nav className="flex flex-col gap-0.5">
+            <nav aria-label="Todas las pantallas">
               <NavLinks pathname={pathname} onNavigate={close} />
               <button
                 type="button"
                 onClick={onLogout}
-                className="flex items-center gap-3 py-2.5 pl-4 pr-4 text-sm text-text-secondary hover:text-text-primary"
+                className="flex min-h-11 w-full items-center gap-3 border-t border-paper-rule px-3 pt-2 text-[15px] text-ink-muted hover:text-ink"
               >
-                <LogOut size={16} strokeWidth={1.75} />
+                <LogOut aria-hidden size={18} strokeWidth={1.75} />
                 <span>Cerrar sesión</span>
               </button>
             </nav>
@@ -278,71 +313,68 @@ function MobileNav({
   );
 }
 
+/** The wordmark: the product's name in the notebook's heavy hand, with its yellow mark. */
+function Wordmark() {
+  return (
+    <Link href="/dashboard" className="flex items-center gap-2" aria-label="Doppel, ir a Inicio">
+      <span aria-hidden className="h-3.5 w-3.5 bg-money" />
+      <span className="font-display text-[22px] font-black leading-none tracking-tight [font-stretch:78%]">
+        Doppel
+      </span>
+    </Link>
+  );
+}
+
 export function OwnerShell({ children }: { children: React.ReactNode }) {
   useRequireAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const { data: business } = useBusiness();
   async function handleLogout() {
     await signOut();
     router.replace("/");
   }
 
   return (
-    <div
-      className={`min-h-screen bg-bg-primary text-text-primary ${
-        PAPER_SCREENS.includes(pathname) ? "theme-paper" : ""
-      }`}
-    >
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col lg:flex-row">
-        {/* Sidebar — desktop only */}
-        <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 border-r border-border">
-          {/* Logo */}
-          <div className="px-6 py-6">
-            <Link href="/dashboard/automation" className="flex items-center gap-2">
-              <span className="text-base font-semibold text-text-primary">Doppel</span>
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" />
-            </Link>
+    <div className="theme-paper min-h-screen bg-bg-primary text-text-primary">
+      <div className="flex min-h-screen w-full flex-col lg:flex-row">
+        {/* Sidebar: the notebook's cover flap, always open on a computer. */}
+        <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:w-64 lg:flex-shrink-0 lg:flex-col border-r-2 border-ink bg-bg-elevated">
+          <div className="px-6 pb-5 pt-6">
+            <Wordmark />
+            {business?.name && (
+              <p className="mt-2 truncate text-sm font-semibold text-ink-muted">{business.name}</p>
+            )}
           </div>
 
-          {/* Nav */}
-          <nav className="flex-1 flex flex-col px-2 gap-0.5 overflow-y-auto">
+          <nav aria-label="Principal" className="flex-1 overflow-y-auto px-3">
             <NavLinks pathname={pathname} />
           </nav>
 
-          {/* Sidebar footer — logout */}
-          <div className="px-2 py-4 border-t border-border">
+          <div className="border-t border-paper-rule px-3 py-3">
             <button
               type="button"
               onClick={handleLogout}
-              className="flex w-full items-center gap-3 pl-4 pr-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-elevated rounded-r-lg transition-colors"
+              className="flex min-h-11 w-full items-center gap-3 px-3 text-[15px] text-ink-muted transition-colors hover:bg-ink/[0.07] hover:text-ink"
             >
-              <LogOut size={16} strokeWidth={1.75} />
+              <LogOut aria-hidden size={18} strokeWidth={1.75} />
               <span>Cerrar sesión</span>
             </button>
           </div>
         </aside>
 
-        {/* Mobile top bar */}
-        <header className="lg:hidden flex items-center justify-between px-4 py-4 border-b border-border">
-          <Link href="/dashboard/automation" className="flex items-center gap-2">
-            <span className="text-base font-semibold">Doppel</span>
-            <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent" />
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="text-sm text-text-secondary hover:text-text-primary transition-colors"
-          >
-            Salir
-          </button>
+        {/* Top bar: phones only */}
+        <header className="lg:hidden flex items-center justify-between gap-3 border-b-2 border-ink bg-paper px-4 py-3">
+          <Wordmark />
+          {business?.name && (
+            <span className="truncate text-sm font-semibold text-ink-muted">{business.name}</span>
+          )}
         </header>
 
-        {/* Main content */}
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 pb-24 lg:pb-6">
-          {children}
+        <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-10 lg:py-8 lg:pb-10">
+          <div className="mx-auto w-full max-w-[1180px]">{children}</div>
         </main>
 
-        {/* Mobile bottom nav */}
         <MobileNav pathname={pathname} onLogout={handleLogout} />
       </div>
     </div>

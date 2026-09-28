@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Card, CardHeader } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import {
   APPOINTMENT_STATUS,
@@ -23,33 +22,32 @@ export function ContactAppointments({ conversationId }: { conversationId: string
       readApi<ContactAppointment[]>(`/dashboard/pipeline/${conversationId}/appointments`),
     enabled: booking,
   });
-  if (!booking) return null;
+  const list = appointments.data ?? [];
+  // Without booking, or with no Appointments, the thread has nothing to add here.
+  if (!booking || appointments.isLoading || (list.length === 0 && !appointments.error)) return null;
 
   return (
-    <Card>
-      <CardHeader
-        title="Citas"
-        action={
-          <Link href="/dashboard/agenda" className="text-xs text-accent hover:underline">
-            Ver agenda
-          </Link>
-        }
-      />
-      {appointments.isLoading ? (
-        <div className="h-12 animate-pulse rounded-lg bg-bg-elevated" />
-      ) : appointments.error ? (
+    <details className="border-t border-paper-rule pt-2">
+      <summary className="flex min-h-11 cursor-pointer items-center justify-between gap-3 text-sm font-bold">
+        <span>Citas de este cliente ({list.length})</span>
+        <Link href="/dashboard/agenda" className="font-bold underline underline-offset-4">
+          Ver agenda
+        </Link>
+      </summary>
+      {appointments.error ? (
         <p className="text-sm text-danger">No se pudieron cargar sus citas.</p>
-      ) : (appointments.data ?? []).length === 0 ? (
-        <p className="text-sm text-text-secondary">Todavía no tiene citas.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {(appointments.data ?? []).map((appointment) => {
+        <ul className="flex flex-col">
+          {list.map((appointment) => {
             const status = APPOINTMENT_STATUS[appointment.status];
             return (
-              <li key={appointment.appointment_code} className="flex items-start justify-between gap-3">
+              <li
+                key={appointment.appointment_code}
+                className="flex items-start justify-between gap-3 border-b border-paper-rule py-2"
+              >
                 <div>
-                  <p className="text-sm font-medium">{appointment.service}</p>
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-[15px] font-semibold">{appointment.service}</p>
+                  <p className="text-sm text-ink-muted">
                     <span className="capitalize">{dayAndTime(appointment.starts_at)}</span> · con{" "}
                     {appointment.professional}
                   </p>
@@ -60,6 +58,6 @@ export function ContactAppointments({ conversationId }: { conversationId: string
           })}
         </ul>
       )}
-    </Card>
+    </details>
   );
 }

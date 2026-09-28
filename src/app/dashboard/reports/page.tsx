@@ -1,5 +1,6 @@
-import { ComingSoon } from "@/components/dashboard/ComingSoon";
+import { redirect } from "next/navigation";
 
-export default function DashboardReportsPage() {
-  return <ComingSoon title="Reportes" />;
+/** Not in the panel yet: what does not exist is not shown, so the address leads to Inicio. */
+export default function NotYetPage() {
+  redirect("/dashboard");
 }

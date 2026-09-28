@@ -80,39 +80,6 @@ export function mergeConversationMeta(
   };
 }
 
-export function readConversationMetaMap(
-  tenantId: string,
-): Record<string, ConversationMeta> {
-  if (typeof window === "undefined") return {};
-
-  const result: Record<string, ConversationMeta> = {};
-  for (let index = 0; index < window.localStorage.length; index += 1) {
-    const key = window.localStorage.key(index);
-    if (!key || !key.startsWith(`${STORAGE_PREFIX}:${tenantId}:`)) continue;
-    const phone = key.slice(`${STORAGE_PREFIX}:${tenantId}:`.length);
-    const raw = window.localStorage.getItem(key);
-    if (!raw) continue;
-    try {
-      const parsed = JSON.parse(raw) as Partial<ConversationMeta>;
-      result[phone] = mergeConversationMeta(DEFAULT_META, parsed);
-    } catch {
-      continue;
-    }
-  }
-  return result;
-}
-
-export function writeConversationMetaMap(
-  tenantId: string,
-  metaByPhone: Record<string, ConversationMeta>,
-) {
-  if (typeof window === "undefined") return;
-
-  for (const [phone, meta] of Object.entries(metaByPhone)) {
-    window.localStorage.setItem(getConversationStorageKey(tenantId, phone), JSON.stringify(meta));
-  }
-}
-
 export function buildConversationSummaries(
   conversations: PipelineConversation[],
   persisted: Record<string, ConversationMeta>,

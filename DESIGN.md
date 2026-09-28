@@ -145,7 +145,7 @@ El panel del Owner es una hoja de cuaderno de ventas: papel crema con cuadrícul
 
 La densidad es la de una página, no la de un tablero: un cartel a todo el ancho que dice si hay algo que decidir, luego secciones marcadas en el margen, luego renglones. Nada flota; todo está pegado, trazado o escrito sobre el papel. El papel crema es una decisión confirmada por el usuario: el blanco puro abrumaba, y la hoja crema con cuadrícula de 20 px es la página del cuaderno.
 
-Rechazo confirmado: la grilla de tarjetas de métricas iguales sobre fondo oscuro. El aspecto oscuro anterior con acento verde WhatsApp (#25D366) sigue vivo solo en las pantallas que todavía no se han redibujado; es una migración en curso, no parte de este sistema.
+Rechazo confirmado: la grilla de tarjetas de métricas iguales sobre fondo oscuro. El aspecto oscuro anterior con acento verde WhatsApp (#25D366) ya no vive en ninguna pantalla del panel: todo el panel del Owner lleva `.theme-paper`, y las primitivas compartidas (Button, Card, Input, Badge, Table) tienen su versión cuaderno con la variante `paper:`. Solo el sitio público y el flujo de conexión conservan el look anterior.
 
 **Key Characteristics:**
 - Papel crema con cuadrícula de 20 px y un margen rojo vertical.

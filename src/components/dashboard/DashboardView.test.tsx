@@ -54,20 +54,9 @@ describe("DashboardView", () => {
     mockRun.mockReset();
     mockRead.mockReset();
     mockRead.mockResolvedValue([]);
-    window.localStorage.clear();
   });
 
   it("renders the Pipeline's conversations and the selected one's messages", async () => {
-    window.localStorage.setItem(
-      "automation-crm:biz_1:59170000001",
-      JSON.stringify({
-        leadStatus: "warm",
-        notes: "Pidio precios",
-        tags: ["vip"],
-        displayName: "Andrea",
-      }),
-    );
-
     serve(async (path: string) => {
       if (path === "/dashboard/business") {
         return jsonResponse({ id: "biz_1", name: "Doppel Store" });
@@ -127,12 +116,11 @@ describe("DashboardView", () => {
 
     render(<DashboardView />);
 
-    expect(await screen.findByText("Inbox de automatización")).toBeInTheDocument();
-    expect((await screen.findAllByText("Andrea")).length).toBeGreaterThan(0);
+    expect(await screen.findByRole("heading", { level: 1, name: "Conversaciones" })).toBeInTheDocument();
+    expect((await screen.findAllByText("+591 7000 0001")).length).toBeGreaterThan(0);
     expect(screen.getByText("Siguen atendiendo?")).toBeInTheDocument();
-    expect(await screen.findByDisplayValue("Pidio precios")).toBeInTheDocument();
     expect(await screen.findByText("Hola, precio?")).toBeInTheDocument();
-    expect(screen.getByText("Bot respondiendo")).toBeInTheDocument();
+    expect(screen.getByText("El bot responde en +591 70000000")).toBeInTheDocument();
   });
 
   it("sends an Owner with a Line but no Manager phone to the manager step", async () => {
@@ -259,7 +247,7 @@ describe("DashboardView", () => {
     render(<DashboardView />);
 
     expect(
-      await screen.findByText(/no escribió en las últimas 24 horas/),
+      await screen.findByText(/Pasaron 24 horas desde su último mensaje/),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Respuesta al cliente")).not.toBeInTheDocument();
   });
@@ -313,8 +301,8 @@ describe("DashboardView", () => {
     mockRun.mockResolvedValue({ status: "executed", result: { contact_code: "AAAAAA" } });
 
     render(<DashboardView />);
-    expect(await screen.findByText(/Bot en pausa hasta las/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Reactivar bot" }));
+    expect(await screen.findByText(/El bot vuelve a las/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Devolver al bot" }));
 
     await waitFor(() =>
       expect(mockRun).toHaveBeenCalledWith("resume_public_agent", { contact_code: "AAAAAA" }),

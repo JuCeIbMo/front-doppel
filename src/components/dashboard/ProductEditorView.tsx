@@ -27,7 +27,7 @@ export function ProductEditorView({ productCode }: { productCode?: string }) {
     return <ProductForm />;
   }
   if (query.isLoading) {
-    return <div className="h-96 animate-pulse rounded-xl bg-bg-elevated" />;
+    return <div className="h-96 animate-pulse bg-bg-elevated" />;
   }
   const product = query.data?.find((candidate) => candidate.code === productCode);
   if (!product) {
@@ -136,9 +136,9 @@ function ProductForm({ product }: { product?: Product }) {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">{product ? product.name : "Nuevo producto"}</h1>
+        <h1>{product ? product.name : "Nuevo producto"}</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
           {product?.archived
             ? "Archivado: el bot no lo ofrece. Restáuralo para volver a venderlo."
@@ -154,7 +154,7 @@ function ProductForm({ product }: { product?: Product }) {
             if (ready) save.mutate();
           }}
         >
-          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-border bg-bg-elevated text-sm text-text-secondary hover:border-white/20">
+          <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden border border-dashed border-border bg-bg-elevated text-sm text-text-secondary hover:border-ink/40">
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element -- a local preview or a signed link
               <img src={preview} alt="Foto del producto" className="h-full w-full object-cover" />

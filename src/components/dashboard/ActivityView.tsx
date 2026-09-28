@@ -2,7 +2,7 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
@@ -58,34 +58,35 @@ export function ActivityView() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-xl font-semibold">Bitácora</h1>
+          <h1>Bitácora</h1>
           <p className="mt-1 text-sm text-text-secondary">
             Todo lo que pasó en tu negocio: lo que hiciste tú, el bot con tus clientes y lo automático.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Quién lo hizo">
           {ACTORS.map((option) => (
-            <Button
+            <button
               key={option.id}
-              variant="ghost"
-              size="sm"
+              type="button"
+              aria-pressed={actor === option.id}
               onClick={() => setActor(option.id)}
-              className={actor === option.id ? "text-accent bg-accent/10" : ""}
+              className={`inline-flex min-h-11 items-center border-2 px-4 text-sm font-bold transition-colors ${
+                actor === option.id ? "border-ink bg-ink text-paper" : "border-ink/30 text-ink hover:border-ink"
+              }`}
             >
               {option.label}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
 
       <Card>
-        <CardHeader title="Actividad" />
         {query.isLoading ? (
           <div className="space-y-3">
-            <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
-            <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
+            <div className="h-16 animate-pulse bg-bg-elevated" />
+            <div className="h-16 animate-pulse bg-bg-elevated" />
           </div>
         ) : query.error ? (
           <p className="text-sm text-danger">
@@ -96,7 +97,7 @@ export function ActivityView() {
         ) : (
           <div className="space-y-3">
             {visible.map((row) => (
-              <div key={row.id} className="rounded-lg border border-border bg-bg-elevated/40 px-4 py-3">
+              <div key={row.id} className="border border-border bg-bg-elevated/40 px-4 py-3">
                 <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div className="flex items-center gap-2">
                     <span aria-hidden="true">{ACTOR_ICON[row.actor.kind]}</span>

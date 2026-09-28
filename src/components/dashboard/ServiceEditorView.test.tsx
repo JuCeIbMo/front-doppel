@@ -116,7 +116,7 @@ describe("services", () => {
     fireEvent.click(screen.getByRole("button", { name: "Guardar cambios" }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith("Agendar citas está apagado. Préndelo en Ajustes."),
+      expect(toast.error).toHaveBeenCalledWith("Agendar citas está apagado. Préndelo en Cuenta."),
     );
     expect(push).not.toHaveBeenCalled();
   });

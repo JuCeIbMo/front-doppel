@@ -43,9 +43,9 @@ export function HoursView() {
   const alone = professionals.length === 1;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Horarios</h1>
+        <h1>Horarios</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
           El bot solo ofrece horarios dentro de estas horas, fuera de los días libres y de las
           citas ya agendadas.
@@ -57,13 +57,13 @@ export function HoursView() {
       )}
 
       {team.isLoading ? (
-        <div className="h-96 animate-pulse rounded-xl bg-bg-elevated" />
+        <div className="h-96 animate-pulse bg-bg-elevated" />
       ) : team.error || !member ? (
         <Card>
           <p className="text-sm text-danger">
             {team.error instanceof Error
               ? team.error.message
-              : "Prende «Agendar citas» en Ajustes para armar tus horarios."}
+              : "Prende «Agendar citas» en Cuenta para armar tus horarios."}
           </p>
         </Card>
       ) : (
@@ -75,10 +75,10 @@ export function HoursView() {
                   key={candidate.professional_code}
                   type="button"
                   onClick={() => setChosen(candidate.professional_code)}
-                  className={`rounded-full px-3 py-1.5 text-sm ${
+                  className={`inline-flex min-h-11 items-center border-2 px-4 text-sm font-bold transition-colors ${
                     candidate.professional_code === member.professional_code
-                      ? "bg-accent/15 text-accent"
-                      : "bg-white/5 text-text-secondary"
+                      ? "border-ink bg-ink text-paper"
+                      : "border-ink/30 text-ink hover:border-ink"
                   }`}
                 >
                   {candidate.name}
@@ -187,7 +187,7 @@ function WeekEditor({ member, alone }: { member: TeamMember; alone: boolean }) {
                         dayBlocks.map((b, i) => (i === index ? { ...b, starts_at: event.target.value } : b)),
                       )
                     }
-                    className="rounded-lg border border-border bg-bg-elevated px-2 py-1"
+                    className="border border-border bg-bg-elevated px-2 py-1"
                   />
                   –
                   <input
@@ -200,7 +200,7 @@ function WeekEditor({ member, alone }: { member: TeamMember; alone: boolean }) {
                         dayBlocks.map((b, i) => (i === index ? { ...b, ends_at: event.target.value } : b)),
                       )
                     }
-                    className="rounded-lg border border-border bg-bg-elevated px-2 py-1"
+                    className="border border-border bg-bg-elevated px-2 py-1"
                   />
                   {index > 0 && (
                     <button
@@ -474,7 +474,7 @@ function StillToHappen({
   onDismiss: () => void;
 }) {
   return (
-    <div role="alert" className="rounded-2xl border border-warning/40 bg-warning/5 p-5">
+    <div role="alert" className="border border-warning/40 bg-warning/5 p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-semibold">
@@ -484,7 +484,7 @@ function StillToHappen({
           </p>
           <p className="mt-0.5 text-sm text-text-secondary">
             Siguen en pie hasta que las muevas o canceles en la{" "}
-            <Link href="/dashboard/agenda" className="text-accent hover:underline">
+            <Link href="/dashboard/agenda" className="font-bold underline underline-offset-4">
               Agenda
             </Link>
             .

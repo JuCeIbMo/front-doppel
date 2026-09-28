@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Card, CardHeader } from "@/components/ui/Card";
+import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { formatDateTime } from "@/lib/dates";
 import { operationLabel } from "@/lib/operation-labels";
@@ -16,10 +16,45 @@ export type PendingApproval = Omit<Schema<"ApprovalSummary">, "requested_by"> & 
 };
 
 const REQUESTER: Record<string, string> = {
-  owner: "Tú o tu agente",
+  owner: "Tú",
+  admin_agent: "Tu asistente",
   public_agent: "El bot, hablando con un cliente",
   system: "Doppel",
+  support: "Soporte",
 };
+
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+
+/** What an Approval asks for, as a sentence the Owner says yes or no to. */
+const ASKS: Record<string, (payload: Record<string, unknown>) => string> = {
+  confirm_payment: (p) => `Confirmar pago del pedido ${text(p.order_code)}`,
+  refund_order: (p) => `Reembolsar el pedido ${text(p.order_code)}`,
+  void_sale: (p) => `Anular la venta ${text(p.sale_code)}`,
+  mark_no_show: (p) => `Marcar que no vino a la cita ${text(p.appointment_code)}`,
+  confirm_appointment_payment: (p) => `Confirmar pago de la cita ${text(p.appointment_code)}`,
+  refund_appointment: (p) => `Reembolsar la cita ${text(p.appointment_code)}`,
+};
+
+export function approvalTitle(approval: Pick<PendingApproval, "operation" | "payload">): string {
+  return ASKS[approval.operation]?.(approval.payload).trim() ?? operationLabel(approval.operation);
+}
+
+/** Where the thing an Approval is about can be seen. */
+function approvalLink(payload: Record<string, unknown>): { href: string; label: string } | null {
+  if (text(payload.sale_code)) return { href: `/dashboard/sales/${text(payload.sale_code)}`, label: "Ver la venta" };
+  if (text(payload.order_code)) return { href: "/dashboard/orders?estado=placed", label: "Ver los pedidos" };
+  if (text(payload.appointment_code)) return { href: "/dashboard/agenda", label: "Ver la agenda" };
+  return null;
+}
+
+/** "vence en 23 h", "vence en 40 min" or "venció". */
+function expiresIn(moment: string, now: Date = new Date()): string {
+  const minutes = Math.round((new Date(moment).getTime() - now.getTime()) / 60000);
+  if (minutes <= 0) return "venció";
+  if (minutes < 60) return `vence en ${minutes} min`;
+  const hours = Math.round(minutes / 60);
+  return hours < 48 ? `vence en ${hours} h` : `vence el ${formatDateTime(moment)}`;
+}
 
 export function ApprovalsView() {
   const queryClient = useQueryClient();
@@ -34,7 +69,8 @@ export function ApprovalsView() {
       return choice;
     },
     onSuccess: async (choice) => {
-      await queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      // An answered Approval can change anything: orders, sales, the agenda, the counts.
+      await queryClient.invalidateQueries();
       toast.success(choice === "approve" ? "Aprobado." : "Rechazado.");
     },
     onError: async (error) => {
@@ -49,62 +85,89 @@ export function ApprovalsView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Aprobaciones</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">
+        <h1>Aprobaciones</h1>
+        <p className="text-sm text-text-secondary">
           Cambios delicados que esperan tu sí o tu no antes de hacerse.
         </p>
       </div>
 
-      <Card>
-        <CardHeader title="Pendientes" />
-        {query.isLoading ? (
-          <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
-        ) : query.error ? (
-          <p className="text-sm text-danger">
-            {query.error instanceof Error ? query.error.message : "No se pudo cargar."}
+      {query.isLoading ? (
+        <div className="h-40 animate-pulse bg-paper-rule/40" aria-busy="true" />
+      ) : query.error ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="font-hand text-lg font-bold text-danger">
+            {query.error instanceof Error ? query.error.message : "No pudimos cargar tus aprobaciones."}
           </p>
-        ) : pending.length === 0 ? (
-          <p className="text-sm text-text-secondary">No hay nada esperando tu aprobación.</p>
-        ) : (
-          <div className="space-y-3">
-            {pending.map((approval) => (
-              <div key={approval.id} className="rounded-lg border border-border bg-bg-elevated/40 px-4 py-3">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <p className="font-medium">{operationLabel(approval.operation)}</p>
-                    <p className="mt-1 text-sm text-text-secondary">{approval.reason}</p>
-                    <p className="mt-1 text-xs text-text-muted">
-                      Pedido por: {REQUESTER[approval.requested_by.kind ?? ""] ?? "Desconocido"} · vence{" "}
-                      {formatDateTime(approval.expires_at)}
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Reintentar
+          </Button>
+        </div>
+      ) : pending.length === 0 ? (
+        <div className="chakana bg-settled px-5 pb-5 pt-7 text-paper">
+          <p className="font-display text-2xl font-black [font-stretch:78%]">No tienes nada pendiente.</p>
+          <p className="mt-1 text-[15px]">Cuando el bot necesite tu sí para algo delicado, aparece aquí.</p>
+        </div>
+      ) : (
+        <section aria-label="Pendientes" className="max-w-3xl">
+          <p className="mb-3 font-display text-lg font-extrabold [font-stretch:85%]">
+            {pending.length === 1 ? "1 espera tu respuesta" : `${pending.length} esperan tu respuesta`}
+          </p>
+          <ul className="flex flex-col gap-4">
+            {pending.map((approval) => {
+              const link = approvalLink(approval.payload);
+              const title = approvalTitle(approval);
+              return (
+                <li key={approval.id} className="border-2 border-ink bg-paper">
+                  <div className="border-b border-paper-rule px-4 pb-3 pt-4">
+                    <p className="font-display text-xl font-extrabold leading-tight [font-stretch:85%]">
+                      {title}
                     </p>
-                    <pre className="mt-2 whitespace-pre-wrap break-all rounded bg-bg-elevated p-2 text-xs text-text-secondary">
-                      {JSON.stringify(approval.payload, null, 2)}
-                    </pre>
+                    {approval.reason && (
+                      <p className="mt-2 text-[15px]">&ldquo;{approval.reason}&rdquo;</p>
+                    )}
+                    <p className="mt-2 text-sm text-ink-muted">
+                      Pidió: {REQUESTER[approval.requested_by.kind ?? ""] ?? "Alguien"} ·{" "}
+                      <span className="font-hand text-base font-bold text-waiting">
+                        {expiresIn(approval.expires_at)}
+                      </span>
+                    </p>
+                    {link && (
+                      <Link
+                        href={link.href}
+                        className="mt-2 inline-flex min-h-9 items-center text-sm font-bold underline underline-offset-4"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={answer.isPending}
-                      onClick={() => answer.mutate({ id: approval.id, choice: "approve" })}
-                    >
-                      Aprobar
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                  <div className="flex">
+                    <button
+                      type="button"
                       disabled={answer.isPending}
                       onClick={() => answer.mutate({ id: approval.id, choice: "decline" })}
+                      className="min-h-12 flex-1 border-r-2 border-ink text-[15px] font-bold transition-colors hover:bg-ink/[0.07] disabled:opacity-50"
                     >
                       Rechazar
-                    </Button>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={answer.isPending}
+                      onClick={() => {
+                        if (confirm(`¿Aprobar? ${title}.`)) {
+                          answer.mutate({ id: approval.id, choice: "approve" });
+                        }
+                      }}
+                      className="min-h-12 flex-1 bg-ink text-[15px] font-bold text-paper transition-colors hover:bg-steps disabled:opacity-50"
+                    >
+                      Aprobar
+                    </button>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

@@ -17,9 +17,9 @@ import {
 } from "@/lib/templates";
 
 const STATUS_TONE: Record<string, string> = {
-  APPROVED: "bg-accent/12 text-accent",
-  PENDING: "bg-amber-500/12 text-amber-300",
-  REJECTED: "bg-rose-500/12 text-rose-300",
+  APPROVED: "bg-settled text-paper",
+  PENDING: "bg-money text-ink",
+  REJECTED: "bg-waiting text-paper",
 };
 
 /** Templates: the messages Meta lets a Business send once a Contact's 24 hours are over. */
@@ -37,9 +37,9 @@ export function TemplatesView() {
   const templates = query.data ?? [];
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Plantillas</h1>
+        <h1>Plantillas</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
           WhatsApp solo deja escribir a un cliente que no te escribió en las últimas 24 horas con
           una plantilla aprobada por Meta. Cada envío tiene costo.
@@ -59,7 +59,7 @@ export function TemplatesView() {
       <Card>
         <CardHeader title="Tus plantillas" />
         {query.isLoading ? (
-          <div className="h-16 animate-pulse rounded-lg bg-bg-elevated" />
+          <div className="h-16 animate-pulse bg-bg-elevated" />
         ) : query.error ? (
           <p className="text-sm text-danger">
             {query.error instanceof Error ? query.error.message : "No se pudo cargar."}
@@ -71,7 +71,7 @@ export function TemplatesView() {
             {templates.map((template) => (
               <li
                 key={`${template.name}-${template.language}`}
-                className="rounded-lg border border-border bg-bg-elevated p-4"
+                className="border border-border bg-bg-elevated p-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="break-all font-medium">{template.name}</p>
@@ -80,8 +80,8 @@ export function TemplatesView() {
                       {TEMPLATE_CATEGORY[template.category] ?? template.category}
                     </span>
                     <span
-                      className={`rounded-full px-2.5 py-1 font-medium ${
-                        STATUS_TONE[template.status] ?? "bg-white/8 text-text-secondary"
+                      className={`px-2 py-0.5 font-bold ${
+                        STATUS_TONE[template.status] ?? "border-ink/30 text-ink hover:border-ink"
                       }`}
                     >
                       {TEMPLATE_STATUS[template.status] ?? template.status}
@@ -162,15 +162,15 @@ function NewTemplate({ taken, onSubmitted }: { taken: string[]; onSubmitted: () 
         />
 
         <fieldset className="flex flex-col gap-1.5">
-          <legend className="mb-1.5 text-xs font-medium uppercase tracking-wide text-text-muted">
+          <legend className="mb-1.5 font-display text-xs font-extrabold uppercase tracking-[0.12em] text-ink">
             Tipo
           </legend>
           <div className="flex gap-2">
             {(["utility", "marketing"] as const).map((option) => (
               <label
                 key={option}
-                className={`cursor-pointer rounded-full px-3 py-1.5 text-sm ${
-                  category === option ? "bg-accent/15 text-accent" : "bg-white/5 text-text-secondary"
+                className={`cursor-pointer inline-flex min-h-11 items-center border-2 px-4 text-sm font-bold transition-colors ${
+                  category === option ? "border-ink bg-ink text-paper" : "border-ink/30 text-ink hover:border-ink"
                 }`}
               >
                 <input
@@ -190,7 +190,7 @@ function NewTemplate({ taken, onSubmitted }: { taken: string[]; onSubmitted: () 
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="template-body"
-            className="text-xs font-medium uppercase tracking-wide text-text-muted"
+            className="font-display text-xs font-extrabold uppercase tracking-[0.12em] text-ink"
           >
             Mensaje
           </label>
@@ -201,7 +201,7 @@ function NewTemplate({ taken, onSubmitted }: { taken: string[]; onSubmitted: () 
             rows={4}
             maxLength={1024}
             placeholder="Hola {{1}}, tu pedido {{2}} ya está listo para recoger."
-            className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-accent/40 focus:outline-none focus:ring-1 focus:ring-accent/40"
+            className="w-full min-h-11 border border-ink/35 bg-paper px-3 py-2.5 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink resize-y"
           />
           <p className="text-xs text-text-secondary">
             Escribe {"{{1}}"}, {"{{2}}"}… donde irá lo que cambia en cada envío. No empieces ni
@@ -224,7 +224,7 @@ function NewTemplate({ taken, onSubmitted }: { taken: string[]; onSubmitted: () 
         ))}
 
         {body.trim() && (
-          <p className="rounded-lg border border-border bg-bg-elevated p-3 text-sm">
+          <p className="border border-border bg-bg-elevated p-3 text-sm">
             {renderTemplate(body, filled)}
           </p>
         )}

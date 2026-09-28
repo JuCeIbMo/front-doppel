@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { LogOut, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/supabase";
 import { toast } from "sonner";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -48,14 +50,20 @@ export function SettingsView() {
     queryFn: () => readApi<Schema<"ManagerPhoneSummary">[]>("/dashboard/manager-phones"),
   });
 
+  const router = useRouter();
+  async function logOut() {
+    await signOut();
+    router.replace("/");
+  }
+
   const failed = [business.error, line.error, phones.error].find(Boolean);
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-6">
+    <div className="flex max-w-3xl flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Ajustes</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">
-          El nombre de tu negocio, tu WhatsApp y quiénes pueden hablar con tu asistente.
+        <h1>Cuenta</h1>
+        <p className="text-sm text-text-secondary">
+          El nombre de tu negocio, qué hace, tu WhatsApp y quiénes pueden hablar con tu asistente.
         </p>
       </div>
 
@@ -77,7 +85,7 @@ export function SettingsView() {
       )}
 
       {line.isLoading ? (
-        <div className="h-32 animate-pulse rounded-xl bg-bg-elevated" />
+        <div className="h-32 animate-pulse bg-bg-elevated" />
       ) : line.data ? (
         <>
           <ConnectedLine line={line.data} />
@@ -94,6 +102,11 @@ export function SettingsView() {
           current={phones.data.map((entry) => entry.phone)}
         />
       )}
+
+      <Button variant="secondary" className="self-start" onClick={() => void logOut()}>
+        <LogOut aria-hidden size={16} />
+        Cerrar sesión
+      </Button>
     </div>
   );
 }
@@ -299,7 +312,7 @@ function Reminders() {
     <div className="mt-5 border-t border-border pt-4">
       <p className="text-sm font-medium text-text-primary">Recordatorio del día antes</p>
       {reminders.isLoading ? (
-        <div className="mt-2 h-10 animate-pulse rounded-lg bg-bg-elevated" />
+        <div className="mt-2 h-10 animate-pulse bg-bg-elevated" />
       ) : !state ? (
         <p className="mt-1 text-sm text-danger">
           No pudimos preguntarle a Meta por el recordatorio. Vuelve a intentarlo en un rato.
@@ -486,7 +499,7 @@ function CallVoice({ current }: { current: string | null }) {
         maxLength={VOICE_INSTRUCTIONS_MAX_CHARS}
         rows={3}
         placeholder="Habla despacio, con acento boliviano, trata de usted."
-        className="w-full rounded-lg border border-border bg-bg-elevated px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent/40 focus:border-accent/40 transition-colors resize-none"
+        className="w-full min-h-11 border border-ink/35 bg-paper px-3 py-2.5 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink resize-y"
       />
       <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
         <span className="mr-auto text-xs text-text-muted">
@@ -555,7 +568,7 @@ function ManagerPhones({ current }: { current: string[] }) {
           phones.map((phone) => (
             <li
               key={phone}
-              className="flex items-center justify-between rounded-lg border border-border bg-bg-elevated px-4 py-2.5 text-sm"
+              className="flex items-center justify-between border border-border bg-bg-elevated px-4 py-2.5 text-sm"
             >
               {/^\d+$/.test(phone) ? `+${phone}` : phone}
               <button

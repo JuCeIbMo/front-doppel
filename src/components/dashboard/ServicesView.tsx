@@ -21,7 +21,7 @@ export function ServicesView() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold">Servicios</h1>
+          <h1>Servicios</h1>
           <p className="mt-0.5 text-sm text-text-secondary">
             Lo que el bot agenda por WhatsApp. Un servicio archivado deja de ofrecerse; las citas
             ya agendadas se mantienen.
@@ -42,10 +42,10 @@ export function ServicesView() {
             key={tab.label}
             type="button"
             onClick={() => setShowArchived(tab.archived)}
-            className={`rounded-full px-3 py-1.5 text-sm ${
+            className={`inline-flex min-h-11 items-center border-2 px-4 text-sm font-bold transition-colors ${
               showArchived === tab.archived
-                ? "bg-accent/15 text-accent"
-                : "bg-white/5 text-text-secondary"
+                ? "border-ink bg-ink text-paper"
+                : "border-ink/30 text-ink hover:border-ink"
             }`}
           >
             {tab.label}
@@ -54,7 +54,7 @@ export function ServicesView() {
       </div>
 
       {query.isLoading ? (
-        <div className="h-40 animate-pulse rounded-xl bg-bg-elevated" />
+        <div className="h-40 animate-pulse bg-bg-elevated" />
       ) : query.error ? (
         <Card>
           <p className="text-sm text-danger">
@@ -70,7 +70,7 @@ export function ServicesView() {
           </p>
         </Card>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-bg-secondary">
+        <ul className="divide-y divide-border overflow-hidden border border-border bg-bg-secondary">
           {services.map((service) => (
             <ServiceRow key={service.code} service={service} />
           ))}
@@ -86,7 +86,7 @@ function ServiceRow({ service }: { service: Service }) {
     <li>
       <Link
         href={`/dashboard/services/${service.code}`}
-        className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-white/5"
+        className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-bg-elevated"
       >
         <div>
           <p className="font-medium">{service.name}</p>

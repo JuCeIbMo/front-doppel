@@ -6,9 +6,10 @@ const PHONE = { width: 375, height: 740 };
 const DESKTOP = { width: 1280, height: 800 };
 
 /** Every screen that works against the API, with the heading it opens on. */
-const READY_SCREENS = [
-  { path: "/dashboard", heading: "Inicio" },
-  { path: "/dashboard/automation", heading: "Inbox de automatización" },
+const READY_SCREENS: { path: string; heading: string | RegExp }[] = [
+  // Inicio opens on the day's date, as a notebook page does.
+  { path: "/dashboard", heading: / de / },
+  { path: "/dashboard/automation", heading: "Conversaciones" },
   { path: "/dashboard/orders", heading: "Pedidos" },
   { path: "/dashboard/approvals", heading: "Aprobaciones" },
   { path: "/dashboard/sales", heading: "Ventas" },
@@ -17,23 +18,23 @@ const READY_SCREENS = [
   { path: "/dashboard/products/new", heading: "Nuevo producto" },
   { path: "/dashboard/products/P1", heading: "Barra de chocolate amargo" },
   { path: "/dashboard/templates", heading: "Plantillas" },
-  { path: "/dashboard/knowledge", heading: "Lo que sabe el bot" },
+  { path: "/dashboard/knowledge", heading: "El bot" },
   { path: "/dashboard/activity", heading: "Bitácora" },
-  { path: "/dashboard/settings", heading: "Ajustes" },
+  { path: "/dashboard/settings", heading: "Cuenta" },
 ];
 
 /** What the navigation offers that works, and where each one leads. */
 const NAVIGATION = [
   { label: "Inicio", path: "/dashboard" },
-  { label: "Automatización", path: "/dashboard/automation" },
+  { label: "Conversaciones", path: "/dashboard/automation" },
   { label: "Pedidos", path: "/dashboard/orders" },
   { label: "Plantillas", path: "/dashboard/templates" },
-  { label: "Lo que sabe el bot", path: "/dashboard/knowledge" },
+  { label: "El bot", path: "/dashboard/knowledge" },
   { label: "Aprobaciones", path: "/dashboard/approvals" },
   { label: "Ventas", path: "/dashboard/sales" },
   { label: "Productos", path: "/dashboard/products" },
   { label: "Bitácora", path: "/dashboard/activity" },
-  { label: "Ajustes", path: "/dashboard/settings" },
+  { label: "Cuenta", path: "/dashboard/settings" },
 ];
 
 const LINE = { phone_number_id: "pn-1", display_phone_number: "+591 70000000", public_agent_enabled: true };
@@ -209,7 +210,7 @@ test("on a phone the Owner reaches every ready screen from the menu", async ({ p
   for (const entry of NAVIGATION) {
     await page.getByRole("button", { name: "Más", exact: true }).click();
     const menu = page.getByRole("dialog", { name: "Menú" });
-    await menu.getByRole("link", { name: entry.label, exact: true }).click();
+    await menu.getByRole("link", { name: new RegExp(`^${entry.label}`) }).click();
     await expect(page).toHaveURL(new RegExp(`${entry.path}$`));
     await expect(menu).toBeHidden();
   }

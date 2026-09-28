@@ -2,10 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { Card, CardHeader } from "@/components/ui/Card";
-import { Table } from "@/components/ui/Table";
 import { Badge } from "@/components/ui/Badge";
-import { formatDateTime } from "@/lib/dates";
+import { Button } from "@/components/ui/Button";
+import { BUSINESS_TIME_ZONE, clockTime } from "@/lib/appointments";
 import { readApi } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { Schema } from "@/lib/api-types";
@@ -19,6 +18,20 @@ export const PAYMENT: Record<NonNullable<SaleSummary["payment_method"]>, string>
   card: "Tarjeta",
 };
 
+const dayOf = (moment: string) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: BUSINESS_TIME_ZONE }).format(new Date(moment));
+
+function writtenDay(moment: string) {
+  const text = new Intl.DateTimeFormat("es-BO", {
+    timeZone: BUSINESS_TIME_ZONE,
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(moment));
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Ventas: the Business's latest sales, a page per day with that day's total on top. */
 export function SalesView() {
   const { format } = useCurrency();
   const query = useQuery({
@@ -26,69 +39,93 @@ export function SalesView() {
     queryFn: () => readApi<SaleSummary[]>("/dashboard/sales"),
   });
 
-
   const sales = query.data ?? [];
+  const days = new Map<string, SaleSummary[]>();
+  for (const sale of sales) {
+    const key = dayOf(sale.created_at);
+    days.set(key, [...(days.get(key) ?? []), sale]);
+  }
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Ventas</h1>
-        <p className="mt-0.5 text-sm text-text-secondary">
-          Tus últimas 100 ventas, incluidas las que salen de pedidos entregados.
+        <h1>Ventas</h1>
+        <p className="text-sm text-text-secondary">
+          Tus últimas 100 ventas, incluidas las que salen de pedidos entregados y citas atendidas.
         </p>
       </div>
 
-      <Card>
-        <CardHeader title="Ventas" />
-        {query.isLoading ? (
-          <Table>
-            <Table.Loading rows={5} cols={5} />
-          </Table>
-        ) : query.error ? (
-          <p className="text-sm text-danger">
-            {query.error instanceof Error ? query.error.message : "No se pudieron cargar las ventas."}
+      {query.isLoading ? (
+        <div className="flex flex-col gap-2" aria-busy="true">
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="h-12 animate-pulse bg-paper-rule/40" />
+          ))}
+        </div>
+      ) : query.error ? (
+        <div className="flex flex-col items-start gap-3">
+          <p className="font-hand text-lg font-bold text-danger">
+            {query.error instanceof Error ? query.error.message : "No pudimos cargar tus ventas."}
           </p>
-        ) : sales.length === 0 ? (
-          <Table>
-            <Table.Empty>Todavía no hay ventas registradas.</Table.Empty>
-          </Table>
-        ) : (
-          <Table>
-            <Table.Head>
-              <tr>
-                <Table.Th>Código</Table.Th>
-                <Table.Th className="hidden sm:table-cell">Fecha</Table.Th>
-                <Table.Th className="hidden sm:table-cell">Pago</Table.Th>
-                <Table.Th>Total</Table.Th>
-                <Table.Th>Estado</Table.Th>
-              </tr>
-            </Table.Head>
-            <Table.Body>
-              {sales.map((sale) => (
-                <Table.Row key={sale.code}>
-                  <Table.Cell className="font-mono text-xs">
-                    <Link href={`/dashboard/sales/${sale.code}`} className="text-accent hover:underline">
-                      {sale.code}
-                    </Link>
-                  </Table.Cell>
-                  <Table.Cell className="hidden sm:table-cell text-text-secondary text-xs">
-                    {formatDateTime(sale.created_at)}
-                  </Table.Cell>
-                  <Table.Cell className="hidden sm:table-cell text-text-secondary">{sale.payment_method && PAYMENT[sale.payment_method]}</Table.Cell>
-                  <Table.Cell className="text-text-primary font-semibold">
-                    {format(Number(sale.total))}
-                  </Table.Cell>
-                  <Table.Cell>
-                    <Badge variant={sale.status === "registered" ? "success" : "danger"}>
-                      {sale.status === "registered" ? "Registrada" : "Anulada"}
-                    </Badge>
-                  </Table.Cell>
-                </Table.Row>
-              ))}
-            </Table.Body>
-          </Table>
-        )}
-      </Card>
+          <Button variant="secondary" onClick={() => void query.refetch()}>
+            Reintentar
+          </Button>
+        </div>
+      ) : sales.length === 0 ? (
+        <p className="py-10 text-[15px] text-ink-muted">
+          Todavía no hay ventas. Aparecen aquí cuando entregas un pedido o atiendes una cita.
+        </p>
+      ) : (
+        <div className="flex max-w-3xl flex-col gap-8">
+          {Array.from(days.entries()).map(([day, group]) => {
+            const kept = group.filter((sale) => sale.status === "registered");
+            const total = kept.reduce((sum, sale) => sum + Number(sale.total), 0);
+            return (
+              <section key={day} aria-label={writtenDay(group[0].created_at)}>
+                <div className="flex items-end justify-between gap-3 border-b-2 border-ink pb-1.5">
+                  <h2 className="font-hand text-xl font-bold text-steps [font-stretch:100%]">
+                    {writtenDay(group[0].created_at)}
+                  </h2>
+                  <p className="text-right text-sm text-ink-muted">
+                    {kept.length} {kept.length === 1 ? "venta" : "ventas"} ·{" "}
+                    <span className="bg-money px-1.5 font-hand text-lg font-bold text-ink">
+                      {format(total)}
+                    </span>
+                  </p>
+                </div>
+                <ul>
+                  {group.map((sale) => {
+                    const voided = sale.status !== "registered";
+                    return (
+                      <li key={sale.code} className="border-b border-paper-rule">
+                        <Link
+                          href={`/dashboard/sales/${sale.code}`}
+                          className={`flex min-h-12 items-center gap-3 py-2 transition-colors hover:bg-ink/[0.04] ${voided ? "text-ink-muted" : ""}`}
+                        >
+                          <span className="w-12 text-sm tabular-nums text-ink-muted">
+                            {clockTime(sale.created_at)}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold tabular-nums">{sale.code}</span>
+                            <span className="block text-sm text-ink-muted">
+                              {sale.payment_method ? PAYMENT[sale.payment_method] : "Sin método de pago"}
+                            </span>
+                          </span>
+                          {voided && <Badge variant="neutral">Anulada</Badge>}
+                          <span
+                            className={`font-hand text-lg font-bold tabular-nums ${voided ? "line-through" : "text-steps"}`}
+                          >
+                            {format(Number(sale.total))}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

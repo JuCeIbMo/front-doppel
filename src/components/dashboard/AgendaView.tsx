@@ -1,5 +1,7 @@
 "use client";
 
+import { formatPhone } from "@/lib/phone";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
@@ -18,7 +20,6 @@ import {
   businessDay,
   byProfessional,
   clockTime,
-  formatDay,
   paymentSays,
   shiftDays,
   useAgenda,
@@ -40,6 +41,17 @@ function shortDay(day: string): string {
 }
 
 /** The Appointments of a week, one day at a time, by Professional. */
+/** A day as the notebook writes it: "Lunes, 28 de septiembre". */
+function writtenDay(day: string): string {
+  const text = new Intl.DateTimeFormat("es-BO", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  }).format(new Date(`${day}T12:00:00Z`));
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 export function AgendaView() {
   const today = businessDay(new Date());
   const [firstDay, setFirstDay] = useState(today);
@@ -62,7 +74,7 @@ export function AgendaView() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Agenda</h1>
+        <h1>Agenda</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
           Las citas de cada día, por persona. Muévelas, cancélalas o marca quién no vino.
         </p>
@@ -75,7 +87,7 @@ export function AgendaView() {
           type="button"
           aria-label="Semana anterior"
           onClick={() => moveWeek(-7)}
-          className="rounded-lg p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+          className="p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
         >
           <ChevronLeft size={16} />
         </button>
@@ -87,14 +99,14 @@ export function AgendaView() {
                 key={each}
                 type="button"
                 onClick={() => setDay(each)}
-                className={`min-w-16 flex-1 rounded-lg px-2 py-2 text-center text-sm transition-colors ${
+                className={`min-w-16 flex-1 px-2 py-2 text-center text-sm transition-colors ${
                   each === day
-                    ? "bg-accent-dim text-text-primary"
-                    : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+                    ? "bg-ink font-bold text-paper"
+                    : "text-ink hover:bg-ink/[0.07]"
                 }`}
               >
                 <span className="block capitalize">{shortDay(each)}</span>
-                <span className="block text-xs text-text-muted">
+                <span className={`block text-xs ${each === day ? "text-paper" : "text-text-muted"}`}>
                   {count === 0 ? "—" : count === 1 ? "1 cita" : `${count} citas`}
                 </span>
               </button>
@@ -105,16 +117,16 @@ export function AgendaView() {
           type="button"
           aria-label="Semana siguiente"
           onClick={() => moveWeek(7)}
-          className="rounded-lg p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+          className="p-2 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
         >
           <ChevronRight size={16} />
         </button>
       </div>
 
-      <p className="text-sm font-medium capitalize">{formatDay(day)}</p>
+      <p className="font-hand text-xl font-bold text-steps">{writtenDay(day)}</p>
 
       {agenda.isLoading || team.isLoading ? (
-        <div className="h-32 animate-pulse rounded-2xl bg-bg-elevated" />
+        <div className="h-32 animate-pulse bg-bg-elevated" />
       ) : agenda.error || team.error ? (
         <p className="text-sm text-danger">No se pudo cargar la agenda. Recarga la página.</p>
       ) : (
@@ -125,9 +137,9 @@ export function AgendaView() {
               aria-label={column.name}
               className="flex flex-col gap-3"
             >
-              <h2 className="text-sm font-semibold">{column.name}</h2>
+              <h2 className="border-b-2 border-ink pb-1 text-lg">{column.name}</h2>
               {column.appointments.length === 0 ? (
-                <p className="rounded-2xl border border-border px-4 py-3 text-sm text-text-muted">
+                <p className="border border-border px-4 py-3 text-sm text-text-muted">
                   Sin citas
                 </p>
               ) : (
@@ -147,13 +159,13 @@ export function AgendaView() {
 function GoogleNote() {
   const { data: business } = useBusiness();
   return (
-    <p className="rounded-2xl border border-border bg-bg-elevated/40 px-4 py-3 text-sm text-text-secondary">
+    <p className="max-w-2xl text-sm text-text-secondary">
       {business?.calendar_email
         ? `Tus citas también aparecen en el Google Calendar de ${business.calendar_email}. `
         : "Tus citas también pueden aparecer en tu Google Calendar. "}
       Es solo para mirar: lo que cambies allí no cambia tus citas. Cambia el email en{" "}
-      <Link href="/dashboard/settings" className="text-accent hover:underline">
-        Ajustes
+      <Link href="/dashboard/settings" className="font-bold underline underline-offset-4">
+        Cuenta
       </Link>
       .
     </p>
@@ -193,7 +205,7 @@ function AppointmentCard({ appointment }: { appointment: AgendaAppointment }) {
   };
 
   return (
-    <article className="rounded-2xl border border-border bg-bg-secondary p-4">
+    <article className="border border-border bg-bg-secondary p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium">
@@ -202,7 +214,7 @@ function AppointmentCard({ appointment }: { appointment: AgendaAppointment }) {
           <p className="mt-0.5 text-sm text-text-secondary">
             {appointment.customer}
             {appointment.customer !== appointment.whatsapp_number &&
-              ` · ${appointment.whatsapp_number}`}
+              ` · ${formatPhone(appointment.whatsapp_number)}`}
           </p>
         </div>
         <Badge variant={status.variant}>{status.label}</Badge>
@@ -266,11 +278,11 @@ function MoveTo({
           min={businessDay(new Date())}
           max={shiftDays(businessDay(new Date()), BOOKING_HORIZON_DAYS)}
           onChange={(event) => setDay(event.target.value)}
-          className="mt-1 block rounded-lg border border-border bg-bg-elevated px-3 py-1.5 text-sm text-text-primary"
+          className="mt-1 block border border-border bg-bg-elevated px-3 py-1.5 text-sm text-text-primary"
         />
       </label>
       {times.isLoading ? (
-        <div className="mt-2 h-8 animate-pulse rounded-lg bg-bg-elevated" />
+        <div className="mt-2 h-8 animate-pulse bg-bg-elevated" />
       ) : times.error ? (
         <p className="mt-2 text-sm text-danger">No se pudieron leer los horarios libres.</p>
       ) : (times.data ?? []).length === 0 ? (

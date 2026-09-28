@@ -88,12 +88,12 @@ function waitingOn(overview: Overview, business: Business | undefined): Waiting[
           {
             label: "Pedidos por cobrar",
             count: overview.orders_to_collect,
-            href: "/dashboard/orders",
+            href: "/dashboard/orders?estado=placed",
           },
           {
             label: "Pedidos por entregar",
             count: overview.orders_to_deliver,
-            href: "/dashboard/orders",
+            href: "/dashboard/orders?estado=paid",
           },
         ]
       : []),

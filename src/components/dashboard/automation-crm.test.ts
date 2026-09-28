@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   buildConversationSummaries,
   filterConversations,
@@ -6,8 +6,6 @@ import {
   mergeConversationMeta,
   canReplyFreely,
   messageText,
-  readConversationMetaMap,
-  writeConversationMetaMap,
 } from "@/components/dashboard/automation-crm";
 
 const conversations = [
@@ -152,30 +150,6 @@ describe("conversation meta helpers", () => {
       notes: "cerrado",
       tags: [],
       displayName: null,
-    });
-  });
-});
-
-describe("local storage persistence", () => {
-  beforeEach(() => window.localStorage.clear());
-
-  it("writes and reads a tenant-scoped map", () => {
-    writeConversationMetaMap("tenant_1", {
-      "59170000001": {
-        leadStatus: "customer",
-        notes: "Cerro compra",
-        tags: ["vip"],
-        displayName: "Andrea",
-      },
-    });
-
-    expect(readConversationMetaMap("tenant_1")).toEqual({
-      "59170000001": {
-        leadStatus: "customer",
-        notes: "Cerro compra",
-        tags: ["vip"],
-        displayName: "Andrea",
-      },
     });
   });
 });
