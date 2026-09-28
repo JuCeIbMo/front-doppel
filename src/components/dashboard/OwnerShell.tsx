@@ -98,8 +98,20 @@ const toolLinks: NavLink[] = [
   { href: "/dashboard/settings", label: "Ajustes", icon: Settings, feature: "settings" },
 ];
 
-/** The screens a phone keeps in its bottom bar; the rest are under "Más". */
-const MOBILE_BAR = ["/dashboard", "/dashboard/automation", "/dashboard/orders", "/dashboard/sales"];
+/** The screens already redrawn as the paper notebook; the shell turns to paper on them. */
+const PAPER_SCREENS = ["/dashboard"];
+
+/**
+ * The screens a phone keeps in its bottom bar, in order and under a short name; the rest
+ * are under "Más". Pedidos and Agenda share one place: the first the Business has on.
+ */
+const MOBILE_BAR: { href: string; short: string; slot: string }[] = [
+  { href: "/dashboard", short: "Inicio", slot: "inicio" },
+  { href: "/dashboard/automation", short: "Chats", slot: "chats" },
+  { href: "/dashboard/orders", short: "Pedidos", slot: "work" },
+  { href: "/dashboard/agenda", short: "Agenda", slot: "work" },
+  { href: "/dashboard/approvals", short: "Aprobar", slot: "approvals" },
+];
 
 /**
  * The links a Business may use. Those behind a switch wait until the Business is known,
@@ -127,16 +139,17 @@ function NavItem({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`flex items-center gap-3 py-2.5 pr-4 text-sm rounded-r-lg transition-colors ${
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-3 py-2.5 pl-4 pr-4 text-sm transition-colors ${
         active
-          ? "border-l-2 border-accent bg-accent-dim text-text-primary pl-[calc(1rem-2px)]"
-          : "pl-4 text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
+          ? "bg-accent-dim font-semibold text-text-primary"
+          : "text-text-secondary hover:bg-bg-elevated hover:text-text-primary"
       }`}
     >
       <Icon size={16} strokeWidth={1.75} />
       <span>{label}</span>
       {soon && (
-        <span className="ml-auto rounded bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
+        <span className="ml-auto bg-bg-elevated px-1.5 py-0.5 text-[10px] text-text-secondary">
           Pronto
         </span>
       )}
@@ -179,32 +192,42 @@ function MobileNav({
   onLogout: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const barLinks = useOffered(coreLinks).filter((link) => MOBILE_BAR.includes(link.href));
+  const offered = useOffered(coreLinks);
+  const barLinks = MOBILE_BAR.flatMap((place) => {
+    const link = offered.find((candidate) => candidate.href === place.href);
+    return link ? [{ ...link, short: place.short, slot: place.slot }] : [];
+  }).filter((link, index, all) => all.findIndex((other) => other.slot === link.slot) === index);
   const close = () => setOpen(false);
 
   return (
     <>
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t border-border flex">
-        {barLinks.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            aria-label={label}
-            className={`flex-1 flex flex-col items-center justify-center py-3 text-xs transition-colors ${
-              isActiveLink(pathname, href) ? "text-accent" : "text-text-secondary"
-            }`}
-          >
-            <Icon size={20} strokeWidth={1.75} />
-          </Link>
-        ))}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-bg-secondary border-t-2 border-text-primary flex">
+        {barLinks.map(({ href, short, icon: Icon }) => {
+          const active = isActiveLink(pathname, href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              aria-current={active ? "page" : undefined}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-2 text-[11px] transition-colors ${
+                active
+                  ? "font-bold text-text-primary shadow-[inset_0_3px_0_currentColor]"
+                  : "text-text-secondary"
+              }`}
+            >
+              <Icon aria-hidden size={20} strokeWidth={active ? 2.25 : 1.75} />
+              <span>{short}</span>
+            </Link>
+          );
+        })}
         <button
           type="button"
-          aria-label="Más"
           aria-expanded={open}
           onClick={() => setOpen(true)}
-          className="flex-1 flex flex-col items-center justify-center py-3 text-xs text-text-secondary transition-colors"
+          className="flex-1 flex flex-col items-center justify-center gap-1 pt-2.5 pb-2 text-[11px] text-text-secondary transition-colors"
         >
-          <Menu size={20} strokeWidth={1.75} />
+          <Menu aria-hidden size={20} strokeWidth={1.75} />
+          <span>Más</span>
         </button>
       </nav>
 
@@ -265,7 +288,11 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg-primary text-text-primary">
+    <div
+      className={`min-h-screen bg-bg-primary text-text-primary ${
+        PAPER_SCREENS.includes(pathname) ? "theme-paper" : ""
+      }`}
+    >
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col lg:flex-row">
         {/* Sidebar — desktop only */}
         <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:flex-shrink-0 border-r border-border">

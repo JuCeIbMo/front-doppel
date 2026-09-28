@@ -45,3 +45,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Impeccable scratch: review captures and one-off round files
+.impeccable/review/
+.impeccable/review-*.png
+.impeccable/seed.txt
+.impeccable/decision-payload.json

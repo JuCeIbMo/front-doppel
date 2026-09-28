@@ -37,6 +37,8 @@ function answers(overview: Overview, kind = SELLS) {
   readApi.mockImplementation(async (path: string) => {
     if (path === "/dashboard/overview") return overview;
     if (path === "/dashboard/business") return { id: "b1", name: "Tienda", calendar_email: null, ...kind };
+    if (path === "/dashboard/sales") return [];
+    if (path.startsWith("/dashboard/agenda")) return [];
     throw new Error(path);
   });
 }
@@ -59,12 +61,12 @@ describe("OverviewView", () => {
     answers(EMPTY);
     renderView();
 
-    expect(await screen.findByText("0 de 4 pasos listos.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Conecta tu WhatsApp →" })).toHaveAttribute(
+    expect(await screen.findByText("0 de 4 pasos listos")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Conecta tu WhatsApp" })).toHaveAttribute(
       "href",
       "/dashboard/settings",
     );
-    expect(screen.getByRole("link", { name: "Agrega tu primer producto →" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Agrega tu primer producto" })).toBeInTheDocument();
     expect(readApi).toHaveBeenCalledWith("/dashboard/overview");
   });
 
@@ -72,12 +74,12 @@ describe("OverviewView", () => {
     answers(EMPTY, BOOKS);
     renderView();
 
-    expect(await screen.findByText("0 de 5 pasos listos.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Agrega tu primer servicio →" })).toHaveAttribute(
+    expect(await screen.findByText("0 de 5 pasos listos")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Agrega tu primer servicio" })).toHaveAttribute(
       "href",
       "/dashboard/services/new",
     );
-    expect(screen.getByRole("link", { name: "Arma tu horario →" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Arma tu horario" })).toHaveAttribute(
       "href",
       "/dashboard/hours",
     );
@@ -95,7 +97,7 @@ describe("OverviewView", () => {
     );
     renderView();
 
-    expect(await screen.findByText("3 de 5 pasos listos.")).toBeInTheDocument();
+    expect(await screen.findByText("3 de 5 pasos listos")).toBeInTheDocument();
   });
 
   it("shows the numbers and no checklist once every step is done", async () => {
@@ -122,12 +124,51 @@ describe("OverviewView", () => {
 
     expect(await screen.findByText(/150,50/)).toBeInTheDocument();
     expect(screen.getByText("3 ventas")).toBeInTheDocument();
-    expect(screen.getByText("850 / 1000")).toBeInTheDocument();
+    expect(screen.getByText(/^850 \/ 1\.?000$/)).toBeInTheDocument();
     expect(screen.getByText("Cerca del límite gratis")).toBeInTheDocument();
     expect(screen.getByText("150 / 150")).toBeInTheDocument();
     expect(
       screen.getByText("Se acabaron: las llamadas vuelven el 1 del próximo mes"),
     ).toBeInTheDocument();
     expect(screen.queryByText(/pasos listos/)).not.toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
+    expect(screen.getByText("cosas te esperan")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Aprobaciones 4" })).toHaveAttribute(
+      "href",
+      "/dashboard/approvals",
+    );
+  });
+
+  it("says nothing waits once there is nothing to decide", async () => {
+    answers({
+      ...EMPTY,
+      onboarding: {
+        line_connected: true,
+        has_product: true,
+        has_service: true,
+        has_hours: true,
+        has_knowledge: true,
+        has_manager_phone: true,
+      },
+    });
+    renderView();
+
+    expect(await screen.findByText("Todo en orden. El bot se encarga.")).toBeInTheDocument();
+    expect(screen.queryByText(/te espera/)).not.toBeInTheDocument();
+  });
+
+  it("lists today's Appointments of a business that books", async () => {
+    answers(EMPTY, BOOKS);
+    renderView();
+
+    expect(await screen.findByText("No hay citas hoy.")).toBeInTheDocument();
+  });
+
+  it("offers a retry when the page of the day cannot be read", async () => {
+    readApi.mockRejectedValue(new Error("Sin conexión."));
+    renderView();
+
+    expect(await screen.findByText("No pudimos abrir tu página de hoy.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reintentar" })).toBeInTheDocument();
   });
 });

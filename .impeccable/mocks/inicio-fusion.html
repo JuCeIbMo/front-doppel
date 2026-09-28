@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Inicio · Cuaderno + Cholet en Aguayo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Figtree,system-ui,sans-serif;background:#E9E6E2;color:#18181B;min-height:100vh}
+  .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #d4d4d8;padding:14px 24px;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .group>span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#71717a;margin-right:4px}
+  .group button{font:inherit;font-size:13px;border:1px solid #d4d4d8;background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer}
+  .group button[aria-pressed=true]{background:#18181B;color:#fff;border-color:#18181B}
+  .help{padding:14px 24px 0;font-size:13px;color:#52525b;max-width:900px}
+  .stage{display:flex;gap:40px;padding:28px 24px 60px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .col{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .col>h2{font-size:13px;font-weight:700}
+  .col>p{font-size:12px;color:#71717a;max-width:360px;text-align:center}
+  .phone{width:360px;height:760px;border-radius:36px;border:10px solid #18181B;overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,.35);
+    --bg:#FBF7F2;--ink:#231A16;--muted:#7A6A60;--grid:#EBDfD3;--rule:#DCCAB8;
+    --red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--pen:#2B2D84}
+  .screen{position:absolute;inset:0;overflow-y:auto;background:var(--bg);color:var(--ink);padding-bottom:76px;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px}
+  .screen::-webkit-scrollbar{display:none}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:64px;background:var(--bg);border-top:2px solid var(--ink);display:flex;justify-content:space-around;align-items:center;font-size:10px;color:var(--muted);font-weight:600}
+  .tabbar div{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tabbar b{width:22px;height:22px;border-radius:5px;background:var(--rule)}
+  .tabbar .on{color:var(--ink);font-weight:800}
+  .tabbar .on b{background:var(--red)}
+  .note{font-size:10px;color:var(--muted);text-align:center;padding:16px}
+
+  /* piezas comunes */
+  .page{margin-left:40px;border-left:2px solid var(--red);min-height:100%;padding:18px 16px 0}
+  .date{font-family:Kalam,cursive;color:var(--pen);font-size:22px;font-weight:700;line-height:1.1}
+  .date small{display:block;font-family:Figtree;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+  .h{font-family:Archivo;font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:24px 0 4px;font-weight:800}
+  .line{position:relative;display:flex;align-items:baseline;gap:8px;min-height:40px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
+  .line .mk{position:absolute;left:-40px;width:36px;text-align:center;font-family:Kalam;font-weight:700;font-size:19px;color:var(--red)}
+  .line .amt{margin-left:auto;font-family:Kalam;font-weight:700;color:var(--pen);font-size:19px;white-space:nowrap}
+  .line .hr{color:var(--muted);font-size:12px;width:36px}
+  .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:3px double var(--ink);margin-top:4px;padding:8px 0;font-weight:800}
+  .tot span:last-child{font-family:Kalam;font-size:28px;color:var(--pen)}
+  .meter{padding:10px 0;border-bottom:1px solid var(--rule)}
+  .meter .t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+  .meter .t b{font-family:Kalam;color:var(--pen);font-size:19px}
+  .meter .track{height:12px;border:1.5px solid var(--ink);margin-top:6px;background:var(--bg)}
+  .meter .track i{display:block;height:100%;background:var(--yellow)}
+  .meter small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .meter small.warn{color:var(--red);font-weight:700}
+  .step{clip-path:polygon(0 10px,10px 10px,10px 0,calc(100% - 10px) 0,calc(100% - 10px) 10px,100% 10px,100% 100%,0 100%)}
+  .aguayo{height:14px;background:linear-gradient(var(--red) 0 3px,var(--yellow) 3px 5px,var(--green) 5px 8px,var(--pink) 8px 9px,var(--blue) 9px 11px,var(--yellow) 11px 12px,var(--red) 12px 14px)}
+  .done{color:var(--muted);text-decoration:line-through}
+  .done .mk{color:var(--green)!important}
+  .cur{font-weight:800}
+
+  /* ===== F1: bloque pegado en el cuaderno ===== */
+  .f1 .block{margin:14px -6px 0 -6px;background:var(--red);color:#fff;padding:22px 16px 6px}
+  .f1 .block.ok{background:var(--green)}
+  .f1 .block .big{font-family:Archivo;font-size:58px;font-weight:900;font-stretch:72%;line-height:.85}
+  .f1 .block .lbl{font-family:Archivo;font-size:20px;font-weight:800;font-stretch:85%;margin:6px 0 12px}
+  .f1 .block .row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:2px solid rgba(255,255,255,.3);font-weight:700;font-size:15px}
+  .f1 .block .row em{font-style:normal;font-family:Archivo;font-size:22px;font-weight:900;font-stretch:80%}
+
+  /* ===== F2: separadores de colores en el margen ===== */
+  .f2 .page{border-left:none;padding-left:0;margin-left:0}
+  .f2 .sheet{padding:18px 16px 0 58px;position:relative;min-height:100%}
+  .f2 .sheet:before{content:"";position:absolute;left:46px;top:0;bottom:0;width:2px;background:var(--red)}
+  .f2 .sect{position:relative;margin-top:18px}
+  .f2 .tab{position:absolute;left:-58px;top:0;bottom:0;width:36px;display:flex;align-items:center;justify-content:center}
+  .f2 .tab span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:Archivo;font-weight:900;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-stretch:85%}
+  .f2 .t-red{background:var(--red);color:#fff}
+  .f2 .t-green{background:var(--green);color:#fff}
+  .f2 .t-yellow{background:var(--yellow);color:var(--ink)}
+  .f2 .t-blue{background:var(--blue);color:#fff}
+  .f2 .say{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:30px;line-height:1;padding:4px 0 8px}
+  .f2 .say.red{color:var(--red)}
+  .f2 .say.green{color:var(--green)}
+  .f2 .line .mk{display:none}
+  .f2 .line.u{font-weight:800}
+  .f2 .line.u .amt{font-family:Archivo;font-weight:900;font-stretch:80%;font-size:24px;color:var(--red)}
+  .f2 .line .num{font-family:Archivo;font-weight:900;width:22px;height:22px;display:inline-grid;place-items:center;border:2px solid var(--ink);font-size:12px;flex:none}
+  .f2 .done .num{background:var(--green);border-color:var(--green);color:#fff}
+  .f2 .cur .num{background:var(--red);border-color:var(--red);color:#fff}
+
+  /* ===== F3: franja de aguayo ===== */
+  .f3 .head{padding:18px 16px 12px 56px}
+  .f3 .status{background:var(--red);color:#fff;padding:18px 16px 16px 56px;position:relative}
+  .f3 .status.ok{background:var(--green)}
+  .f3 .status .big{font-family:Archivo;font-weight:900;font-stretch:72%;font-size:44px;line-height:.9}
+  .f3 .status .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+  .f3 .status .chips a{background:#fff;color:var(--red);font-weight:800;font-size:13px;padding:8px 10px;display:flex;gap:6px;align-items:baseline}
+  .f3 .status.ok .chips a{color:var(--green)}
+  .f3 .status .chips b{font-family:Archivo;font-size:18px;font-weight:900;font-stretch:80%}
+  .f3 .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px 0 56px;margin-top:16px}
+  .f3 .tile{padding:14px 12px 12px}
+  .f3 .tile small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-family:Archivo}
+  .f3 .tile div{font-family:Kalam;font-weight:700;font-size:28px;line-height:1;margin-top:8px}
+  .f3 .tile p{font-size:12px;font-weight:700;margin-top:4px}
+  .f3 .y{background:var(--yellow);color:var(--ink)}
+  .f3 .g{background:var(--green);color:#fff}
+  .f3 .page{margin-left:40px;padding-top:4px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Doppel · Inicio · Cuaderno + Cholet, en Aguayo</h1>
+  <div class="group" id="g-state"><span>Situación</span></div>
+</div>
+<p class="help">Tres maneras de juntar A y B, todas con los colores del aguayo. En todas, la hoja es el cuaderno (cuadrícula, margen rojo, montos a mano) y lo importante salta con los planos fuertes del cholet. Cambia la <b>situación</b> arriba. Los datos son de ejemplo.</p>
+<div class="stage" id="stage"></div>
+
+<script>
+const states = {
+  pend: {name:"Con pendientes", pend:[["Aprobaciones",2],["Clientes que te pasó el bot",1],["Pedidos por cobrar",3]], steps:null},
+  ok:   {name:"Todo en orden", pend:[], steps:null},
+  alta: {name:"Negocio nuevo", pend:[["Aprobaciones",1]], steps:[["Conecta tu WhatsApp",1],["Agrega tu primer producto",1],["Cuéntale al bot sobre tu negocio",0],["Agrega tu teléfono de encargado",0]]},
+};
+let state = "pend";
+const tabbar = `<div class="tabbar"><div class="on"><b></b>Inicio</div><div><b></b>Chats</div><div><b></b>Pedidos</div><div><b></b>Aprobar</div><div><b></b>Más</div></div>`;
+const total = s => s.pend.reduce((a,p)=>a+p[1],0);
+const cosas = n => n===1 ? "cosa te espera" : "cosas te esperan";
+const firstOpen = s => s.steps ? s.steps.findIndex(x=>!x[1]) : -1;
+
+const date = `<div class="date"><small>Salón Wara</small>Sábado 27 de septiembre</div>`;
+const salesRows = s => s.steps ? `<div class="line" style="color:var(--muted)">Todavía no hay ventas</div>` :
+  [["10:12","Corte y lavado","80,00"],["11:40","Tinte completo","350,00"],["12:05","Shampoo x2","120,00"],["","4 ventas más","690,00"]]
+  .map(r=>`<div class="line"><span class="hr">${r[0]}</span>${r[1]}<span class="amt">${r[2]}</span></div>`).join("");
+const totLine = s => `<div class="tot"><span>Total del día</span><span>Bs ${s.steps?"0,00":"1.240,00"}</span></div>`;
+const month = `<div class="meter"><div class="t"><span>Mensajes de WhatsApp</span><b>812 / 1.000</b></div><div class="track"><i style="width:81%"></i></div><small class="warn">Cerca del límite gratis</small></div>
+  <div class="meter"><div class="t"><span>Minutos de llamadas</span><b>34 / 60</b></div><div class="track"><i style="width:57%"></i></div></div>`;
+const stepLines = s => s.steps.map((x,i)=>`<div class="line ${x[1]?"done":i===firstOpen(s)?"cur":""}"><span class="mk">${x[1]?"✓":i+1}</span>${x[0]}${i===firstOpen(s)?'<span class="amt" style="color:var(--red)">→</span>':""}</div>`).join("");
+
+function f1(s){
+  const t = total(s);
+  const block = t
+    ? `<div class="block step"><div class="big">${t}</div><div class="lbl">${cosas(t)}</div>${s.pend.map(p=>`<div class="row"><span>${p[0]}</span><span><em>${p[1]}</em> →</span></div>`).join("")}</div>`
+    : `<div class="block ok step"><div class="big">✓</div><div class="lbl">Todo en orden. El bot se encarga.</div><div class="row"><span>12 chats atendidos hoy</span><span>→</span></div></div>`;
+  return `<div class="f1"><div class="page">${date}${block}
+    ${s.steps?`<div class="h">Para empezar · ${s.steps.filter(x=>x[1]).length} de ${s.steps.length}</div>${stepLines(s)}`:""}
+    <div class="h">Ventas de hoy</div>${salesRows(s)}${totLine(s)}
+    <div class="h">Este mes</div>${month}<p class="note">Datos de ejemplo</p></div></div>`;
+}
+
+function f2(s){
+  const t = total(s);
+  const sect = (cls,label,body) => `<div class="sect"><div class="tab ${cls}"><span>${label}</span></div>${body}</div>`;
+  const wait = t
+    ? sect("t-red","Te espera",`<div class="say red">${t} ${cosas(t)}</div>${s.pend.map(p=>`<div class="line u">${p[0]}<span class="amt">${p[1]} →</span></div>`).join("")}`)
+    : sect("t-green","Te espera",`<div class="say green">Todo en orden.</div><div class="line">El bot atendió 12 chats hoy<span class="amt">→</span></div>`);
+  const steps = s.steps ? sect("t-blue","Empezar",`<div class="say" style="color:var(--blue)">${s.steps.filter(x=>x[1]).length} de ${s.steps.length} pasos</div>${s.steps.map((x,i)=>`<div class="line ${x[1]?"done":i===firstOpen(s)?"cur":""}"><span class="num">${x[1]?"✓":i+1}</span>${x[0]}</div>`).join("")}`) : "";
+  return `<div class="f2"><div class="sheet">${date}${wait}${steps}
+    ${sect("t-yellow","Hoy",`<div class="say">Bs ${s.steps?"0,00":"1.240,00"}</div>${salesRows(s)}${totLine(s)}`)}
+    ${sect("t-green","Mes",month)}<p class="note">Datos de ejemplo</p></div></div>`;
+}
+
+function f3(s){
+  const t = total(s);
+  const status = t
+    ? `<div class="status"><div class="big">${t} ${cosas(t)}</div><div class="chips">${s.pend.map(p=>`<a><b>${p[1]}</b>${p[0]}</a>`).join("")}</div></div>`
+    : `<div class="status ok"><div class="big">Todo en orden</div><div class="chips"><a><b>12</b>chats atendidos por el bot</a></div></div>`;
+  return `<div class="f3"><div class="head">${date}</div><div class="aguayo"></div>${status}<div class="aguayo"></div>
+    <div class="tiles"><div class="tile y step"><small>Vendido hoy</small><div>Bs ${s.steps?"0,00":"1.240,00"}</div><p>${s.steps?"Sin ventas todavía":"7 ventas"}</p></div>
+    <div class="tile g step"><small>El bot</small><div>${s.steps?"3":"12"} chats</div><p>atendidos hoy</p></div></div>
+    <div class="page">${s.steps?`<div class="h">Para empezar · ${s.steps.filter(x=>x[1]).length} de ${s.steps.length}</div>${stepLines(s)}`:""}
+    <div class="h">Ventas de hoy</div>${salesRows(s)}${totLine(s)}
+    <div class="h">Este mes</div>${month}<p class="note">Datos de ejemplo</p></div></div>`;
+}
+
+const forms = [
+  ["1 · Bloque en el cuaderno", "La hoja de cuaderno de B, con el bloque grande de A pegado arriba. Lo urgente grita; lo demás es cuaderno puro.", f1],
+  ["2 · Separadores de colores", "Todo es cuaderno. Cada sección tiene su separador de color en el margen y una frase grande que dice cómo va.", f2],
+  ["3 · Franja de aguayo", "Arriba, una franja tejida con el estado del día; debajo, las fichas de A y los renglones de B.", f3],
+];
+
+function render(){
+  const s = states[state];
+  document.getElementById("stage").innerHTML = forms.map(([t,d,f])=>`<div class="col"><h2>${t}</h2><p>${d}</p><div class="phone"><div class="screen">${f(s)}</div>${tabbar}</div></div>`).join("");
+  document.querySelectorAll("#g-state button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===state));
+}
+const gs = document.getElementById("g-state");
+for (const [k,s] of Object.entries(states)) { const b=document.createElement("button"); b.dataset.k=k; b.textContent=s.name; b.onclick=()=>{state=k;render()}; gs.appendChild(b); }
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Inicio · Explorador de forma y color</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Figtree,system-ui,sans-serif;background:#E9E9EC;color:#18181B;min-height:100vh}
+  .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #d4d4d8;padding:14px 24px;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .group>span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#71717a;margin-right:4px}
+  .group button{font:inherit;font-size:13px;border:1px solid #d4d4d8;background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;display:flex;gap:6px;align-items:center}
+  .group button[aria-pressed=true]{background:#18181B;color:#fff;border-color:#18181B}
+  .chips{display:flex}
+  .chips i{width:10px;height:10px;border-radius:50%;margin-left:-3px;border:1px solid rgba(0,0,0,.15)}
+  .help{padding:14px 24px 0;font-size:13px;color:#52525b;max-width:900px}
+  .stage{display:flex;gap:40px;padding:28px 24px 60px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .col{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .col h2{font-size:13px;font-weight:700}
+  .col>p{font-size:12px;color:#71717a;max-width:360px;text-align:center}
+  .phone{width:360px;height:760px;border-radius:36px;border:10px solid #18181B;overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,.35)}
+  .screen{position:absolute;inset:0;overflow-y:auto;background:var(--bg);color:var(--ink);padding-bottom:76px}
+  .screen::-webkit-scrollbar{display:none}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:64px;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;font-size:10px;color:var(--muted)}
+  .tabbar div{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tabbar b{width:22px;height:22px;border-radius:6px;background:var(--line)}
+  .tabbar .on{color:var(--ink);font-weight:700}
+  .tabbar .on b{background:var(--ink)}
+  .note{font-size:10px;color:var(--muted);text-align:center;padding:14px}
+
+  /* ===== FORMA: CHOLET ===== */
+  .ch{font-family:Archivo,sans-serif}
+  .ch .top{padding:22px 18px 16px;display:flex;justify-content:space-between;align-items:end}
+  .ch .top small{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);font-weight:600}
+  .ch .top h1{font-size:26px;font-weight:900;font-stretch:80%;line-height:1;margin-top:4px}
+  .step{clip-path:polygon(0 12px,12px 12px,12px 0,calc(100% - 12px) 0,calc(100% - 12px) 12px,100% 12px,100% 100%,0 100%)}
+  .ch .hero{margin:0 10px;padding:26px 18px 12px;background:var(--attn);color:var(--attn-ink)}
+  .ch .hero.ok{background:var(--ok);color:var(--ok-ink)}
+  .ch .hero .big{font-size:56px;font-weight:900;font-stretch:75%;line-height:.85}
+  .ch .hero .lbl{font-size:20px;font-weight:800;font-stretch:85%;margin:6px 0 16px}
+  .ch .row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-top:2px solid color-mix(in srgb,currentColor 25%,transparent);font-weight:700;font-size:15px}
+  .ch .row em{font-style:normal;font-size:22px;font-weight:900;font-stretch:80%}
+  .ch .row span:last-child{font-size:18px}
+  .ch .pair{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:6px 10px 0}
+  .ch .tile{padding:18px 14px}
+  .ch .tile small{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em}
+  .ch .tile div{font-size:28px;font-weight:900;font-stretch:78%;margin-top:6px;line-height:1}
+  .ch .tile p{font-size:12px;margin-top:6px;font-weight:600}
+  .ch .money{background:var(--money);color:var(--money-ink)}
+  .ch .bot{background:var(--ok);color:var(--ok-ink)}
+  .ch .sec{margin:22px 18px 8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .ch .sec:after{content:"";flex:1;height:2px;background:var(--line)}
+  .ch .meter{margin:0 18px 14px}
+  .ch .meter .t{display:flex;justify-content:space-between;font-size:14px;font-weight:700}
+  .ch .meter .t b{font-weight:900;font-stretch:80%;font-size:18px}
+  .ch .meter .track{height:14px;background:var(--line);margin-top:6px;display:flex}
+  .ch .meter .fill{background:var(--money)}
+  .ch .meter p{font-size:12px;color:var(--muted);margin-top:4px}
+  .ch .steps{margin:6px 10px 0;border:3px solid var(--ink);padding:16px 14px}
+  .ch .steps h3{font-size:20px;font-weight:900;font-stretch:80%}
+  .ch .steps ol{list-style:none;margin-top:10px}
+  .ch .steps li{display:grid;grid-template-columns:34px 1fr;align-items:center;padding:8px 0;font-weight:700;font-size:14px}
+  .ch .steps li b{width:26px;height:26px;display:grid;place-items:center;font-size:13px;border:2px solid var(--ink)}
+  .ch .steps li.done{color:var(--muted);text-decoration:line-through}
+  .ch .steps li.done b{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .ch .steps li.cur{background:var(--attn);color:var(--attn-ink);margin:0 -14px;padding:10px 14px}
+  .ch .steps li.cur b{border-color:currentColor}
+
+  /* ===== FORMA: CUADERNO ===== */
+  .cu{font-family:Figtree,sans-serif;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:20px 20px}
+  .cu .page{margin-left:44px;border-left:2px solid var(--attn);min-height:100%;padding:18px 16px 0}
+  .cu .date{font-family:Kalam,cursive;color:var(--pen);font-size:22px;font-weight:700;line-height:1.1}
+  .cu .date small{display:block;font-family:Figtree;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.1em}
+  .cu h2{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);margin:22px 0 6px;font-weight:700}
+  .cu .line{display:flex;align-items:baseline;gap:8px;min-height:40px;padding:8px 0;border-bottom:1px solid var(--line2);font-size:15px}
+  .cu .line .mk{position:absolute;left:10px;font-family:Kalam;color:var(--attn);font-weight:700;font-size:20px}
+  .cu .line{position:relative}
+  .cu .line .mk{left:-42px;width:30px;text-align:center}
+  .cu .line .amt{margin-left:auto;font-family:Kalam;font-weight:700;color:var(--pen);font-size:19px;white-space:nowrap}
+  .cu .line.urg{font-weight:700}
+  .cu .line.urg .amt{color:var(--attn)}
+  .cu .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:3px double var(--ink);margin-top:4px;padding:8px 0;font-weight:800}
+  .cu .tot span:last-child{font-family:Kalam;font-size:28px;color:var(--pen)}
+  .cu .ok{font-family:Kalam;font-size:26px;color:var(--ok);font-weight:700;padding:10px 0;line-height:1.2}
+  .cu .done{color:var(--muted);text-decoration:line-through}
+  .cu .done .mk{color:var(--ok)!important}
+  .cu .bar2{height:10px;border:1.5px solid var(--pen);margin-top:6px;border-radius:2px}
+  .cu .bar2 i{display:block;height:100%;background:repeating-linear-gradient(-45deg,var(--pen) 0 2px,transparent 2px 5px)}
+  .cu small.m{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+
+  /* ===== FORMA: NEUTRA CON PRUEBA ===== */
+  .nt{font-family:Figtree,sans-serif}
+  .nt .head{padding:26px 20px 6px}
+  .nt .head small{font-size:13px;color:var(--muted)}
+  .nt .head h1{font-size:34px;line-height:1.05;font-weight:800;letter-spacing:-.02em;margin-top:6px}
+  .nt .head h1 span{color:var(--attn)}
+  .nt .head.okh h1 span{color:var(--ok)}
+  .nt .list{margin:14px 12px 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--surface)}
+  .nt .item{padding:14px 16px;border-top:1px solid var(--line)}
+  .nt .item:first-child{border-top:0}
+  .nt .item .t{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:15px}
+  .nt .item .t b{min-width:26px;height:26px;border-radius:13px;background:var(--attn);color:var(--attn-ink);display:grid;place-items:center;font-size:13px;padding:0 8px}
+  .nt .bubble{margin-top:10px;background:var(--bg);border-radius:4px 14px 14px 14px;padding:9px 12px;font-size:13px;color:var(--ink);max-width:88%;border:1px solid var(--line)}
+  .nt .bubble small{display:block;color:var(--muted);font-size:11px;margin-bottom:2px}
+  .nt .item .go{display:inline-block;margin-top:10px;font-size:13px;font-weight:700;color:var(--attn)}
+  .nt .kpis{display:grid;grid-template-columns:1fr 1fr;margin:14px 12px 0;gap:10px}
+  .nt .kpi{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px}
+  .nt .kpi small{font-size:12px;color:var(--muted)}
+  .nt .kpi div{font-size:21px;white-space:nowrap;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .nt .kpi p{font-size:12px;color:var(--muted);margin-top:2px}
+  .nt .kpi .bar3{height:4px;border-radius:2px;background:var(--line);margin-top:8px}
+  .nt .kpi .bar3 i{display:block;height:100%;border-radius:2px;background:var(--money)}
+  .nt .steps{margin:14px 12px 0;border-radius:16px;padding:16px;background:var(--surface);border:1px solid var(--line)}
+  .nt .steps h3{font-size:16px;font-weight:800}
+  .nt .steps .prog{height:6px;border-radius:3px;background:var(--line);margin:10px 0 6px}
+  .nt .steps .prog i{display:block;height:100%;border-radius:3px;background:var(--ok)}
+  .nt .steps li{list-style:none;font-size:14px;padding:8px 0;display:flex;gap:10px;align-items:center}
+  .nt .steps li:before{content:"";width:16px;height:16px;border-radius:50%;border:1.5px solid var(--muted)}
+  .nt .steps li.done{color:var(--muted)}
+  .nt .steps li.done:before{background:var(--ok);border-color:var(--ok)}
+  .nt .steps li.cur{font-weight:700}
+  .nt .steps li.cur:before{border-color:var(--attn);border-width:5px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Doppel · Inicio</h1>
+  <div class="group" id="g-color"><span>Color</span></div>
+  <div class="group" id="g-state"><span>Situación</span></div>
+</div>
+<p class="help">Las tres formas están lado a lado. Cambia el <b>color</b> arriba y se aplica a las tres, así combinas la forma que te gusta con el color que te gusta. Cambia la <b>situación</b> para ver cómo se ve un día con pendientes, un día tranquilo y un negocio recién creado. Los datos son de ejemplo.</p>
+<div class="stage" id="stage"></div>
+
+<script>
+const palettes = {
+  cholet:   {name:"Cholet",    bg:"#FFFFFF", ink:"#1A1330", muted:"#6E6880", line:"#ECE9F2", line2:"#DAD5E4", surface:"#FFFFFF", attn:"#E0287A", "attn-ink":"#FFFFFF", ok:"#12A8A0", "ok-ink":"#FFFFFF", money:"#F4C20D", "money-ink":"#1A1330", pen:"#1A1330"},
+  aguayo:   {name:"Aguayo",    bg:"#FBF7F2", ink:"#231A16", muted:"#7A6A60", line:"#EFE4DA", line2:"#E2D2C4", surface:"#FFFFFF", attn:"#C8102E", "attn-ink":"#FFFFFF", ok:"#0E7C4A", "ok-ink":"#FFFFFF", money:"#F2A900", "money-ink":"#231A16", pen:"#2B2D84"},
+  cuaderno: {name:"Cuaderno",  bg:"#FFFFFF", ink:"#15151A", muted:"#6B7280", line:"#DDEAF6", line2:"#B9D4EE", surface:"#FFFFFF", attn:"#D6453D", "attn-ink":"#FFFFFF", ok:"#1F8A4C", "ok-ink":"#FFFFFF", money:"#1C3FAA", "money-ink":"#FFFFFF", pen:"#1C3FAA"},
+  whatsapp: {name:"WhatsApp claro", bg:"#F7F8F6", ink:"#111B21", muted:"#667781", line:"#E4E8E5", line2:"#D1D7D3", surface:"#FFFFFF", attn:"#E8590C", "attn-ink":"#FFFFFF", ok:"#1DAA61", "ok-ink":"#FFFFFF", money:"#1DAA61", "money-ink":"#FFFFFF", pen:"#111B21"},
+  noche:    {name:"Noche", bg:"#12101A", ink:"#F3F0FA", muted:"#9A93AE", line:"#2A2638", line2:"#3A3450", surface:"#1B1826", attn:"#FF4F9A", "attn-ink":"#12101A", ok:"#2FD4C4", "ok-ink":"#12101A", money:"#FFD23F", "money-ink":"#12101A", pen:"#FFD23F"},
+};
+const states = {
+  pend: {name:"Con pendientes", pend:[["Aprobaciones",2,"Descuento de 10% a Carla Mamani","«¿Me lo dejas en 90 si llevo dos?»"],["Clientes que te pasó el bot",1,"Jorge Quispe pidió hablar contigo","«Quiero hacer un pedido para un evento»"],["Pedidos por cobrar",3,"Suman Bs 460,00",null]], steps:null},
+  ok:   {name:"Todo en orden", pend:[], steps:null},
+  alta: {name:"Negocio nuevo", pend:[["Aprobaciones",1,"Primer descuento pedido por un cliente","«¿Tienen algo más barato?»"]], steps:[["Conecta tu WhatsApp",1],["Agrega tu primer producto",1],["Cuéntale al bot sobre tu negocio",0],["Agrega tu teléfono de encargado",0]]},
+};
+let color = "cholet", state = "pend";
+
+const tabbar = `<div class="tabbar"><div class="on"><b></b>Inicio</div><div><b></b>Chats</div><div><b></b>Pedidos</div><div><b></b>Aprobar</div><div><b></b>Más</div></div>`;
+const total = s => s.pend.reduce((a,p)=>a+p[1],0);
+const sales = s => s.steps ? {amt:"Bs 0,00", n:"Sin ventas todavía"} : {amt:"Bs 1.240,00", n:"7 ventas"};
+
+function cholet(s){
+  const t = total(s), sl = sales(s);
+  const hero = t ? `<div class="hero step"><div class="big">${t}</div><div class="lbl">cosas te esperan</div>${s.pend.map(p=>`<div class="row"><span>${p[0]}</span><span><em>${p[1]}</em> →</span></div>`).join("")}</div>`
+                 : `<div class="hero ok step"><div class="big">✓</div><div class="lbl">Todo en orden. El bot se encarga.</div><div class="row"><span>12 chats atendidos hoy</span><span>→</span></div></div>`;
+  const steps = s.steps ? `<div class="sec">Pon a funcionar tu bot</div><div class="steps step"><h3>${s.steps.filter(x=>x[1]).length} de ${s.steps.length} pasos</h3><ol>${s.steps.map((x,i)=>{const cur=!x[1]&&s.steps.findIndex(y=>!y[1])===i;return `<li class="${x[1]?"done":cur?"cur":""}"><b>${x[1]?"✓":i+1}</b>${x[0]}${cur?" →":""}</li>`}).join("")}</ol></div>`:"";
+  return `<div class="ch"><div class="top"><div><small>Sábado 27 sep</small><h1>Salón Wara</h1></div></div>${hero}${steps}
+  <div class="sec">Hoy</div><div class="pair"><div class="tile money step"><small>Vendido</small><div>${sl.amt}</div><p>${sl.n}</p></div><div class="tile bot step"><small>El bot</small><div>${s.steps?"3":"12"}</div><p>chats atendidos</p></div></div>
+  <div class="sec">Este mes</div>
+  <div class="meter"><div class="t"><span>Mensajes de WhatsApp</span><b>812 / 1.000</b></div><div class="track"><div class="fill" style="width:81%"></div></div><p>Cerca del límite gratis</p></div>
+  <div class="meter"><div class="t"><span>Minutos de llamadas</span><b>34 / 60</b></div><div class="track"><div class="fill" style="width:57%"></div></div></div>
+  <p class="note">Datos de ejemplo</p></div>`;
+}
+
+function cuaderno(s){
+  const t = total(s), sl = sales(s);
+  const pend = t ? `<h2>Te espera</h2>${s.pend.map(p=>`<div class="line urg"><span class="mk">!</span>${p[0]}<span class="amt">${p[1]}</span></div>`).join("")}`
+                 : `<h2>Te espera</h2><div class="ok">Nada por hoy. Todo en orden ✓</div>`;
+  const steps = s.steps ? `<h2>Para empezar</h2>${s.steps.map((x,i)=>`<div class="line ${x[1]?"done":""}"><span class="mk">${x[1]?"✓":i+1}</span>${x[0]}</div>`).join("")}`:"";
+  const rows = s.steps ? `<div class="line" style="color:var(--muted)">Todavía no hay ventas</div>` :
+    [["10:12","Corte y lavado","80,00"],["11:40","Tinte completo","350,00"],["12:05","Shampoo x2","120,00"],["…","4 ventas más","690,00"]].map(r=>`<div class="line"><span style="color:var(--muted);font-size:12px;width:36px">${r[0]}</span>${r[1]}<span class="amt">${r[2]}</span></div>`).join("");
+  return `<div class="cu"><div class="page"><div class="date"><small>Salón Wara</small>Sábado 27 de septiembre</div>${pend}${steps}
+  <h2>Ventas de hoy</h2>${rows}<div class="tot"><span>Total del día</span><span>${sl.amt}</span></div>
+  <h2>Este mes</h2><div class="line" style="display:block">Mensajes de WhatsApp <span class="amt" style="float:right">812 / 1.000</span><div class="bar2"><i style="width:81%"></i></div><small class="m">Cerca del límite gratis</small></div>
+  <div class="line" style="display:block">Minutos de llamadas <span class="amt" style="float:right">34 / 60</span><div class="bar2"><i style="width:57%"></i></div></div>
+  <p class="note">Datos de ejemplo</p></div></div>`;
+}
+
+function neutra(s){
+  const t = total(s), sl = sales(s);
+  const head = t ? `<div class="head"><small>Hola, Salón Wara</small><h1>Te esperan <span>${t} cosas</span></h1></div>`
+                 : `<div class="head okh"><small>Hola, Salón Wara</small><h1><span>Todo en orden.</span><br>El bot se encarga.</h1></div>`;
+  const list = t ? `<div class="list">${s.pend.map(p=>`<div class="item"><div class="t">${p[0]}<b>${p[1]}</b></div>${p[3]?`<div class="bubble"><small>${p[2]}</small>${p[3]}</div>`:`<div style="font-size:13px;color:var(--muted);margin-top:4px">${p[2]}</div>`}<a class="go">Revisar →</a></div>`).join("")}</div>`:"";
+  const steps = s.steps ? `<div class="steps"><h3>Pon a funcionar tu bot</h3><div class="prog"><i style="width:${s.steps.filter(x=>x[1]).length/s.steps.length*100}%"></i></div><ul>${s.steps.map((x,i)=>{const cur=!x[1]&&s.steps.findIndex(y=>!y[1])===i;return `<li class="${x[1]?"done":cur?"cur":""}">${x[0]}</li>`}).join("")}</ul></div>`:"";
+  return `<div class="nt">${head}${list}${steps}<div class="kpis">
+  <div class="kpi"><small>Vendido hoy</small><div>${sl.amt}</div><p>${sl.n}</p></div>
+  <div class="kpi"><small>El bot atendió</small><div>${s.steps?"3":"12"} chats</div><p>hoy</p></div>
+  <div class="kpi"><small>Mensajes del mes</small><div>812<span style="font-size:14px;color:var(--muted)"> / 1.000</span></div><div class="bar3"><i style="width:81%"></i></div></div>
+  <div class="kpi"><small>Minutos de llamadas</small><div>34<span style="font-size:14px;color:var(--muted)"> / 60</span></div><div class="bar3"><i style="width:57%"></i></div></div>
+  </div><p class="note">Datos de ejemplo</p></div>`;
+}
+
+const forms = [
+  ["A · Cholet", "Un bloque grande de color con lo que te espera; planos llenos y esquinas escalonadas.", cholet],
+  ["B · Cuaderno", "La página de hoy de tu cuaderno de ventas: renglones, margen y montos a mano.", cuaderno],
+  ["C · Limpia con prueba", "Titular grande y cada pendiente con el mensaje del cliente que lo originó.", neutra],
+];
+
+function render(){
+  const p = palettes[color], s = states[state];
+  const vars = Object.entries(p).filter(([k])=>k!=="name").map(([k,v])=>`--${k}:${v}`).join(";");
+  document.getElementById("stage").innerHTML = forms.map(([t,d,f])=>`<div class="col"><h2>${t}</h2><p>${d}</p><div class="phone" style="${vars}"><div class="screen">${f(s)}</div>${tabbar}</div></div>`).join("");
+  document.querySelectorAll("#g-color button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===color));
+  document.querySelectorAll("#g-state button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.k===state));
+}
+const gc = document.getElementById("g-color"), gs = document.getElementById("g-state");
+for (const [k,p] of Object.entries(palettes)) { const b=document.createElement("button"); b.dataset.k=k; b.innerHTML=`<span class="chips">${[p.bg,p.attn,p.ok,p.money].map(c=>`<i style="background:${c}"></i>`).join("")}</span>${p.name}`; b.onclick=()=>{color=k;render()}; gc.appendChild(b); }
+for (const [k,s] of Object.entries(states)) { const b=document.createElement("button"); b.dataset.k=k; b.textContent=s.name; b.onclick=()=>{state=k;render()}; gs.appendChild(b); }
+render();
+</script>
+</body>
+</html>

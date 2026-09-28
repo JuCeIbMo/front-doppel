@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Inicio · Combinación</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Figtree,system-ui,sans-serif;background:#E9E6E2;color:#18181B;min-height:100vh}
+  .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #d4d4d8;padding:14px 24px;display:flex;flex-wrap:wrap;gap:18px 32px;align-items:center}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .group{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .group>span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#71717a;margin-right:4px}
+  .group button{font:inherit;font-size:13px;border:1px solid #d4d4d8;background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer}
+  .group button[aria-pressed=true]{background:#18181B;color:#fff;border-color:#18181B}
+  .help{padding:14px 24px 0;font-size:13px;color:#52525b;max-width:900px}
+  .stage{display:flex;gap:40px;padding:28px 24px 60px;flex-wrap:wrap;align-items:flex-start;justify-content:center}
+  .col{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .col>h2{font-size:13px;font-weight:700}
+  .phone{width:360px;height:760px;border-radius:36px;border:10px solid #18181B;overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,.35);
+    --bg:#FBF7F2;--ink:#231A16;--muted:#7A6A60;--grid:#EBDFD3;--rule:#DCCAB8;
+    --red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--pen:#2B2D84}
+  .screen{position:absolute;inset:0;overflow-y:auto;background:var(--bg);color:var(--ink);padding-bottom:76px;
+    background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px}
+  .screen::-webkit-scrollbar{display:none}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:64px;background:var(--bg);border-top:2px solid var(--ink);display:flex;justify-content:space-around;align-items:center;font-size:10px;color:var(--muted);font-weight:600}
+  .tabbar div{display:flex;flex-direction:column;align-items:center;gap:4px}
+  .tabbar b{width:22px;height:22px;border-radius:5px;background:var(--rule)}
+  .tabbar .on{color:var(--ink);font-weight:800}
+  .tabbar .on b{background:var(--red)}
+  .note{font-size:10px;color:var(--muted);text-align:center;padding:16px}
+
+  .sheet{padding:18px 14px 0 58px;position:relative;min-height:100%}
+  .sheet:before{content:"";position:absolute;left:46px;top:0;bottom:0;width:2px;background:var(--red)}
+  .date{font-family:Kalam,cursive;color:var(--pen);font-size:22px;font-weight:700;line-height:1.1}
+  .date small{display:block;font-family:Figtree;font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.12em}
+  .sect{position:relative;margin-top:20px}
+  .tab{position:absolute;left:-58px;top:0;bottom:0;width:36px;display:flex;align-items:center;justify-content:center}
+  .tab span{writing-mode:vertical-rl;transform:rotate(180deg);font-family:Archivo;font-weight:900;font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-stretch:85%}
+  .t-red{background:var(--red);color:#fff}
+  .t-green{background:var(--green);color:#fff}
+  .t-yellow{background:var(--yellow);color:var(--ink)}
+  .t-blue{background:var(--blue);color:#fff}
+  .t-pink{background:var(--pink);color:#fff}
+  .say{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:28px;line-height:1;padding:4px 0 8px}
+  .step{clip-path:polygon(0 10px,10px 10px,10px 0,calc(100% - 10px) 0,calc(100% - 10px) 10px,100% 10px,100% 100%,0 100%)}
+
+  /* el cartel (de la 1) */
+  .block{background:var(--red);color:#fff;padding:22px 16px 6px}
+  .block.ok{background:var(--green)}
+  .block .big{font-family:Archivo;font-size:58px;font-weight:900;font-stretch:72%;line-height:.85}
+  .block .lbl{font-family:Archivo;font-size:20px;font-weight:800;font-stretch:85%;margin:6px 0 12px}
+  .block .row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-top:2px solid rgba(255,255,255,.3);font-weight:700;font-size:15px}
+  .block .row em{font-style:normal;font-family:Archivo;font-size:22px;font-weight:900;font-stretch:80%}
+
+  /* los pasos (de la 2) */
+  .line{position:relative;display:flex;align-items:center;gap:10px;min-height:42px;padding:9px 0;border-bottom:1px solid var(--rule);font-size:15px}
+  .line .num{font-family:Archivo;font-weight:900;width:24px;height:24px;display:inline-grid;place-items:center;border:2px solid var(--ink);font-size:12px;flex:none}
+  .line.done{color:var(--muted);text-decoration:line-through}
+  .line.done .num{background:var(--green);border-color:var(--green);color:#fff;text-decoration:none}
+  .line.cur{font-weight:800;background:color-mix(in srgb,var(--blue) 8%,transparent);margin:0 -8px 0 -8px;padding:9px 8px;width:calc(100% + 8px)}
+  .line.cur .num{background:var(--blue);border-color:var(--blue);color:#fff}
+  .line .amt{margin-left:auto;font-family:Kalam;font-weight:700;color:var(--pen);font-size:19px;white-space:nowrap}
+  .line .hr{color:var(--muted);font-size:12px;width:36px}
+
+  /* las cifras grandes (de la 3) */
+  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .tile{padding:14px 12px 12px}
+  .tile small{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-family:Archivo}
+  .tile div{font-family:Kalam;font-weight:700;font-size:28px;line-height:1;margin-top:8px}
+  .tile p{font-size:12px;font-weight:700;margin-top:4px}
+  .y{background:var(--yellow);color:var(--ink)}
+  .g{background:var(--green);color:#fff}
+
+  .tot{display:flex;justify-content:space-between;align-items:baseline;border-top:3px double var(--ink);margin-top:4px;padding:8px 0;font-weight:800}
+  .tot span:last-child{font-family:Kalam;font-size:26px;color:var(--pen)}
+  .meter{padding:10px 0;border-bottom:1px solid var(--rule)}
+  .meter .t{display:flex;justify-content:space-between;align-items:baseline;font-size:15px}
+  .meter .t b{font-family:Kalam;color:var(--pen);font-size:19px}
+  .meter .track{height:12px;border:1.5px solid var(--ink);margin-top:6px;background:var(--bg)}
+  .meter .track i{display:block;height:100%;background:var(--yellow)}
+  .meter small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+  .meter small.warn{color:var(--red);font-weight:700}
+
+  .cover{margin:16px 0 0 -44px}
+  .line .num.inmargin{position:absolute;left:-46px}
+  .line.cur{margin:0;padding:9px 0}
+  .sub{font-family:Archivo;font-size:12px;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);margin:18px 0 2px;font-weight:800}
+  .cita span small{display:block;font-size:12px;color:var(--muted)}
+  .cita.done{color:var(--muted);text-decoration:none}
+  .cita.next{font-weight:800}
+  .cita.next .hr{color:var(--ink);font-weight:800}
+  .pill{margin-left:auto;background:var(--ink);color:#fff;font-size:11px;font-weight:800;padding:3px 8px;text-transform:uppercase;letter-spacing:.06em}
+  .more{display:block;padding:10px 0;font-weight:800;font-size:14px;color:var(--pen)}
+  .reveal .mock{outline:2px dashed #E5437A;outline-offset:2px;background:rgba(229,67,122,.15)}
+  .bar label{font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Doppel · Inicio · Combinación</h1>
+  <label><input type="checkbox" id="showmock"> Marcar lo que falta en el backend</label>
+</div>
+<p class="help">Versión depurada: el cartel va sin separador, a lo ancho, como portada; los pasos llevan el número en el margen; solo «Hoy» y «Mes» tienen separador. Las citas de hoy van dentro de «Hoy». Las tres situaciones, lado a lado. Datos de ejemplo.</p>
+<div class="stage" id="stage"></div>
+
+<script>
+const states = {
+  pend: {name:"Con pendientes", pend:[["Aprobaciones",2],["Clientes que te pasó el bot",1],["Pedidos por cobrar",3]], steps:null},
+  ok:   {name:"Todo en orden", pend:[], steps:null},
+  alta: {name:"Negocio nuevo", pend:[["Aprobaciones",1]], steps:[["Conecta tu WhatsApp",1],["Agrega tu primer producto",1],["Cuéntale al bot sobre tu negocio",0],["Agrega tu teléfono de encargado",0]]},
+};
+let state = "pend";
+const tabbar = `<div class="tabbar"><div class="on"><b></b>Inicio</div><div><b></b>Chats</div><div><b></b>Pedidos</div><div><b></b>Aprobar</div><div><b></b>Más</div></div>`;
+const total = s => s.pend.reduce((a,p)=>a+p[1],0);
+const cosas = n => n===1 ? "cosa te espera" : "cosas te esperan";
+const sect = (cls,label,body) => `<div class="sect"><div class="tab ${cls}"><span>${label}</span></div>${body}</div>`;
+
+const mock = v => `<span class="mock">${v}</span>`;
+
+function screen(s){
+  const t = total(s), nuevo = !!s.steps, open = nuevo ? s.steps.findIndex(x=>!x[1]) : -1;
+  // El cartel ya es rojo y dice qué es: sin separador, y se extiende sobre el margen como portada.
+  const cartel = t
+    ? `<div class="block step cover"><div class="big">${t}</div><div class="lbl">${cosas(t)}</div>${s.pend.map(p=>`<div class="row"><span>${p[0]}</span><span><em>${p[1]}</em> →</span></div>`).join("")}</div>`
+    : `<div class="block ok step cover"><div class="big">✓</div><div class="lbl">Todo en orden. El bot se encarga.</div><div class="row"><span>${mock("12 chats atendidos hoy")}</span><span>→</span></div></div>`;
+  // Los pasos: sin separador; el número vive en el margen, como en un cuaderno.
+  const pasos = nuevo ? `<div class="say" style="color:var(--blue);margin-top:22px">${s.steps.filter(x=>x[1]).length} de ${s.steps.length} pasos listos</div>${s.steps.map((x,i)=>`<div class="line ${x[1]?"done":i===open?"cur":""}"><span class="num inmargin">${x[1]?"✓":i+1}</span>${x[0]}${i===open?'<span class="amt">→</span>':""}</div>`).join("")}` : "";
+  const citas = (nuevo ? [["16:00","Primera cita","Corte",""]] : [["10:00","Carla Mamani","Corte y lavado","done"],["15:30","Jorge Quispe","Tinte completo","next"],["17:00","Ana Choque","Manicure",""]])
+    .map(c=>`<div class="line cita ${c[3]}"><span class="hr">${c[0]}</span><span>${c[1]}<small>${c[2]}</small></span>${c[3]==="next"?'<span class="pill">Próxima</span>':""}</div>`).join("");
+  const ventas = nuevo ? `<div class="line" style="color:var(--muted)">Todavía no hay ventas</div>` :
+    [["12:05","Shampoo x2","120,00"],["11:40","Tinte completo","350,00"],["10:12","Corte y lavado","80,00"]]
+    .map(r=>`<div class="line"><span class="hr">${r[0]}</span>${r[1]}<span class="amt">${r[2]}</span></div>`).join("") + `<a class="more">Ver las 7 ventas →</a>`;
+  const hoy = sect("t-yellow","Hoy",`<div class="tiles"><div class="tile y step"><small>Vendido hoy</small><div>Bs ${nuevo?"0,00":"1.240,00"}</div><p>${nuevo?"Sin ventas todavía":"7 ventas"}</p></div>
+    <div class="tile g step"><small>El bot</small><div>${mock((nuevo?"3":"12")+" chats")}</div><p>atendidos hoy</p></div></div>
+    <div class="sub">Citas de hoy</div>${citas}<div class="sub">Últimas ventas</div>${ventas}`);
+  const mes = sect("t-pink","Mes",`<div class="meter"><div class="t"><span>Mensajes de WhatsApp</span><b>812 / 1.000</b></div><div class="track"><i style="width:81%"></i></div><small class="warn">Cerca del límite gratis</small></div>
+    <div class="meter"><div class="t"><span>Minutos de llamadas</span><b>34 / 60</b></div><div class="track"><i style="width:57%"></i></div></div>`);
+  return `<div class="sheet"><div class="date"><small>Salón Wara</small>Sábado 27 de septiembre</div>${cartel}${pasos}${hoy}${mes}<p class="note">Datos de ejemplo</p></div>`;
+}
+
+function render(){
+  document.getElementById("stage").innerHTML = Object.entries(states).map(([k,s])=>`<div class="col"><h2>${s.name}</h2><div class="phone"><div class="screen">${screen(s)}</div>${tabbar}</div></div>`).join("");
+}
+document.getElementById("showmock").onchange = e => document.body.classList.toggle("reveal", e.target.checked);
+render();
+</script>
+</body>
+</html>

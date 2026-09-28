@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-28T03:46:12+00:00",
+  "title": "Design System: Doppel",
+  "extensions": {
+    "colorMeta": {
+      "paper": {
+        "role": "neutral",
+        "displayName": "Papel Crema",
+        "canonical": "oklch(97.8% 0.008 73.7)",
+        "tonalRamp": [
+          "#0B0B0B",
+          "#252524",
+          "#434241",
+          "#62615F",
+          "#84827F",
+          "#A7A4A1",
+          "#CCC8C4",
+          "#F2EEE9"
+        ]
+      },
+      "paper-grid": {
+        "role": "neutral",
+        "displayName": "Cuadrícula",
+        "canonical": "oklch(91.0% 0.021 67.6)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#272523",
+          "#45413E",
+          "#65605B",
+          "#88817A",
+          "#ACA39B",
+          "#D2C7BC",
+          "#F8ECE1"
+        ]
+      },
+      "paper-rule": {
+        "role": "neutral",
+        "displayName": "Renglón",
+        "canonical": "oklch(84.9% 0.032 67.4)",
+        "tonalRamp": [
+          "#0D0B09",
+          "#282420",
+          "#47413A",
+          "#685F56",
+          "#8C8074",
+          "#B1A294",
+          "#D7C6B4",
+          "#FCEBDB"
+        ]
+      },
+      "paper-shade": {
+        "role": "neutral",
+        "displayName": "Papel Sombreado",
+        "canonical": "oklch(93.5% 0.017 70.5)",
+        "tonalRamp": [
+          "#0C0B0A",
+          "#262523",
+          "#44413F",
+          "#64615D",
+          "#86817C",
+          "#AAA49D",
+          "#CFC8BF",
+          "#F6EDE3"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "oklch(22.7% 0.016 45.2)",
+        "tonalRamp": [
+          "#110906",
+          "#2C231F",
+          "#48403C",
+          "#675F5C",
+          "#87817E",
+          "#A9A4A2",
+          "#CCC8C7",
+          "#F0EEED"
+        ]
+      },
+      "ink-muted": {
+        "role": "neutral",
+        "displayName": "Tinta Gastada",
+        "canonical": "oklch(51.9% 0.026 54.0)",
+        "tonalRamp": [
+          "#100A06",
+          "#2C231D",
+          "#4B3F37",
+          "#6D5E54",
+          "#8E7F76",
+          "#AFA29A",
+          "#D2C7C0",
+          "#F6ECE7"
+        ]
+      },
+      "waiting": {
+        "role": "primary",
+        "displayName": "Rojo Te Espera",
+        "canonical": "oklch(53.0% 0.207 22.3)",
+        "tonalRamp": [
+          "#2C0000",
+          "#570000",
+          "#860010",
+          "#B70127",
+          "#DC444B",
+          "#F97776",
+          "#FFA6A2",
+          "#FFD3CF"
+        ]
+      },
+      "settled": {
+        "role": "secondary",
+        "displayName": "Verde En Orden",
+        "canonical": "oklch(51.7% 0.121 156.3)",
+        "tonalRamp": [
+          "#001201",
+          "#003012",
+          "#00512A",
+          "#067444",
+          "#439567",
+          "#74B68D",
+          "#A2D8B5",
+          "#D0FBDF"
+        ]
+      },
+      "money": {
+        "role": "secondary",
+        "displayName": "Amarillo Plata",
+        "canonical": "oklch(78.5% 0.164 77.6)",
+        "tonalRamp": [
+          "#140800",
+          "#352000",
+          "#5A3B00",
+          "#825800",
+          "#AC7600",
+          "#D99700",
+          "#FFBB3F",
+          "#FFE384"
+        ]
+      },
+      "steps": {
+        "role": "tertiary",
+        "displayName": "Azul Bolígrafo",
+        "canonical": "oklch(35.5% 0.142 275.4)",
+        "tonalRamp": [
+          "#070037",
+          "#191560",
+          "#313589",
+          "#4F59A4",
+          "#717DBE",
+          "#96A1D7",
+          "#BDC7F1",
+          "#E6EDFF"
+        ]
+      },
+      "month": {
+        "role": "tertiary",
+        "displayName": "Rosa Del Mes",
+        "canonical": "oklch(57.9% 0.194 4.8)",
+        "tonalRamp": [
+          "#260006",
+          "#4F001D",
+          "#7B0738",
+          "#AA2254",
+          "#D74374",
+          "#F57598",
+          "#FFA3BE",
+          "#FFD0E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display-count": {
+        "displayName": "Cifra del cartel",
+        "purpose": "La cifra grande del cartel de lo que te espera."
+      },
+      "headline": {
+        "displayName": "Titular",
+        "purpose": "El titular de los pasos para empezar."
+      },
+      "title": {
+        "displayName": "Enunciado",
+        "purpose": "El enunciado del cartel y los titulares de error."
+      },
+      "label": {
+        "displayName": "Etiqueta",
+        "purpose": "Nombre de una ficha y encabezado de un bloque de renglones; nunca sobre un titular."
+      },
+      "margin-tab": {
+        "displayName": "Pestaña de margen",
+        "purpose": "Nombre de sección en vertical dentro del margen."
+      },
+      "hand-figure": {
+        "displayName": "Valor a mano",
+        "purpose": "El valor de una ficha; 22 px bajo 360 px de ancho."
+      },
+      "hand-date": {
+        "displayName": "Fecha a mano",
+        "purpose": "La fecha que encabeza la página, en azul bolígrafo."
+      },
+      "hand-amount": {
+        "displayName": "Monto a mano",
+        "purpose": "Montos y conteos en los renglones, en azul bolígrafo; advertencias en rojo a 15 px."
+      },
+      "body": {
+        "displayName": "Texto",
+        "purpose": "Renglones y enlaces."
+      },
+      "body-small": {
+        "displayName": "Texto chico",
+        "purpose": "Horas y subtítulos en tinta gastada."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "paste",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "El cartel del día se asienta una vez al cargar, desde ya visible (opacidad 0.85, recortado al 82% desde abajo). Desactivado con prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "359px"
+      },
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "shapes": {
+      "chakana": {
+        "value": "polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 100%, 0 100%);",
+        "purpose": "Escalón de 10 px en las dos esquinas superiores de todo plano de color lleno."
+      }
+    },
+    "migration": {
+      "paperScreens": "PAPER_SCREENS en src/components/dashboard/OwnerShell.tsx",
+      "note": "Las pantallas aún no redibujadas conservan el aspecto oscuro con #25D366; una pantalla entra al cuaderno añadiendo su ruta a PAPER_SCREENS, que aplica .theme-paper al shell."
+    }
+  },
+  "components": [
+    {
+      "name": "Cartel: te espera",
+      "kind": "card",
+      "refersTo": "plane-waiting",
+      "description": "La tapa del día cuando algo espera al Owner: cifra grande, enunciado y un renglón tocable por pendiente.",
+      "html": "<div class=\"ds-plane-waiting\"><h2><span class=\"ds-count\">6</span><span class=\"ds-say\">cosas te esperan</span></h2><a class=\"ds-plane-row\" href=\"#\"><span>Aprobaciones</span><span class=\"ds-row-end\"><span class=\"ds-row-n\">2</span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a><a class=\"ds-plane-row\" href=\"#\"><span>Pedidos por cobrar</span><span class=\"ds-row-end\"><span class=\"ds-row-n\">3</span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></span></a></div>",
+      "css": ".ds-plane-waiting { background: #C8102E; color: #fff; padding: 24px 16px 8px; clip-path: polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 100%, 0 100%); font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-plane-waiting h2 { margin: 0; } .ds-count { display: block; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 58px; font-weight: 900; line-height: 0.85; font-stretch: 72%; } .ds-say { display: block; margin: 6px 0 12px; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 20px; font-weight: 800; font-stretch: 85%; } .ds-plane-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 2px solid rgba(255,255,255,0.3); padding: 12px 0; font-size: 15px; font-weight: 700; color: inherit; text-decoration: none; transition: background-color 150ms; } .ds-plane-row:hover { background: rgba(255,255,255,0.1); } .ds-plane-row:focus-visible { outline: 2px solid #231A16; outline-offset: 2px; } .ds-row-end { display: flex; align-items: center; gap: 6px; } .ds-row-n { font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 22px; font-weight: 900; font-stretch: 80%; }"
+    },
+    {
+      "name": "Cartel: todo en orden",
+      "kind": "card",
+      "refersTo": "plane-settled",
+      "description": "La tapa del día cuando nada espera: check grande, enunciado y un renglón hacia las conversaciones.",
+      "html": "<div class=\"ds-plane-settled\"><svg width=\"52\" height=\"52\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg><h2 class=\"ds-say\">Todo en orden. El bot se encarga.</h2><a class=\"ds-plane-row\" href=\"#\"><span>12 chats atendidos hoy</span><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/></svg></a></div>",
+      "css": ".ds-plane-settled { background: #0E7C4A; color: #fff; padding: 24px 16px 8px; clip-path: polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 100%, 0 100%); font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-say { margin: 8px 0 12px; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 20px; font-weight: 800; line-height: 1.25; font-stretch: 85%; } .ds-plane-row { display: flex; align-items: center; justify-content: space-between; border-top: 2px solid rgba(255,255,255,0.3); padding: 12px 0; font-size: 15px; font-weight: 700; color: inherit; text-decoration: none; } .ds-plane-row:hover { background: rgba(255,255,255,0.1); } .ds-plane-row:focus-visible { outline: 2px solid #231A16; outline-offset: 2px; }"
+    },
+    {
+      "name": "Fichas de Hoy",
+      "kind": "card",
+      "refersTo": "figure-money",
+      "description": "Dos planos chakana con su valor escrito a mano; el color es el rol (amarillo dinero, verde el bot).",
+      "html": "<div class=\"ds-figures\"><div class=\"ds-figure ds-money\"><p class=\"ds-fig-label\">Vendido hoy</p><p class=\"ds-fig-value\">Bs 1.240,00</p><p class=\"ds-fig-note\">7 ventas</p></div><div class=\"ds-figure ds-bot\"><p class=\"ds-fig-label\">El bot</p><p class=\"ds-fig-value\">12 chats</p><p class=\"ds-fig-note\">atendidos hoy</p></div></div>",
+      "css": ".ds-figures { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-figure { padding: 16px 12px 12px; clip-path: polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 100%, 0 100%); } .ds-figure p { margin: 0; } .ds-money { background: #F2A900; color: #231A16; } .ds-bot { background: #0E7C4A; color: #fff; } .ds-fig-label { font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; } .ds-fig-value { margin-top: 8px !important; font-family: var(--font-hand, 'Kalam', cursive); font-size: 28px; font-weight: 700; line-height: 1; } .ds-fig-note { margin-top: 4px !important; font-size: 12px; font-weight: 700; }"
+    },
+    {
+      "name": "Pasos para empezar",
+      "kind": "custom",
+      "refersTo": "step-current",
+      "description": "Renglones numerados en el margen: hecho en verde con check, actual en azul lleno, por venir en tinta.",
+      "html": "<section class=\"ds-steps\"><h2 class=\"ds-steps-h\">1 de 3 pasos listos</h2><ol><li class=\"ds-step ds-done\"><span class=\"ds-mark\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"3.5\" aria-hidden=\"true\"><path d=\"M20 6 9 17l-5-5\"/></svg></span><s>Conecta tu WhatsApp</s></li><li class=\"ds-step ds-current\"><span class=\"ds-mark\">2</span><a href=\"#\">Agrega tu primer producto</a></li><li class=\"ds-step\"><span class=\"ds-mark\">3</span><a href=\"#\">Cuéntale al bot sobre tu negocio</a></li></ol></section>",
+      "css": ".ds-steps { padding-left: 58px; background: #FBF7F2; color: #231A16; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-steps ol { list-style: none; margin: 8px 0 0; padding: 0; } .ds-steps-h { margin: 0; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 28px; font-weight: 900; line-height: 1; font-stretch: 78%; color: #2B2D84; } .ds-step { position: relative; display: flex; align-items: center; min-height: 42px; gap: 12px; padding: 8px 0; border-bottom: 1px solid #DCCAB8; font-size: 15px; } .ds-step a { color: inherit; text-decoration: none; flex: 1; } .ds-step a:hover { color: #2B2D84; } .ds-mark { position: absolute; left: -46px; display: flex; width: 24px; height: 24px; align-items: center; justify-content: center; border: 2px solid #231A16; box-sizing: border-box; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 12px; font-weight: 900; } .ds-done { color: #75655B; } .ds-done .ds-mark { border-color: #0E7C4A; background: #0E7C4A; color: #fff; } .ds-current { margin-left: -8px; padding-left: 8px; background: #2B2D84; color: #fff; font-weight: 800; } .ds-current a:hover { color: #fff; } .ds-current .ds-mark { left: -38px; border-color: #2B2D84; background: #FBF7F2; color: #2B2D84; }"
+    },
+    {
+      "name": "Renglones con pestaña de margen",
+      "kind": "custom",
+      "refersTo": "margin-tab-hoy",
+      "description": "Una sección con su pestaña vertical en el margen rojo y renglones con monto escrito a mano.",
+      "html": "<div class=\"ds-page\"><span class=\"ds-rule\"></span><section class=\"ds-section\"><div class=\"ds-tab\"><span>Hoy</span></div><h3 class=\"ds-sub\">Últimas ventas</h3><ul><li class=\"ds-row\"><span class=\"ds-time\">12:05</span><a href=\"#\" class=\"ds-what\">V-0107<span>Efectivo</span></a><span class=\"ds-amt\">Bs 120,00</span></li><li class=\"ds-row\"><span class=\"ds-time\">11:40</span><a href=\"#\" class=\"ds-what\">V-0106<span>Transferencia</span></a><span class=\"ds-amt\">Bs 350,00</span></li></ul><a class=\"ds-link\" href=\"#\">Ver las 7 ventas →</a></section></div>",
+      "css": ".ds-page { position: relative; padding: 20px 14px 20px 58px; color: #231A16; background-color: #FBF7F2; background-image: linear-gradient(#EBDFD3 1px, transparent 1px), linear-gradient(90deg, #EBDFD3 1px, transparent 1px); background-size: 20px 20px; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-rule { position: absolute; top: 0; bottom: 0; left: 46px; width: 2px; background: #C8102E; } .ds-section { position: relative; } .ds-section ul { list-style: none; margin: 0; padding: 0; } .ds-tab { position: absolute; left: -58px; top: 0; bottom: 0; width: 36px; display: flex; align-items: center; justify-content: center; background: #F2A900; color: #231A16; } .ds-tab span { writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.14em; font-stretch: 85%; } .ds-sub { margin: 0 0 4px; font-family: var(--font-display, 'Archivo', system-ui, sans-serif); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.14em; color: #75655B; } .ds-row { display: flex; align-items: center; gap: 12px; min-height: 42px; padding: 8px 0; border-bottom: 1px solid #DCCAB8; font-size: 15px; } .ds-time { width: 40px; font-size: 12px; color: #75655B; font-variant-numeric: tabular-nums; } .ds-what { flex: 1; color: inherit; text-decoration: none; } .ds-what:hover { text-decoration: underline; } .ds-what span { display: block; font-size: 12px; color: #75655B; } .ds-amt { white-space: nowrap; font-family: var(--font-hand, 'Kalam', cursive); font-size: 19px; font-weight: 700; color: #2B2D84; } .ds-link { display: inline-block; padding: 10px 0; font-size: 14px; font-weight: 800; color: #2B2D84; text-decoration: none; } .ds-link:focus-visible, .ds-what:focus-visible { outline: 2px solid #231A16; outline-offset: 2px; }"
+    },
+    {
+      "name": "Barra de uso",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Uso mensual: contorno de tinta, relleno amarillo, rojo al pasar el límite; advertencia a mano desde el 80%.",
+      "html": "<div class=\"ds-allow\"><div class=\"ds-allow-top\"><span>Mensajes de WhatsApp</span><span class=\"ds-amt\">812 / 1.000</span></div><div class=\"ds-meter\" role=\"meter\" aria-valuenow=\"812\" aria-valuemin=\"0\" aria-valuemax=\"1000\"><div style=\"width:81%\"></div></div><p class=\"ds-warn\">Cerca del límite gratis</p></div>",
+      "css": ".ds-allow { padding: 12px 0; border-bottom: 1px solid #DCCAB8; color: #231A16; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-allow-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 15px; } .ds-amt { font-family: var(--font-hand, 'Kalam', cursive); font-size: 19px; font-weight: 700; color: #2B2D84; } .ds-meter { margin-top: 6px; height: 12px; border: 1.5px solid #231A16; background: #FBF7F2; } .ds-meter div { height: 100%; background: #F2A900; } .ds-meter.ds-over div { background: #C8102E; } .ds-warn { margin: 4px 0 0; font-family: var(--font-hand, 'Kalam', cursive); font-size: 15px; font-weight: 700; line-height: 1.25; color: #C8102E; }"
+    },
+    {
+      "name": "Botón en tinta",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "La acción directa (Reintentar): tinta sobre papel, azul bolígrafo al pasar.",
+      "html": "<button class=\"ds-btn\" type=\"button\">Reintentar</button>",
+      "css": ".ds-btn { background: #231A16; color: #FBF7F2; border: none; border-radius: 0; padding: 8px 16px; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); font-size: 14px; font-weight: 700; cursor: pointer; transition: background-color 150ms; } .ds-btn:hover { background: #2B2D84; } .ds-btn:focus-visible { outline: 2px solid #231A16; outline-offset: 2px; }"
+    },
+    {
+      "name": "Etiqueta Próxima",
+      "kind": "chip",
+      "refersTo": "tag-next",
+      "description": "Marca la próxima cita del día.",
+      "html": "<span class=\"ds-tag\">Próxima</span>",
+      "css": ".ds-tag { display: inline-block; background: #231A16; color: #FBF7F2; padding: 2px 8px; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }"
+    },
+    {
+      "name": "Navegación",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Lista lateral del shell sobre papel: activo en tinta con lavado al 7%, hover en papel sombreado; nunca rojo.",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\">Pedidos</a><a href=\"#\" aria-current=\"page\" class=\"ds-active\">Inicio</a><a href=\"#\">Ventas</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; width: 240px; background: #FBF7F2; font-family: var(--font-body, 'Figtree', system-ui, sans-serif); } .ds-nav a { padding: 10px 16px; font-size: 14px; color: #75655B; text-decoration: none; transition: background-color 150ms, color 150ms; } .ds-nav a:hover { background: #F1E8DE; color: #231A16; } .ds-nav a:focus-visible { outline: 2px solid #231A16; outline-offset: 2px; } .ds-nav a.ds-active { background: rgba(35,26,22,0.07); color: #231A16; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "La página de hoy del cuaderno",
+    "overview": "El panel del Owner es una hoja de cuaderno de ventas: papel crema con cuadrícula fina, un margen rojo trazado a la izquierda y, pegados encima, planos de color llenos con las esquinas superiores escalonadas de una fachada cholet. Los colores vienen del aguayo y cada uno tiene un solo rol, así que el color se lee antes que el texto: rojo es lo que te espera, verde es que todo está en orden, amarillo es plata. Lo escrito a mano (fecha, montos, advertencias) convive con titulares condensados y pesados, como un cuaderno llevado por alguien que vende todos los días.\n\nLa densidad es la de una página, no la de un tablero: un cartel a todo el ancho que dice si hay algo que decidir, luego secciones marcadas en el margen, luego renglones. Nada flota; todo está pegado, trazado o escrito sobre el papel. El papel crema es una decisión confirmada por el usuario: el blanco puro abrumaba, y la hoja crema con cuadrícula de 20 px es la página del cuaderno.\n\nRechazo confirmado: la grilla de tarjetas de métricas iguales sobre fondo oscuro. El aspecto oscuro anterior con acento verde WhatsApp (#25D366) sigue vivo solo en las pantallas que todavía no se han redibujado; es una migración en curso, no parte de este sistema.",
+    "keyCharacteristics": [
+      "Papel crema con cuadrícula de 20 px y un margen rojo vertical.",
+      "Un color = un rol; el color se lee antes que la palabra.",
+      "Planos de color llenos con esquinas chakana, pegados a todo el ancho y sobre el margen.",
+      "El margen lleva los números, los checks y las pestañas de sección.",
+      "Tres voces tipográficas: Archivo condensado pesado para cifras y titulares, Kalam a mano para fechas, montos y advertencias, Figtree para el texto.",
+      "Sin esquinas redondeadas, sin sombras; lo activo o presionado se marca en tinta."
+    ],
+    "rules": [
+      {
+        "name": "The Un Color, Un Rol Rule",
+        "body": "Cada color del aguayo significa una sola cosa en todo el panel. Si un color nuevo no tiene un significado nuevo, no entra; si un significado ya tiene color, se usa ese.",
+        "section": "colors"
+      },
+      {
+        "name": "The Rojo No Navega Rule",
+        "body": "El rojo es \"te espera\" y nada más. El shell marca dónde estás en tinta, nunca en rojo ni en verde.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tres Manos Rule",
+        "body": "Archivo es lo impreso (cifras que cuentan, titulares), Kalam es lo anotado (fechas, montos, advertencias), Figtree es el texto. Un monto nunca va en Archivo; un titular nunca va en Kalam.",
+        "section": "typography"
+      },
+      {
+        "name": "The Monto Entero Rule",
+        "body": "Un monto puede cortar después de \"Bs\", nunca dentro de la cifra.",
+        "section": "typography"
+      },
+      {
+        "name": "The Margen Trabaja Rule",
+        "body": "Lo que va en el margen es numeración, estado o pestaña de sección; nunca contenido ni acciones.",
+        "section": "layout"
+      },
+      {
+        "name": "The Pegado, No Flotante Rule",
+        "body": "Nada flota sobre la página. Si un elemento parece necesitar sombra, necesita un color de plano o una línea de tinta.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Chakana Rule",
+        "body": "Todo plano de color lleno (cartel, ficha, esqueleto de plano) lleva el escalón chakana arriba. Las pestañas del margen, los renglones, los botones y las etiquetas no.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** poner toda pantalla redibujada sobre el papel crema con la cuadrícula de 20 px, añadiendo su ruta a `PAPER_SCREENS`.",
+      "**Do** dar a cada color del aguayo un solo rol: rojo te espera, verde en orden o el bot, amarillo dinero, azul pasos y bolígrafo, rosa el mes.",
+      "**Do** marcar lo activo, lo presionado y el foco en tinta (#231A16).",
+      "**Do** recortar la chakana de 10 px arriba en todo plano de color lleno.",
+      "**Do** escribir a mano (Kalam 700) las fechas, los montos y las advertencias; contar y titular en Archivo condensado pesado.",
+      "**Do** usar el margen para números, checks y pestañas de sección, y poner pestaña solo donde la sección necesita orientación.",
+      "**Do** respetar `prefers-reduced-motion`: sin el asentado del plano."
+    ],
+    "donts": [
+      "**Don't** usar el rojo para navegación, estado activo o decoración.",
+      "**Don't** usar blanco puro como fondo de página; el papel es crema.",
+      "**Don't** armar grillas de tarjetas de métricas iguales sobre fondo oscuro.",
+      "**Don't** redondear esquinas ni poner sombras de elevación.",
+      "**Don't** usar el rosa #E5437A con texto blanco pequeño; el rosa del mes es #D0356B.",
+      "**Don't** mezclar el aspecto oscuro con acento #25D366 dentro de una pantalla de papel."
+    ]
+  }
+}

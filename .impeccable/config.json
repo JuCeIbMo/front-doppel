@@ -1,0 +1,35 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/*.html"
+        ],
+        "createdAt": "2026-09-28T03:21:44.194Z",
+        "reason": "user confirmed: el fondo crema es la hoja de papel del cuaderno; el blanco puro abruma"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          "src/styles/globals.css"
+        ],
+        "createdAt": "2026-09-28T03:35:12.037Z",
+        "reason": "user confirmed: la cuadrícula es la hoja del cuaderno de ventas, elegida en los mocks de Inicio"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          "src/styles/globals.css"
+        ],
+        "createdAt": "2026-09-28T03:35:12.042Z",
+        "reason": "user confirmed: el fondo crema es el papel del cuaderno; el blanco puro abruma"
+      }
+    ]
+  }
+}

@@ -16,6 +16,79 @@
   --color-warning:       #F59E0B;
   --font-sans:           var(--font-satoshi), system-ui, sans-serif;
   --animate-shake:       shake 0.4s ease-in-out;
+
+  /* El cuaderno: la hoja, su tinta y los colores del aguayo, cada uno con un solo rol. */
+  --color-paper:         #FBF7F2;
+  --color-paper-grid:    #EBDFD3;
+  --color-paper-rule:    #DCCAB8;
+  --color-ink:           #231A16;
+  --color-ink-muted:     #75655B;
+  --color-waiting:       #C8102E; /* rojo: te espera a ti */
+  --color-settled:       #0E7C4A; /* verde: todo en orden, lo hizo el bot */
+  --color-money:         #F2A900; /* amarillo: dinero */
+  --color-steps:         #2B2D84; /* azul: los pasos para empezar, la tinta de bolígrafo */
+  --color-month:         #D0356B; /* rosa: el uso del mes */
+  --font-display:        var(--font-archivo), system-ui, sans-serif;
+  --font-hand:           var(--font-kalam), cursive;
+  --font-body:           var(--font-figtree), system-ui, sans-serif;
+}
+
+/*
+ * The paper panel. A screen already redrawn as the notebook wears it, and the shell's
+ * own tokens turn into paper and ink around it; the screens still to redraw keep the old look.
+ */
+.theme-paper {
+  --color-bg-primary:    var(--color-paper);
+  --color-bg-secondary:  var(--color-paper);
+  --color-bg-elevated:   #F1E8DE;
+  --color-border:        var(--color-paper-rule);
+  --color-text-primary:  var(--color-ink);
+  --color-text-secondary:var(--color-ink-muted);
+  --color-text-muted:    var(--color-paper-rule);
+  /* Red means "te espera" and nothing else: the shell marks where you are in ink. */
+  --color-accent:        var(--color-ink);
+  --color-accent-dim:    rgba(35, 26, 22, 0.07);
+  --color-danger:        var(--color-waiting);
+  font-family: var(--font-body);
+  color: var(--color-ink);
+  background-color: var(--color-paper);
+  background-image:
+    linear-gradient(var(--color-paper-grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-paper-grid) 1px, transparent 1px);
+  background-size: 20px 20px;
+  color-scheme: light;
+  scrollbar-color: var(--color-paper-rule) var(--color-paper);
+}
+
+.theme-paper ::selection {
+  background: var(--color-money);
+  color: var(--color-ink);
+}
+
+.theme-paper :focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
+/* The stepped top corners of a cholet facade, on every color plane of the notebook. */
+.chakana {
+  clip-path: polygon(
+    0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px,
+    100% 10px, 100% 100%, 0 100%
+  );
+}
+
+/* A plane pasted onto the page settles in once, from already visible. */
+@keyframes paste {
+  from { clip-path: polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 82%, 0 82%); opacity: 0.85; }
+}
+
+.paste {
+  animation: paste 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paste { animation: none; }
 }
 
 @keyframes shake {
