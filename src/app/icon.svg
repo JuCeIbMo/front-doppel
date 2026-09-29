@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Doppel's mark: the employee's face, yellow cap and all, on the navbar's red. -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#C8102E" stroke="#231A16" stroke-width="4"/>
+  <circle cx="30" cy="38" r="15" fill="#8D5A3B" stroke="#231A16" stroke-width="3.5"/>
+  <path d="M14 34 Q14 14 30 14 Q46 14 46 34Z" fill="#F2A900" stroke="#231A16" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M34 29 H55 Q55 35 49 35 H34Z" fill="#F2A900" stroke="#231A16" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="25" cy="41" r="2.4" fill="#231A16"/>
+  <circle cx="35" cy="41" r="2.4" fill="#231A16"/>
+  <path d="M25 47 q5 4 10 0" fill="none" stroke="#231A16" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

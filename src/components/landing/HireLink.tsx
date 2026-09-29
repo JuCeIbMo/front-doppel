@@ -30,7 +30,7 @@ export function LoginHint() {
   return (
     <p className="mt-4 text-sm font-semibold md:text-base">
       ¿Ya tienes cuenta?{" "}
-      <Link href="/connect" className="underline underline-offset-4">
+      <Link href="/connect" className="inline-flex min-h-11 items-center underline underline-offset-4">
         Iniciar sesión
       </Link>
     </p>

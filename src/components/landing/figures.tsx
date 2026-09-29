@@ -19,7 +19,7 @@ export function FigureDefs() {
           <rect width="12" height="5" fill="#C8102E" />
           <rect width="12" height="3" y="5" fill="#F2A900" />
           <rect width="12" height="5" y="8" fill="#0E7C4A" />
-          <rect width="12" height="3" y="13" fill="#E5437A" />
+          <rect width="12" height="3" y="13" fill="#D0356B" />
           <rect width="12" height="5" y="16" fill="#2B2D84" />
           <rect width="12" height="3" y="21" fill="#FBF7F2" />
         </pattern>
@@ -50,7 +50,7 @@ export function FigureDefs() {
           <ellipse className="blink" cx="8" cy="-139" rx="2.8" ry="3.6" fill="#231A16" />
           <path d="M-8 -129 q8 8 16 0" {...LN} fill="none" strokeWidth="2.5" />
           <path d="M-23 -142 q-4 16 12 20" {...LN} fill="none" strokeWidth="2.5" />
-          <circle cx="-10" cy="-122" r="3.5" fill="#E5437A" {...LN} strokeWidth="2" />
+          <circle cx="-10" cy="-122" r="3.5" fill="#D0356B" {...LN} strokeWidth="2" />
         </g>
 
         <path

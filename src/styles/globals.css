@@ -182,3 +182,31 @@
   .landing .blink, .landing .buzz, .landing .tap, .landing .write,
   .landing .twinkle, .landing .ringing, .landing .nudge { animation: none; }
 }
+
+/* The public site: focus is an ink ring that reads on every scene color; paper on the ink footer. */
+.marketing :focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}
+.marketing footer :focus-visible { outline-color: var(--color-paper); }
+.marketing ::selection { background: var(--color-ink); color: var(--color-paper); }
+
+/* The legal pages' reading column. */
+.legal { font-size: 17px; line-height: 1.65; }
+.legal h2 {
+  font-family: var(--font-display);
+  font-stretch: 80%;
+  font-weight: 900;
+  font-size: 1.6rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  text-wrap: balance;
+  margin-bottom: 0.9rem;
+}
+.legal p + p, .legal p + ul, .legal p + ol, .legal ul + p, .legal ol + p { margin-top: 1rem; }
+.legal ul, .legal ol { padding-left: 1.4rem; display: grid; gap: 0.6rem; }
+.legal ul { list-style: disc; }
+.legal ol { list-style: decimal; }
+.legal li::marker { color: var(--color-waiting); font-weight: 800; }
+.legal strong { font-weight: 800; }
+.legal a { font-weight: 700; color: var(--color-steps); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }

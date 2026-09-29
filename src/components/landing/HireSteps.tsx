@@ -13,7 +13,7 @@ export function HireSteps() {
     <section id="contratar" aria-label="Contrátalo en 3 pasos" className="landing bg-money px-5 py-20 md:px-10 md:py-28">
       <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
         <div>
-          <h2 className="font-display text-[42px] leading-[0.9] font-black uppercase [font-stretch:72%] md:text-8xl">
+          <h2 className="font-display text-[42px] leading-[0.9] font-black uppercase [font-stretch:72%] md:text-7xl lg:text-8xl">
             Contrátalo en 3 pasos
           </h2>
           <ol className="mt-8 flex flex-col gap-4">

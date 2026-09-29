@@ -6,7 +6,8 @@ import { HireLink } from "./HireLink";
 /**
  * The main button, always within reach on a phone while the story scrolls, so nobody has
  * to reach the end to sign up. It steps aside once the closing section, with its own
- * button, is on screen. On a computer the bar at the top carries it instead.
+ * button, is on screen, and stays aside below it. On a computer the bar at the top carries
+ * it instead.
  */
 export function StickyCta() {
   const [hidden, setHidden] = useState(false);
@@ -14,9 +15,12 @@ export function StickyCta() {
   useEffect(() => {
     const target = document.getElementById("contratar");
     if (!target) return;
-    const observer = new IntersectionObserver(([entry]) => setHidden(entry.isIntersecting), {
-      threshold: 0.2,
-    });
+    const observer = new IntersectionObserver(
+      ([entry]) => setHidden(entry.isIntersecting || entry.boundingClientRect.top < 0),
+      {
+        threshold: 0.2,
+      },
+    );
     observer.observe(target);
     return () => observer.disconnect();
   }, []);
