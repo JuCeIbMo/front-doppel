@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Landing · tu empleado completo (escenas 1, 2 y 5)</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--cream:#FBF7F2;--ink:#231A16;--red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--skin:#C98B5B;--skin2:#8D5A3B}
+  body{font-family:Figtree,system-ui,sans-serif;background:var(--red);min-height:100vh;display:flex;gap:40px;align-items:center;justify-content:center;padding:30px}
+  .hint{color:var(--cream);font-weight:700;max-width:220px;font-size:15px;line-height:1.4}
+  .hint b{font-family:Archivo;font-stretch:80%;font-size:26px;display:block;line-height:1;margin-bottom:8px}
+  .phone{width:360px;height:740px;border-radius:40px;border:10px solid var(--ink);overflow:hidden;position:relative;box-shadow:16px 16px 0 var(--ink);background:var(--yellow)}
+  .scroller{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+  .scroller::-webkit-scrollbar{display:none}
+  .top{position:absolute;top:14px;left:12px;right:12px;z-index:20;border:3px solid var(--ink);border-radius:16px;background:var(--red);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;box-shadow:3px 3px 0 var(--ink)}
+  .logo{font-family:Archivo;font-weight:900;font-stretch:75%;font-size:28px;color:var(--cream);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+  .menu{background:var(--cream);border:2.5px solid var(--ink);border-radius:10px;padding:7px 12px;font-family:Archivo;font-weight:900;font-stretch:80%;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+  .cta{position:absolute;left:14px;right:14px;bottom:16px;z-index:20;height:56px;border:3px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--cream);display:grid;place-items:center;font-weight:800;font-size:17px;box-shadow:4px 4px 0 var(--red)}
+
+  section{position:relative;height:1400px}
+  section.s2{background:var(--cream)} section.s5{background:#9FD3B8}
+  .stage{position:sticky;top:0;height:720px;overflow:hidden}
+  .stage svg{position:absolute;left:0;right:0;bottom:70px;width:100%}
+  .say{position:absolute;left:18px;right:18px;top:86px;z-index:3}
+  .say h1,.say h2{font-family:Archivo;font-weight:900;font-stretch:72%;line-height:.9;text-transform:uppercase;font-size:42px}
+  .say h2{font-size:38px}
+  .swap{position:relative}
+  .swap>*{transition:opacity .35s,transform .35s}
+  .swap .b{position:absolute;top:0;left:0;opacity:0;transform:translateY(12px)}
+  .swap.on .a{opacity:0;transform:translateY(-12px)}
+  .swap.on .b{opacity:1;transform:none}
+
+  .tl{opacity:0;transform:translateY(12px) scale(.94);transition:opacity .3s,transform .4s cubic-bezier(.2,.8,.3,1)}
+  .tl.on{opacity:1;transform:none}
+  .tl.gone{opacity:0!important}
+  .bub{position:absolute;max-width:220px;padding:10px 14px;font-size:14px;line-height:1.3;border-radius:14px;background:#fff;border:2.5px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-weight:600}
+  .bub.in{left:16px;border-bottom-left-radius:3px}
+  .bub.out{right:16px;background:#D6EFE0;border-bottom-right-radius:3px}
+  .call{position:absolute;left:16px;width:200px;border:2.5px solid var(--ink);border-radius:14px;box-shadow:3px 3px 0 var(--ink);overflow:hidden;font-weight:800}
+  .call div{padding:12px 14px;display:flex;align-items:center;gap:10px;transition:opacity .3s}
+  .call small{display:block;font-weight:600;font-size:12px}
+  .call .ring{background:var(--blue);color:#fff}
+  .call .live{position:absolute;inset:0;background:var(--green);color:#fff;opacity:0}
+  .call.on .live.on{opacity:1}
+  .call i{width:30px;height:30px;border-radius:50%;background:var(--cream);border:2px solid var(--ink);flex:none;display:grid;place-items:center;color:var(--ink);font-style:normal;font-size:15px}
+  .call .ring i{animation:ringy .5s infinite}
+  @keyframes ringy{25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+
+  .wa{position:absolute;left:16px;right:16px;top:180px;height:300px;background:#EFE6DA;border:3px solid var(--ink);border-radius:16px;box-shadow:5px 5px 0 var(--ink);overflow:hidden;z-index:2}
+  .wa .h{position:relative;z-index:2;background:var(--green);color:#fff;padding:9px 12px;display:flex;gap:9px;align-items:center;border-bottom:2.5px solid var(--ink)}
+  .wa .h b{display:block;font-size:14px}.wa .h small{font-size:11px;opacity:.85}
+  .wa .av{width:30px;height:30px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink)}
+  .wa .msgs{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:7px}
+  .wa .m{max-width:82%;padding:10px 13px;font-size:13px;line-height:1.3;border-radius:12px;border:2px solid var(--ink);background:#fff;font-weight:600;display:none}
+  .wa .m.on{display:block;animation:pop .35s cubic-bezier(.2,.8,.3,1)}
+  @keyframes pop{from{opacity:0;transform:translateY(10px)}}
+  .wa .m.me{align-self:flex-end;background:#D6EFE0}
+  .wa .m b{font-family:Kalam;color:var(--blue);font-size:17px}
+  .wa .btns{display:flex;gap:6px;margin-top:6px}
+  .wa .btns span{flex:1;text-align:center;border:2px solid var(--ink);border-radius:8px;padding:8px;font-weight:800;font-size:12px}
+
+  .ln{stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+  .eye{animation:blink 4s infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes blink{0%,94%,100%{transform:none}97%{transform:scaleY(.1)}}
+  .buzz{animation:buzz .25s linear infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes buzz{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+  .tap{animation:tap .45s ease-in-out infinite}
+  @keyframes tap{50%{transform:translateY(3px)}}
+  .star{animation:tw 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes tw{50%{transform:scale(.5) rotate(45deg)}}
+  .scrollhint{position:absolute;left:0;right:0;bottom:84px;text-align:center;font-weight:800;font-size:13px;animation:nudge 1.4s ease-in-out infinite;z-index:5}
+  @keyframes nudge{50%{transform:translateY(5px)}}
+  .end{height:380px;background:var(--ink);color:var(--cream);padding:40px 22px;font-weight:700;font-size:15px;line-height:1.5}
+  .end b{font-family:Archivo;font-stretch:80%;font-size:26px;display:block;margin-bottom:8px}
+</style>
+</head>
+<body>
+<p class="hint"><b>Baja dentro del celular</b>Escenas 1, 2 y 5 (las nuevas). Si subes, se deshace.</p>
+
+<div class="phone">
+  <div class="top"><span class="logo">DOPPEL</span><span class="menu">MENÚ</span></div>
+  <div class="cta">Contratar a mi empleado →</div>
+
+  <div class="scroller" id="sc">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <pattern id="agu" width="12" height="24" patternUnits="userSpaceOnUse">
+        <rect width="12" height="5" fill="#C8102E"/><rect width="12" height="3" y="5" fill="#F2A900"/><rect width="12" height="5" y="8" fill="#0E7C4A"/>
+        <rect width="12" height="3" y="13" fill="#E5437A"/><rect width="12" height="5" y="16" fill="#2B2D84"/><rect width="12" height="3" y="21" fill="#FBF7F2"/>
+      </pattern>
+      <!-- el dueño -->
+      <g id="owner-f">
+        <path d="M-24 -64 H24 L21 -2 H4 L0 -40 L-4 -2 H-21Z" fill="#231A16" class="ln"/>
+        <path d="M-32 -60 Q-33 -118 0 -121 Q33 -118 32 -60Z" fill="#2B2D84" class="ln"/>
+        <circle cx="0" cy="-143" r="23" fill="var(--skin)" class="ln"/>
+        <path d="M-22 -148 Q-16 -176 12 -168 Q22 -164 22 -150 Q12 -158 0 -156 Q-12 -154 -22 -148Z" fill="#231A16" class="ln"/>
+        <ellipse class="eye" cx="-8" cy="-142" rx="2.8" ry="3.6" fill="#231A16"/>
+        <ellipse class="eye" cx="8" cy="-142" rx="2.8" ry="3.6" fill="#231A16"/>
+        <path d="M-7 -131 q7 6 14 0" class="ln" fill="none" stroke-width="2.5"/>
+      </g>
+      <!-- el empleado: gorra amarilla, polo verde, mandil de aguayo, auricular -->
+      <g id="emp-f">
+        <path d="M-24 -64 H24 L21 -2 H4 L0 -40 L-4 -2 H-21Z" fill="#231A16" class="ln"/>
+        <path d="M-32 -60 Q-33 -118 0 -121 Q33 -118 32 -60Z" fill="#0E7C4A" class="ln"/>
+        <path d="M-18 -108 H18 L21 -58 H-21Z" fill="url(#agu)" class="ln" stroke-width="2.5"/>
+        <circle cx="0" cy="-143" r="23" fill="var(--skin2)" class="ln"/>
+        <path d="M-24 -148 Q-24 -176 0 -176 Q24 -176 24 -148Z" fill="#F2A900" class="ln"/>
+        <path d="M6 -150 H36 Q36 -143 28 -143 H6Z" fill="#F2A900" class="ln" stroke-width="2.5"/>
+        <ellipse class="eye" cx="-8" cy="-139" rx="2.8" ry="3.6" fill="#231A16"/>
+        <ellipse class="eye" cx="8" cy="-139" rx="2.8" ry="3.6" fill="#231A16"/>
+        <path d="M-8 -129 q8 8 16 0" class="ln" fill="none" stroke-width="2.5"/>
+        <path d="M-23 -142 q-4 16 12 20" class="ln" fill="none" stroke-width="2.5"/><circle cx="-10" cy="-122" r="3.5" fill="#E5437A" class="ln" stroke-width="2"/>
+      </g>
+      <path id="star" d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8Z" fill="#FBF7F2" stroke="#231A16" stroke-width="1.5"/>
+    </defs>
+  </svg>
+
+  <!-- ===== 1 · Llega tu empleado ===== -->
+  <section class="s1" data-s>
+    <div class="stage">
+      <div class="say">
+        <div class="swap" data-p=".45">
+          <h1 class="a">¿37 mensajes y<br>3 llamadas<br>perdidas?</h1>
+          <h1 class="b">Tu empleado<br>completo, en tu<br>WhatsApp</h1>
+        </div>
+      </div>
+      <div class="scrollhint" data-hide>Baja ↓</div>
+      <svg viewBox="30 90 280 280" aria-hidden="true">
+        <use href="#star" class="star" x="60" y="120"/><use href="#star" class="star" x="280" y="140" style="animation-delay:.5s"/>
+        <ellipse cx="170" cy="352" rx="150" ry="14" fill="#D99600"/>
+        <g id="emp" style="opacity:0">
+          <use href="#emp-f"/>
+          <g class="tap"><path d="M-30 -104 L-44 -84" class="ln" stroke-width="9"/><path d="M-30 -104 L-44 -84" stroke="#0E7C4A" stroke-width="4" stroke-linecap="round"/>
+            <rect x="-58" y="-106" width="22" height="34" rx="4" fill="#2B2D84" class="ln" stroke-width="2.5"/></g>
+        </g>
+        <g id="owner">
+          <use href="#owner-f"/>
+          <g id="ophone" class="buzz"><rect x="30" y="-106" width="22" height="34" rx="4" fill="#2B2D84" class="ln" stroke-width="2.5"/>
+            <circle cx="52" cy="-106" r="12" fill="#C8102E" class="ln" stroke-width="2.5"/><text x="52" y="-102" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">37</text>
+            <path d="M60 -88 q8 6 0 14 M66 -92 q12 10 0 22" class="ln" fill="none" stroke-width="2.5"/></g>
+          <g id="cup" style="opacity:0"><path d="M30 -96 h18 v18 q0 6 -6 6 h-6 q-6 0 -6 -6z" fill="#FBF7F2" class="ln" stroke-width="2.5"/>
+            <path d="M36 -104 q3 -4 0 -8 M42 -104 q3 -4 0 -8" class="ln" fill="none" stroke-width="2"/></g>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== 2 · Mensajes y llamadas ===== -->
+  <section class="s2" data-s>
+    <div class="stage">
+      <div class="say"><h2>Contesta mensajes<br>y llamadas</h2></div>
+      <div class="bub in tl" data-p=".08" style="top:190px">¿Hasta qué hora abren?</div>
+      <div class="bub out tl" data-p=".22" style="top:236px;right:16px">Hasta las 8. ¿Te guardo algo?</div>
+      <div class="call tl" data-p=".38" style="top:306px">
+        <div class="ring"><i>☎</i><span>Llamada entrante<small>Carlos · cliente</small></span></div>
+        <div class="live" data-p=".55"><i>☎</i><span>Atendiendo · 00:42<small>Carlos · cliente</small></span></div>
+      </div>
+      <div class="bub out tl" data-p=".62" style="top:390px">«Sí, hoy tenemos de pollo y de carne.»</div>
+      <svg viewBox="0 0 340 250" aria-hidden="true">
+        <ellipse cx="250" cy="238" rx="80" ry="10" fill="#E6DCCF"/>
+        <g transform="translate(250 240) scale(1.05)"><use href="#emp-f"/>
+          <g class="tap"><path d="M-30 -104 L-44 -84" class="ln" stroke-width="9"/><path d="M-30 -104 L-44 -84" stroke="#0E7C4A" stroke-width="4" stroke-linecap="round"/>
+          <rect x="-58" y="-106" width="22" height="34" rx="4" fill="#2B2D84" class="ln" stroke-width="2.5"/></g></g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== 5 · Te reporta a ti ===== -->
+  <section class="s5" data-s>
+    <div class="stage">
+      <div class="say"><h2>Y te reporta<br>a ti</h2></div>
+      <div class="wa">
+        <div class="h"><span class="av"></span><div><b>Tu empleado · Doppel</b><small>en línea</small></div></div>
+        <div class="msgs">
+          <div class="m" data-p=".06">Ana pide 10% de descuento en su pedido de <b>Bs 360</b>. ¿Le hago?<div class="btns"><span>Dale</span><span>No</span></div></div>
+          <div class="m me" data-p=".24">Dale</div>
+          <div class="m" data-p=".36">Listo ✓ Le cobré <b>Bs 324</b>.</div>
+          <div class="m me" data-p=".54">¿Cuánto vendimos hoy?</div>
+          <div class="m" data-p=".7"><b>Bs 1.600</b> · 9 pedidos · 2 citas mañana temprano.</div>
+        </div>
+      </div>
+      <svg viewBox="0 0 340 170" aria-hidden="true">
+        <g transform="translate(92 170) scale(.8)"><use href="#owner-f"/>
+          <rect x="30" y="-104" width="22" height="34" rx="4" fill="#2B2D84" class="ln" stroke-width="2.5"/></g>
+        <!-- familia: pareja y hijo -->
+        <g transform="translate(240 170) scale(.75)">
+          <path d="M-30 -60 Q-31 -112 0 -115 Q31 -112 30 -60Z" fill="#E5437A" class="ln"/>
+          <circle cx="0" cy="-136" r="22" fill="#B77A4E" class="ln"/>
+          <path d="M-24 -130 Q-26 -166 0 -164 Q26 -166 24 -130 L20 -140 Q0 -150 -20 -140Z" fill="#231A16" class="ln"/>
+          <path d="M-8 -126 q8 7 16 0" class="ln" fill="none" stroke-width="2.5"/>
+        </g>
+        <g transform="translate(176 132) scale(.55)">
+          <path d="M-28 -60 Q-29 -104 0 -106 Q29 -104 28 -60Z" fill="#F2A900" class="ln"/>
+          <circle cx="0" cy="-126" r="22" fill="#C98B5B" class="ln"/>
+          <path d="M-20 -134 Q-10 -156 20 -138" class="ln" fill="#231A16"/>
+          <path d="M-8 -118 q8 8 16 0" class="ln" fill="none" stroke-width="3"/>
+        </g>
+        <rect x="20" y="118" width="300" height="52" rx="6" fill="#C8102E" class="ln"/>
+        <rect x="20" y="126" width="300" height="14" fill="url(#agu)" class="ln" stroke-width="2.5"/>
+        <ellipse cx="128" cy="116" rx="30" ry="8" fill="#FBF7F2" class="ln" stroke-width="2.5"/>
+      </svg>
+    </div>
+  </section>
+
+  <div class="end"><b>Faltan (aún sin dibujar)</b>3 · Vende y cobra (sello PAGADO, cartel que sube).<br>4 · Agenda (el calendario que se llena).<br>6 · Contrátalo en 3 pasos → onboarding.</div>
+  </div>
+</div>
+
+<script>
+const sc=document.getElementById('sc'), secs=[...document.querySelectorAll('[data-s]')];
+const clamp=v=>Math.max(0,Math.min(1,v)), ease=k=>1-Math.pow(1-k,3), $=id=>document.getElementById(id);
+function update(){
+  for(const s of secs){
+    const p=clamp((sc.scrollTop-s.offsetTop)/(s.offsetHeight-sc.clientHeight));
+    s.querySelectorAll('[data-p]').forEach(e=>e.classList.toggle('on',p>=+e.dataset.p));
+    if(s.classList.contains('s1')){
+      const k=ease(clamp((p-.05)/.45));
+      $('owner').setAttribute('transform',`translate(${170-70*k} 350)`);
+      $('emp').setAttribute('transform',`translate(${420-170*k} 350)`);
+      $('emp').style.opacity=Math.min(1,k*2); $('ophone').style.opacity=1-k; $('cup').style.opacity=k;
+      s.querySelector('[data-hide]').style.opacity=1-k*3;
+    }
+  }
+}
+sc.addEventListener('scroll',update,{passive:true}); update();
+</script>
+</body>
+</html>

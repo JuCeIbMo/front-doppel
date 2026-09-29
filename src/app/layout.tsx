@@ -5,8 +5,8 @@ import "@/styles/globals.css";
 import "driver.js/dist/driver.css";
 
 export const metadata: Metadata = {
-  title: "Doppel — Automatiza tu WhatsApp Business con IA",
-  description: "Conecta tu WhatsApp Business en 2 minutos. Sin codigo. Sin complicaciones.",
+  title: "Doppel — Tu empleado completo, en tu WhatsApp",
+  description: "Contesta mensajes y llamadas, vende, agenda y cobra por tu negocio, y te reporta a ti por WhatsApp.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

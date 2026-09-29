@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Escena 1 · Tu doble atiende</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--cream:#FBF7F2;--ink:#231A16;--red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--skin:#C98B5B}
+  body{font-family:Figtree,system-ui,sans-serif;background:var(--red);min-height:100vh;display:grid;place-items:center;padding:30px}
+  .phone{width:360px;height:740px;border-radius:40px;border:10px solid var(--ink);background:var(--yellow);overflow:hidden;position:relative;box-shadow:16px 16px 0 var(--ink)}
+  .top{margin:16px 14px 0;border:3px solid var(--ink);border-radius:16px;background:var(--red);height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;box-shadow:3px 3px 0 var(--ink)}
+  .logo{font-family:Archivo;font-weight:900;font-stretch:75%;font-size:30px;color:var(--cream);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;letter-spacing:.01em}
+  .menu{background:var(--cream);border:2.5px solid var(--ink);border-radius:10px;padding:7px 12px;font-family:Archivo;font-weight:900;font-stretch:80%;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+  svg{display:block;width:100%;margin-top:6px}
+  .copy{padding:0 18px}
+  h1{font-family:Archivo;font-weight:900;font-stretch:72%;font-size:44px;line-height:.9;text-transform:uppercase;color:var(--ink)}
+  .copy p{font-size:15px;font-weight:600;margin-top:10px;max-width:280px;color:var(--ink)}
+  .down{position:absolute;bottom:22px;left:18px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:14px}
+  .down span{width:44px;height:44px;border:3px solid var(--ink);border-radius:12px;background:var(--cream);display:grid;place-items:center;font-size:20px;box-shadow:3px 3px 0 var(--ink);animation:nudge 1.4s ease-in-out infinite}
+  @keyframes nudge{50%{transform:translateY(5px)}}
+
+  .ln{stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+  .sway{transform-origin:95px 250px;animation:sway 3.2s ease-in-out infinite}
+  @keyframes sway{50%{transform:rotate(3deg)}}
+  .z{font-family:Archivo;font-weight:900;fill:var(--ink);animation:zz 3s linear infinite;opacity:0}
+  .z2{animation-delay:1s}.z3{animation-delay:2s}
+  @keyframes zz{0%{opacity:0;transform:translate(0,0)}20%{opacity:1}100%{opacity:0;transform:translate(18px,-40px)}}
+  .tap{animation:tap .45s ease-in-out infinite}
+  @keyframes tap{50%{transform:translateY(3px)}}
+  .b{opacity:0;transform-box:fill-box;transform-origin:center;animation:msg 3.6s ease-out infinite}
+  .b2{animation-delay:1.2s}.b3{animation-delay:2.4s}
+  @keyframes msg{0%{opacity:0;transform:scale(.4)}10%{opacity:1;transform:scale(1)}55%{opacity:1;transform:none}75%,100%{opacity:0;transform:translate(-14px,40px) scale(.3)}}
+  .bill{opacity:0;animation:bill 3.6s ease-in-out infinite}
+  .bill2{animation-delay:1.8s}
+  @keyframes bill{0%{opacity:0;transform:translate(0,0)}15%{opacity:1}60%{opacity:1;transform:translate(-110px,-10px) rotate(-20deg)}80%,100%{opacity:0;transform:translate(-150px,40px) rotate(-40deg)}}
+  .eye{animation:blink 4s infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes blink{0%,94%,100%{transform:none}97%{transform:scaleY(.1)}}
+  .sign text{font-family:Kalam;font-weight:700}
+  .star{animation:tw 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes tw{50%{transform:scale(.5) rotate(45deg)}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="top"><span class="logo">DOPPEL</span><span class="menu">MENÚ</span></div>
+
+  <svg viewBox="0 0 360 400" aria-hidden="true">
+    <defs>
+      <pattern id="agu" width="12" height="24" patternUnits="userSpaceOnUse">
+        <rect width="12" height="5" y="0" fill="#C8102E"/><rect width="12" height="3" y="5" fill="#F2A900"/>
+        <rect width="12" height="5" y="8" fill="#0E7C4A"/><rect width="12" height="3" y="13" fill="#E5437A"/>
+        <rect width="12" height="5" y="16" fill="#2B2D84"/><rect width="12" height="3" y="21" fill="#FBF7F2"/>
+      </pattern>
+      <symbol id="star" viewBox="0 0 20 20"><path d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8Z" fill="#FBF7F2" stroke="#231A16" stroke-width="1.5"/></symbol>
+    </defs>
+
+    <use href="#star" class="star" x="150" y="40" width="20" height="20"/>
+    <use href="#star" class="star" x="20" y="120" width="14" height="14" style="animation-delay:.6s"/>
+
+    <!-- piso -->
+    <ellipse cx="180" cy="372" rx="170" ry="16" fill="#D99600"/>
+
+    <!-- postes de la hamaca -->
+    <rect x="14" y="215" width="12" height="160" rx="4" fill="#8B5A2B" class="ln"/>
+    <rect x="164" y="215" width="12" height="160" rx="4" fill="#8B5A2B" class="ln"/>
+
+    <!-- hamaca + dueño dormido -->
+    <g class="sway">
+      <path d="M22 232 L40 262 M168 232 L150 262" class="ln" fill="none"/>
+      <path d="M38 260 Q95 330 152 260 Q95 300 38 260Z" fill="url(#agu)" class="ln"/>
+      <!-- cuerpo -->
+      <path d="M62 272 Q100 292 140 262 L146 274 Q104 306 62 290Z" fill="#2B2D84" class="ln"/>
+      <!-- cabeza -->
+      <circle cx="54" cy="268" r="17" fill="var(--skin)" class="ln"/>
+      <path d="M38 262 Q44 244 64 252 Q60 258 50 258 Q44 262 38 262Z" fill="#231A16" class="ln"/>
+      <path d="M46 272 q4 3 8 0 M58 270 q4 3 8 0" class="ln" fill="none" stroke-width="2.5"/>
+    </g>
+    <text class="z" x="66" y="228" font-size="18">z</text>
+    <text class="z z2" x="72" y="222" font-size="22">z</text>
+    <text class="z z3" x="78" y="216" font-size="26">Z</text>
+
+    <!-- cartel de ventas -->
+    <g class="sign">
+      <path d="M248 60 L248 84 M318 60 L318 84" class="ln"/>
+      <rect x="216" y="84" width="134" height="62" rx="8" fill="#FBF7F2" class="ln"/>
+      <text x="283" y="104" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="11" style="font-family:Archivo;letter-spacing:.12em" fill="#231A16">VENDIDO HOY</text>
+      <text id="count" x="283" y="136" text-anchor="middle" font-size="28" fill="#2B2D84">Bs 1.240</text>
+    </g>
+
+    <!-- mensajes que llegan -->
+    <g class="b"><rect x="190" y="160" width="86" height="28" rx="12" fill="#fff" class="ln" stroke-width="2.5"/><text x="233" y="179" text-anchor="middle" font-size="12" font-weight="700" fill="#231A16">¿precio?</text></g>
+    <g class="b b2"><rect x="262" y="172" width="92" height="28" rx="12" fill="#fff" class="ln" stroke-width="2.5"/><text x="308" y="191" text-anchor="middle" font-size="12" font-weight="700" fill="#231A16">¡quiero 2!</text></g>
+    <g class="b b3"><rect x="200" y="194" width="98" height="28" rx="12" fill="#fff" class="ln" stroke-width="2.5"/><text x="249" y="213" text-anchor="middle" font-size="12" font-weight="700" fill="#231A16">¿hay talla M?</text></g>
+
+    <!-- el doble detrás del mostrador -->
+    <path d="M246 312 Q246 268 280 266 Q314 268 314 312Z" fill="#2B2D84" class="ln"/>
+    <circle cx="280" cy="246" r="21" fill="var(--skin)" class="ln"/>
+    <path d="M261 240 Q266 216 292 224 Q288 232 276 232 Q268 236 261 240Z" fill="#231A16" class="ln"/>
+    <ellipse class="eye" cx="273" cy="247" rx="2.6" ry="3.4" fill="#231A16"/>
+    <ellipse class="eye" cx="288" cy="247" rx="2.6" ry="3.4" fill="#231A16"/>
+    <path d="M273 256 q7 6 14 0" class="ln" fill="none" stroke-width="2.5"/>
+    <!-- auricular: la marca del doble -->
+    <path d="M259 246 Q258 222 280 222 Q302 222 301 246" class="ln" fill="none" stroke-width="3"/>
+    <path d="M300 250 q2 14 -12 16" class="ln" fill="none" stroke-width="2.5"/><circle cx="286" cy="266" r="3" fill="#E5437A" class="ln" stroke-width="2"/>
+    <!-- brazo + celular -->
+    <g class="tap">
+      <path d="M252 290 Q236 296 238 280" class="ln" fill="none" stroke-width="7" stroke="#231A16"/>
+      <path d="M252 290 Q236 296 238 280" fill="none" stroke="#2B2D84" stroke-width="3.5" stroke-linecap="round"/>
+      <rect x="226" y="258" width="22" height="34" rx="4" fill="#0E7C4A" class="ln" stroke-width="2.5"/>
+    </g>
+
+    <!-- mostrador -->
+    <rect x="196" y="300" width="160" height="72" rx="6" fill="#C8102E" class="ln"/>
+    <rect x="196" y="316" width="160" height="18" fill="url(#agu)" class="ln" stroke-width="2.5"/>
+
+    <!-- billetes que vuelan al dueño -->
+    <g class="bill"><rect x="220" y="290" width="34" height="18" rx="3" fill="#0E7C4A" class="ln" stroke-width="2.5"/><text x="237" y="303" text-anchor="middle" font-size="10" font-weight="900" fill="#FBF7F2">Bs</text></g>
+    <g class="bill bill2"><rect x="230" y="286" width="34" height="18" rx="3" fill="#0E7C4A" class="ln" stroke-width="2.5"/><text x="247" y="299" text-anchor="middle" font-size="10" font-weight="900" fill="#FBF7F2">Bs</text></g>
+  </svg>
+
+  <div class="copy">
+    <h1>Tú descansas.<br>Tu doble atiende.</h1>
+    <p>Doppel contesta tu WhatsApp, vende y agenda. Tú solo cobras.</p>
+  </div>
+  <div class="down"><span>↓</span>Mira cómo</div>
+</div>
+<script>
+let n=1240;const el=document.getElementById('count');
+setInterval(()=>{n+=[45,80,120,60][Math.floor(Math.random()*4)];el.textContent='Bs '+n.toLocaleString('es-BO')},1800);
+</script>
+</body>
+</html>

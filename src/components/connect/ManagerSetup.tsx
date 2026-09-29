@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { ConnectShell, ErrorNote, StepTitle, fieldClass, primaryClass } from "@/components/connect/ConnectShell";
 import { runOperationOrThrow } from "@/lib/operations";
 
 type SaveStatus = "idle" | "saving" | "error";
@@ -28,7 +28,7 @@ export function ManagerSetup() {
     setError("");
     try {
       await runOperationOrThrow("set_manager_phones", { phones: [trimmed] });
-      router.replace("/dashboard/automation");
+      router.replace("/dashboard");
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "No se pudo guardar el número de encargado.");
@@ -36,39 +36,31 @@ export function ManagerSetup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6 py-12">
-      <form onSubmit={handleSubmit} className="w-full max-w-lg text-center">
-        <span className="text-xl font-bold text-text-primary">Doppel</span>
-        <h1 className="text-3xl font-bold text-text-primary mt-8">
-          Define tu número de encargado
-        </h1>
-        <p className="text-text-secondary mt-3">
+    <ConnectShell stage={3} step={3} says="¿A qué número te reporto a ti?">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <StepTitle>Tu número para darme órdenes</StepTitle>
+        <p className="text-sm">
           {business ? `${business} ya está conectado. ` : ""}
           {phone ? `WhatsApp activo: ${phone}. ` : ""}
-          Este número será el único que podrá darle instrucciones a tu asistente por WhatsApp.
+          Solo este número podrá darle instrucciones a tu empleado por WhatsApp: aprobar, preguntarle cuánto
+          vendiste o pedirle que cobre.
         </p>
-
-        <div className="mt-8">
-          <label className="block text-text-secondary text-sm mb-2">
-            Número de encargado
-          </label>
+        <label className="flex flex-col gap-1.5 text-sm font-bold">
+          Tu número de encargado
           <input
             type="tel"
+            autoComplete="tel"
             value={managerPhone}
             onChange={(event) => setManagerPhone(event.target.value)}
             placeholder="+591 70000000"
-            className="w-full px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-text-primary text-center text-lg placeholder:text-text-secondary/50 outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+            className={fieldClass}
           />
-        </div>
-
-        {error && <p className="text-red-400 text-sm mt-4">{error}</p>}
-
-        <div className="mt-8 flex justify-center">
-          <Button type="submit" variant="primary" disabled={status === "saving"}>
-            {status === "saving" ? "Guardando..." : "Activar agente"}
-          </Button>
-        </div>
+        </label>
+        <button type="submit" disabled={status === "saving"} className={primaryClass}>
+          {status === "saving" ? "Guardando…" : "Listo, a trabajar"}
+        </button>
+        {error && <ErrorNote>{error}</ErrorNote>}
       </form>
-    </div>
+    </ConnectShell>
   );
 }

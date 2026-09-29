@@ -67,7 +67,7 @@ export function OTPInput({ length = 6, onComplete, disabled = false, error = fal
   );
 
   return (
-    <div className="flex gap-3 justify-center">
+    <div className="grid grid-cols-6 gap-2">
       {values.map((val, i) => (
         <input
           key={i}
@@ -81,10 +81,10 @@ export function OTPInput({ length = 6, onComplete, disabled = false, error = fal
           onChange={(e) => handleChange(i, e.target.value)}
           onKeyDown={(e) => handleKeyDown(i, e)}
           onPaste={i === 0 ? handlePaste : undefined}
-          className={`w-12 h-14 text-center text-xl font-bold rounded-xl bg-white/5 border outline-none transition-all duration-200
-            focus:border-accent focus:ring-1 focus:ring-accent/50
-            ${error ? "border-red-500 animate-shake" : "border-white/10"}
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
+          aria-label={`Número ${i + 1} del código`}
+          className={`h-14 w-full min-w-0 rounded-xl border-[2.5px] bg-white text-center font-hand text-2xl font-bold text-steps outline-none transition-shadow focus:shadow-[3px_3px_0_var(--color-steps)]
+            ${error ? "animate-shake border-waiting" : "border-ink"}
+            ${disabled ? "cursor-not-allowed opacity-50" : ""}
           `}
         />
       ))}

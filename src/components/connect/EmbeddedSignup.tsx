@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/Button";
+import { ErrorNote, Spinner, primaryClass } from "@/components/connect/ConnectShell";
 import { authenticatedFetch } from "@/lib/api";
 
 declare global {
@@ -128,7 +128,7 @@ export function EmbeddedSignup() {
             })
             .catch((err: Error) => {
               setStatus("error");
-              setErrorMsg(err.message || "Error al procesar la conexion. Intenta de nuevo.");
+              setErrorMsg(err.message || "No pudimos terminar la conexión. Intenta de nuevo.");
             });
         } else {
           setStatus("idle");
@@ -148,64 +148,42 @@ export function EmbeddedSignup() {
   }, [router]);
 
   return (
-    <div className="flex flex-col items-center gap-6">
+    <div className="flex flex-col gap-3">
       <Script
         src="https://connect.facebook.net/en_US/sdk.js"
         strategy="lazyOnload"
         onLoad={handleSdkLoad}
       />
 
-      <Button
-        variant="primary"
+      <button
+        type="button"
         onClick={launchSignup}
         disabled={!sdkReady || status === "loading"}
-        className={
-          !sdkReady || status === "loading"
-            ? "opacity-50 cursor-not-allowed"
-            : ""
-        }
+        className={primaryClass.replace("bg-ink", "bg-settled")}
       >
         {status === "loading" ? (
-          <span className="flex items-center gap-2">
-            <svg
-              className="animate-spin h-5 w-5"
-              viewBox="0 0 24 24"
-              fill="none"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
-            </svg>
-            Conectando...
-          </span>
+          <>
+            <Spinner /> Conectando…
+          </>
+        ) : !sdkReady ? (
+          <>
+            <Spinner /> Preparando…
+          </>
         ) : (
-          "Conectar con Facebook"
+          "Conectar mi WhatsApp"
         )}
-      </Button>
-
-      {!sdkReady && status === "idle" && (
-        <p className="text-text-secondary text-sm">Cargando...</p>
-      )}
+      </button>
 
       {status === "error" && (
-        <div className="text-center">
-          <p className="text-red-400 text-sm">{errorMsg}</p>
+        <div>
+          <ErrorNote>{errorMsg}</ErrorNote>
           <button
+            type="button"
             onClick={() => {
               setStatus("idle");
               setErrorMsg("");
             }}
-            className="text-accent text-sm mt-2 hover:underline cursor-pointer"
+            className="mt-2 text-sm font-bold text-steps underline underline-offset-4 cursor-pointer"
           >
             Intentar de nuevo
           </button>

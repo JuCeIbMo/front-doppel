@@ -1,17 +1,20 @@
-import { Hero } from "@/components/landing/Hero";
-import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Features } from "@/components/landing/Features";
-import { Trust } from "@/components/landing/Trust";
-import { FinalCTA } from "@/components/landing/FinalCTA";
+import type { Metadata } from "next";
+import { EmployeeStory } from "@/components/landing/EmployeeStory";
+import { HireSteps } from "@/components/landing/HireSteps";
+import { StickyCta } from "@/components/landing/StickyCta";
+
+export const metadata: Metadata = {
+  title: "Doppel — Tu empleado completo, en tu WhatsApp",
+  description:
+    "Contesta mensajes y llamadas, vende, agenda y cobra por tu negocio, y te reporta a ti por WhatsApp.",
+};
 
 export default function Home() {
   return (
-    <main>
-      <Hero />
-      <HowItWorks />
-      <Features />
-      <Trust />
-      <FinalCTA />
+    <main className="font-body text-ink">
+      <EmployeeStory />
+      <HireSteps />
+      <StickyCta />
     </main>
   );
 }

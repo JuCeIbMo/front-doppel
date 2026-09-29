@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Landing · escenas 1 a 3 con scroll</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--cream:#FBF7F2;--ink:#231A16;--red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--skin:#C98B5B}
+  body{font-family:Figtree,system-ui,sans-serif;background:var(--red);min-height:100vh;display:flex;gap:40px;align-items:center;justify-content:center;padding:30px}
+  .hint{color:var(--cream);font-weight:700;max-width:220px;font-size:15px;line-height:1.4}
+  .hint b{font-family:Archivo;font-stretch:80%;font-size:26px;display:block;line-height:1;margin-bottom:8px}
+  .phone{width:360px;height:740px;border-radius:40px;border:10px solid var(--ink);overflow:hidden;position:relative;box-shadow:16px 16px 0 var(--ink);background:var(--yellow)}
+  .scroller{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+  .scroller::-webkit-scrollbar{display:none}
+  .top{position:absolute;top:14px;left:12px;right:12px;z-index:20;border:3px solid var(--ink);border-radius:16px;background:var(--red);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;box-shadow:3px 3px 0 var(--ink)}
+  .logo{font-family:Archivo;font-weight:900;font-stretch:75%;font-size:28px;color:var(--cream);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill}
+  .menu{background:var(--cream);border:2.5px solid var(--ink);border-radius:10px;padding:7px 12px;font-family:Archivo;font-weight:900;font-stretch:80%;font-size:14px;box-shadow:2px 2px 0 var(--ink)}
+  .cta{position:absolute;left:14px;right:14px;bottom:16px;z-index:20;height:56px;border:3px solid var(--ink);border-radius:14px;background:var(--ink);color:var(--cream);display:grid;place-items:center;font-weight:800;font-size:17px;box-shadow:4px 4px 0 var(--red)}
+
+  section{position:relative;height:1500px}
+  section.s2{background:var(--cream)} section.s3{background:#9FD3B8}
+  .stage{position:sticky;top:0;height:720px;overflow:hidden}
+  .stage svg{position:absolute;left:0;right:0;bottom:70px;width:100%}
+  .say{position:absolute;left:18px;right:18px;top:86px}
+  .say h1,.say h2{font-family:Archivo;font-weight:900;font-stretch:72%;line-height:.9;text-transform:uppercase;font-size:44px}
+  .say h2{font-size:38px}
+  .say p{font-size:15px;font-weight:600;margin-top:8px;max-width:290px}
+  .k{font-family:Archivo;font-weight:800;font-stretch:85%;font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:inline-block;background:var(--ink);color:var(--cream);padding:4px 8px;border-radius:6px;margin-bottom:10px}
+  .swap{position:relative}
+  .swap>*{transition:opacity .35s,transform .35s}
+  .swap .b{position:absolute;top:0;left:0;opacity:0;transform:translateY(12px)}
+  .swap.on .a{opacity:0;transform:translateY(-12px)}
+  .swap.on .b{opacity:1;transform:none}
+
+  .tl{opacity:0;transform:translateY(12px) scale(.94);transition:opacity .3s,transform .4s cubic-bezier(.2,.8,.3,1)}
+  .tl.on{opacity:1;transform:none}
+  svg .tl{transform-box:fill-box;transform-origin:center}
+  .bub{position:absolute;max-width:230px;padding:10px 14px;font-size:14px;line-height:1.3;border-radius:14px;background:#fff;border:2.5px solid var(--ink);box-shadow:3px 3px 0 var(--ink);font-weight:600}
+  .bub.in{left:16px;border-bottom-left-radius:3px}
+  .bub.out{right:16px;background:#D6EFE0;border-bottom-right-radius:3px}
+  .stamp{position:absolute;border:3px solid var(--red);color:var(--red);font-family:Archivo;font-weight:900;font-stretch:80%;font-size:24px;padding:8px 14px;letter-spacing:.06em;background:var(--cream)}
+  .stamp.tl{transform:scale(2) rotate(-18deg)} .stamp.tl.on{transform:rotate(-8deg)}
+  .scrollhint{position:absolute;left:0;right:0;bottom:84px;text-align:center;font-weight:800;font-size:13px;animation:nudge 1.4s ease-in-out infinite;z-index:5}
+  @keyframes nudge{50%{transform:translateY(5px)}}
+
+  .ln{stroke:var(--ink);stroke-width:3.5;stroke-linejoin:round;stroke-linecap:round}
+  .eye{animation:blink 4s infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes blink{0%,94%,100%{transform:none}97%{transform:scaleY(.1)}}
+  .buzz{animation:buzz .25s linear infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes buzz{25%{transform:rotate(-6deg)}75%{transform:rotate(6deg)}}
+  .tap{animation:tap .45s ease-in-out infinite}
+  @keyframes tap{50%{transform:translateY(3px)}}
+  .write{animation:write .6s ease-in-out infinite}
+  @keyframes write{50%{transform:translate(-4px,3px)}}
+  .star{animation:tw 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes tw{50%{transform:scale(.5) rotate(45deg)}}
+  .slot{opacity:0;transform:scale(.3);transition:opacity .25s,transform .35s cubic-bezier(.2,.8,.3,1.2)}
+  .slot.on{opacity:1;transform:none}
+  .end{height:420px;background:var(--ink);color:var(--cream);padding:40px 22px;font-weight:700;font-size:15px;line-height:1.5}
+  .end b{font-family:Archivo;font-stretch:80%;font-size:26px;display:block;margin-bottom:8px}
+</style>
+</head>
+<body>
+<p class="hint"><b>Baja dentro del celular</b>Escenas 1 a 3. Lo que pasa depende de cuánto bajas: si subes, se deshace.</p>
+
+<div class="phone">
+  <div class="top"><span class="logo">DOPPEL</span><span class="menu">MENÚ</span></div>
+  <div class="cta">Crear mi doble →</div>
+
+  <div class="scroller" id="sc">
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <pattern id="agu" width="12" height="24" patternUnits="userSpaceOnUse">
+        <rect width="12" height="5" fill="#C8102E"/><rect width="12" height="3" y="5" fill="#F2A900"/><rect width="12" height="5" y="8" fill="#0E7C4A"/>
+        <rect width="12" height="3" y="13" fill="#E5437A"/><rect width="12" height="5" y="16" fill="#2B2D84"/><rect width="12" height="3" y="21" fill="#FBF7F2"/>
+      </pattern>
+      <!-- la persona: origen en los pies -->
+      <g id="person">
+        <path d="M-24 -64 H24 L21 -2 H4 L0 -40 L-4 -2 H-21Z" fill="#231A16" class="ln"/>
+        <path d="M-32 -60 Q-33 -118 0 -121 Q33 -118 32 -60Z" fill="#2B2D84" class="ln"/>
+        <rect x="-24" y="-66" width="48" height="12" fill="url(#agu)" class="ln" stroke-width="2.5"/>
+        <circle cx="0" cy="-143" r="23" fill="var(--skin)" class="ln"/>
+        <path d="M-22 -148 Q-16 -176 12 -168 Q22 -164 22 -150 Q12 -158 0 -156 Q-12 -154 -22 -148Z" fill="#231A16" class="ln"/>
+        <ellipse class="eye" cx="-8" cy="-142" rx="2.8" ry="3.6" fill="#231A16"/>
+        <ellipse class="eye" cx="8" cy="-142" rx="2.8" ry="3.6" fill="#231A16"/>
+        <path d="M-7 -131 q7 6 14 0" class="ln" fill="none" stroke-width="2.5"/>
+      </g>
+      <g id="headset">
+        <path d="M-21 -143 Q-22 -172 0 -172 Q22 -172 21 -143" class="ln" fill="none" stroke-width="3"/>
+        <path d="M21 -140 q2 14 -12 16" class="ln" fill="none" stroke-width="2.5"/>
+        <circle cx="8" cy="-124" r="3.5" fill="#E5437A" class="ln" stroke-width="2"/>
+      </g>
+      <path id="star" d="M10 0 L12 8 L20 10 L12 12 L10 20 L8 12 L0 10 L8 8Z" fill="#FBF7F2" stroke="#231A16" stroke-width="1.5"/>
+    </defs>
+  </svg>
+
+  <!-- ===== 1 · Aparece tu doble ===== -->
+  <section class="s1" data-s>
+    <div class="stage">
+      <div class="say">
+        <div class="swap" data-p=".45">
+          <h1 class="a">¿37 mensajes<br>sin contestar?</h1>
+          <h1 class="b">Tu doble atiende<br>tu WhatsApp</h1>
+        </div>
+      </div>
+      <div class="scrollhint" data-hide>Baja ↓</div>
+      <svg viewBox="30 90 280 280" aria-hidden="true">
+        <use href="#star" class="star" x="40" y="40"/><use href="#star" class="star" x="290" y="90" style="animation-delay:.5s"/>
+        <ellipse cx="170" cy="352" rx="150" ry="14" fill="#D99600"/>
+        <!-- el doble -->
+        <g id="doble" style="opacity:0">
+          <use href="#person"/><use href="#headset"/>
+          <g class="tap"><path d="M-30 -104 L-44 -84" class="ln" stroke-width="9"/><path d="M-30 -104 L-44 -84" stroke="#2B2D84" stroke-width="4" stroke-linecap="round"/>
+            <rect x="-58" y="-106" width="22" height="34" rx="4" fill="#0E7C4A" class="ln" stroke-width="2.5"/></g>
+        </g>
+        <!-- el dueño -->
+        <g id="owner">
+          <use href="#person"/>
+          <g id="ophone" class="buzz"><rect x="30" y="-106" width="22" height="34" rx="4" fill="#0E7C4A" class="ln" stroke-width="2.5"/>
+            <circle cx="52" cy="-106" r="12" fill="#C8102E" class="ln" stroke-width="2.5"/><text x="52" y="-102" text-anchor="middle" font-size="11" font-weight="900" fill="#fff">37</text></g>
+          <g id="cup" style="opacity:0"><path d="M30 -96 h18 v18 q0 6 -6 6 h-6 q-6 0 -6 -6z" fill="#FBF7F2" class="ln" stroke-width="2.5"/>
+            <path d="M36 -104 q3 -4 0 -8 M42 -104 q3 -4 0 -8" class="ln" fill="none" stroke-width="2"/></g>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== 2 · Vende ===== -->
+  <section class="s2" data-s>
+    <div class="stage">
+      <div class="say"><h2>Vende con tus<br>productos y precios</h2></div>
+      <div class="bub in tl" data-p=".12" style="top:236px">¿Tienen la mochila roja?</div>
+      <div class="bub out tl" data-p=".3" style="top:282px">¡Sí! Bs 180, quedan 3. ¿Te la separo?</div>
+      <div class="bub in tl" data-p=".48" style="top:346px">¡Quiero 2!</div>
+      <div class="stamp tl" data-p=".66" style="left:30px;top:404px">VENDIDO</div>
+      <svg viewBox="0 0 340 300" aria-hidden="true">
+        <g><path d="M240 20 L240 40 M310 20 L310 40" class="ln"/>
+          <rect x="206" y="40" width="128" height="58" rx="8" fill="#FBF7F2" class="ln"/>
+          <text x="270" y="59" text-anchor="middle" font-family="Archivo" font-weight="900" font-size="10.5" letter-spacing="1.2" fill="#231A16">VENDIDO HOY</text>
+          <text id="count" x="270" y="88" text-anchor="middle" font-family="Kalam" font-weight="700" font-size="26" fill="#2B2D84">Bs 1.240</text></g>
+        <g transform="translate(250 300)"><use href="#person"/><use href="#headset"/>
+          <g class="tap"><rect x="-58" y="-104" width="22" height="34" rx="4" fill="#0E7C4A" class="ln" stroke-width="2.5"/></g></g>
+        <rect x="150" y="212" width="190" height="80" rx="6" fill="#C8102E" class="ln"/>
+        <rect x="150" y="228" width="190" height="18" fill="url(#agu)" class="ln" stroke-width="2.5"/>
+        <g class="tl" data-p=".66"><rect x="178" y="186" width="36" height="28" rx="4" fill="#C8102E" class="ln" stroke-width="2.5"/><rect x="214" y="190" width="30" height="24" rx="4" fill="#C8102E" class="ln" stroke-width="2.5"/></g>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ===== 3 · Agenda ===== -->
+  <section class="s3" data-s>
+    <div class="stage">
+      <div class="say"><h2>Agenda tus<br>citas solito</h2></div>
+      <div class="bub in tl" data-p=".1" style="top:196px">¿Tienes turno el jueves a las 4?</div>
+      <div class="bub out tl" data-p=".28" style="top:242px">Listo, jueves 16:00 ✓ Te recuerdo un día antes.</div>
+      <svg viewBox="0 0 340 300" aria-hidden="true">
+        <rect x="14" y="60" width="210" height="190" rx="10" fill="#FBF7F2" class="ln"/>
+        <g font-family="Archivo" font-weight="900" font-size="12" fill="#231A16" text-anchor="middle">
+          <text x="50" y="84">MAR</text><text x="119" y="84">MIÉ</text><text x="188" y="84">JUE</text></g>
+        <path d="M84 70 V240 M154 70 V240 M22 92 H216" class="ln" stroke-width="2"/>
+        <g font-family="Figtree" font-weight="800" font-size="10" fill="#fff">
+          <g class="slot" data-p=".05"><rect x="22" y="100" width="56" height="30" rx="5" fill="#2B2D84" class="ln" stroke-width="2"/><text x="28" y="119">10:00</text></g>
+          <g class="slot" data-p=".4"><rect x="160" y="170" width="56" height="30" rx="5" fill="#C8102E" class="ln" stroke-width="2.5"/><text x="166" y="189">16:00 ✓</text></g>
+          <g class="slot" data-p=".52"><rect x="91" y="100" width="56" height="30" rx="5" fill="#0E7C4A" class="ln" stroke-width="2"/><text x="97" y="119">09:30</text></g>
+          <g class="slot" data-p=".6"><rect x="22" y="170" width="56" height="30" rx="5" fill="#E5437A" class="ln" stroke-width="2"/><text x="28" y="189">15:00</text></g>
+          <g class="slot" data-p=".68"><rect x="91" y="205" width="56" height="30" rx="5" fill="#2B2D84" class="ln" stroke-width="2"/><text x="97" y="224">18:00</text></g>
+          <g class="slot" data-p=".76"><rect x="160" y="100" width="56" height="30" rx="5" fill="#0E7C4A" class="ln" stroke-width="2"/><text x="166" y="119">11:00</text></g>
+          <g class="slot" data-p=".84"><rect x="91" y="135" width="56" height="30" rx="5" fill="#C8102E" class="ln" stroke-width="2"/><text x="97" y="154">12:30</text></g>
+        </g>
+        <g transform="translate(280 300)"><use href="#person"/><use href="#headset"/>
+          <g class="write"><path d="M-30 -104 L-52 -118" class="ln" stroke-width="9"/><path d="M-30 -104 L-52 -118" stroke="#2B2D84" stroke-width="4" stroke-linecap="round"/>
+          <path d="M-54 -120 L-70 -140" stroke="#F2A900" stroke-width="6" class="ln"/></g></g>
+      </svg>
+    </div>
+  </section>
+
+  <div class="end"><b>Sigue (aún sin dibujar)</b>4 · Tú decides: apruebas desde la mesa, con tu familia.<br>5 · Tú cobras.<br>6 · Listo en 3 pasos → Crear mi doble.</div>
+  </div>
+</div>
+
+<script>
+const sc=document.getElementById('sc'), secs=[...document.querySelectorAll('[data-s]')];
+const clamp=v=>Math.max(0,Math.min(1,v)), ease=k=>1-Math.pow(1-k,3);
+const $=id=>document.getElementById(id);
+function update(){
+  for(const s of secs){
+    const p=clamp((sc.scrollTop-s.offsetTop)/(s.offsetHeight-sc.clientHeight));
+    s.querySelectorAll('[data-p]').forEach(e=>e.classList.toggle('on',p>=+e.dataset.p));
+    if(s.classList.contains('s1')){
+      const k=ease(clamp((p-.05)/.45));
+      $('owner').setAttribute('transform',`translate(${170-70*k} 350)`);
+      $('doble').setAttribute('transform',`translate(${170+80*k} 350)`);
+      $('doble').style.opacity=k; $('ophone').style.opacity=1-k; $('cup').style.opacity=k;
+      s.querySelector('[data-hide]').style.opacity=1-k*3;
+    }
+    if(s.classList.contains('s2')){
+      const k=clamp((p-.66)/.3);
+      $('count').textContent='Bs '+Math.round(1240+360*k).toLocaleString('es-BO');
+    }
+  }
+}
+sc.addEventListener('scroll',update,{passive:true}); update();
+</script>
+</body>
+</html>

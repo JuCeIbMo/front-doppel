@@ -1,27 +1,30 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
-import { Button } from "@/components/ui/Button";
 import { OTPInput } from "@/components/connect/OTPInput";
 import { EmbeddedSignup } from "@/components/connect/EmbeddedSignup";
 import { SWITCH_SAYS, chooseKind, type BusinessSwitch } from "@/lib/business";
 import { hasStarted, isOnboarded } from "@/lib/onboarding";
 import { getAccessToken, getSupabase } from "@/lib/supabase";
+import { ConnectShell, ErrorNote, Spinner, StepTitle, fieldClass, primaryClass } from "@/components/connect/ConnectShell";
+import type { HireStage } from "@/components/connect/HiredEmployee";
 
 type Step = "email" | "otp" | "kind" | "connect";
 
-const steps: { key: Step; label: string }[] = [
-  { key: "email", label: "Email" },
-  { key: "otp", label: "Verifica" },
-  { key: "kind", label: "Tu negocio" },
-  { key: "connect", label: "Conecta" },
-];
+/** Where each screen sits among the three steps, how dressed the employee is, and what it says. */
+const SCREENS: Record<Step, { step: number; stage: HireStage; says: string }> = {
+  email: { step: 0, stage: 0, says: "¡Hola! Soy tu nuevo empleado. ¿A qué correo te escribo?" },
+  otp: { step: 0, stage: 0, says: "Te mandé un código de 6 números. Revisa tu correo." },
+  kind: { step: 1, stage: 1, says: "¿Qué hago en tu negocio?" },
+  connect: { step: 2, stage: 2, says: "Dame tu WhatsApp y empiezo a atender." },
+};
 
 const KINDS: { kind: BusinessSwitch; label: string }[] = [
-  { kind: "selling", label: "Vendo productos" },
-  { kind: "booking", label: "Agendo citas" },
+  { kind: "selling", label: "Que venda mis productos" },
+  { kind: "booking", label: "Que agende mis citas" },
 ];
 
 export function AuthFlow() {
@@ -32,6 +35,7 @@ export function AuthFlow() {
   const [error, setError] = useState("");
   const [otpError, setOtpError] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [kind, setKind] = useState<BusinessSwitch | null>(null);
 
   // On mount: if there's already a valid session, skip straight to where the user
   // belongs — the dashboard if their business is connected, otherwise what it does
@@ -41,7 +45,7 @@ export function AuthFlow() {
       .then(async (token) => {
         if (!token) return;
         if (await isOnboarded()) {
-          router.replace("/dashboard/automation");
+          router.replace("/dashboard");
           return;
         }
         setStep((await hasStarted()) ? "connect" : "kind");
@@ -96,7 +100,7 @@ export function AuthFlow() {
         // Returning users who already connected their business go straight to the
         // dashboard. Only those without a WhatsApp Line yet see the rest.
         if (await isOnboarded()) {
-          router.replace("/dashboard/automation");
+          router.replace("/dashboard");
           return;
         }
         setStep((await hasStarted()) ? "connect" : "kind");
@@ -115,6 +119,7 @@ export function AuthFlow() {
     setLoading(true);
     try {
       await chooseKind(kind);
+      setKind(kind);
       setStep("connect");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo guardar. Intenta de nuevo.");
@@ -123,193 +128,119 @@ export function AuthFlow() {
     }
   }, []);
 
-  const currentStepIndex = steps.findIndex((s) => s.key === step);
+  const screen = SCREENS[step];
 
   if (checking) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-      </div>
+      <ConnectShell stage={0} says="Un momento…">
+        <div className="flex justify-center py-6">
+          <Spinner />
+        </div>
+      </ConnectShell>
     );
   }
 
+  const enter = {
+    initial: { opacity: 0, x: 24 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -24 },
+    transition: { duration: 0.25 },
+  };
+
   return (
-    <div className="max-w-lg mx-auto text-center">
-      {/* Headline */}
-      <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
-        Conecta tu WhatsApp Business
-      </h1>
-      <p className="text-text-secondary mt-3">
-        {step === "email" && "Ingresa tu email para comenzar"}
-        {step === "otp" && "Te enviamos un código de verificación"}
-        {step === "kind" && "¿Qué hace tu negocio?"}
-        {step === "connect" && "Último paso: autoriza tu WhatsApp"}
-      </p>
-
-      {/* Stepper */}
-      <div className="flex items-center justify-center mt-10">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center">
-            <div className="flex flex-col items-center gap-2">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                  i < currentStepIndex
-                    ? "bg-accent text-black"
-                    : i === currentStepIndex
-                      ? "bg-accent text-black shadow-[0_0_20px_rgba(37,211,102,0.4)]"
-                      : "border border-white/8 text-text-secondary"
-                }`}
-              >
-                {i < currentStepIndex ? (
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  i + 1
-                )}
-              </div>
-              <span
-                className={`text-xs transition-colors duration-300 ${
-                  i <= currentStepIndex ? "text-accent font-medium" : "text-text-secondary"
-                }`}
-              >
-                {s.label}
-              </span>
-            </div>
-
-            {i < steps.length - 1 && (
-              <div
-                className={`w-6 sm:w-12 md:w-16 h-px mx-2 sm:mx-3 -mt-5 transition-colors duration-300 ${
-                  i < currentStepIndex ? "bg-accent" : "bg-white/8"
-                }`}
-              />
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Step content with transitions */}
-      <div className="mt-12 relative min-h-[180px]">
-        <AnimatePresence mode="wait">
-          {step === "email" && (
-            <motion.form
-              key="email"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              onSubmit={handleSendOTP}
-              className="flex flex-col items-center gap-5"
-            >
+    <ConnectShell stage={screen.stage} kind={kind} says={screen.says} step={screen.step}>
+      <AnimatePresence mode="wait">
+        {step === "email" && (
+          <motion.form key="email" {...enter} onSubmit={handleSendOTP} className="flex flex-col gap-4">
+            <StepTitle>Entra con tu correo</StepTitle>
+            <label className="flex flex-col gap-1.5 text-sm font-bold">
+              Tu correo
               <input
                 type="email"
                 required
                 autoFocus
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@email.com"
-                className="w-full max-w-sm px-5 py-4 rounded-xl bg-white/5 border border-white/10 text-text-primary text-center text-lg placeholder:text-text-secondary/50 outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all"
+                placeholder="tu@correo.com"
+                className={fieldClass}
               />
-              <Button type="submit" variant="primary" disabled={loading || !email}>
-                {loading ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                    Enviando...
-                  </span>
-                ) : (
-                  "Continuar"
-                )}
-              </Button>
-            </motion.form>
-          )}
-
-          {step === "otp" && (
-            <motion.div
-              key="otp"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center gap-5"
-            >
-              <p className="text-text-secondary text-sm">
-                Enviado a <span className="text-text-primary font-medium">{email}</span>
-                <button
-                  type="button"
-                  onClick={() => { setStep("email"); setError(""); }}
-                  className="text-accent ml-2 hover:underline cursor-pointer"
-                >
-                  Cambiar
-                </button>
-              </p>
-
-              <OTPInput onComplete={handleVerifyOTP} disabled={loading} error={otpError} />
-
-              {loading && (
-                <div className="flex items-center gap-2 text-text-secondary text-sm">
-                  <span className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                  Verificando...
-                </div>
+            </label>
+            <button type="submit" disabled={loading || !email} className={primaryClass}>
+              {loading ? (
+                <>
+                  <Spinner /> Enviando…
+                </>
+              ) : (
+                "Mandarme el código"
               )}
-            </motion.div>
-          )}
+            </button>
+            <p className="text-sm text-ink-muted">Sin contraseñas: te llega un código cada vez que entras.</p>
+          </motion.form>
+        )}
 
-          {step === "kind" && (
-            <motion.div
-              key="kind"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center gap-4"
-            >
-              <div className="grid w-full gap-3 sm:grid-cols-2">
-                {KINDS.map(({ kind, label }) => (
-                  <button
-                    key={kind}
-                    type="button"
-                    disabled={loading}
-                    onClick={() => void handleChooseKind(kind)}
-                    className="flex flex-col gap-1 rounded-xl border border-white/10 bg-white/5 px-5 py-4 text-left transition-all hover:border-accent focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/50 disabled:opacity-50 cursor-pointer"
-                  >
-                    <span className="text-lg font-semibold text-text-primary">{label}</span>
-                    <span className="text-sm text-text-secondary">{SWITCH_SAYS[kind]}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="text-text-secondary text-sm">
-                Más adelante puedes activar lo otro desde Ajustes.
+        {step === "otp" && (
+          <motion.div key="otp" {...enter} className="flex flex-col gap-4">
+            <StepTitle>Escribe el código</StepTitle>
+            <p className="text-sm">
+              Lo mandamos a <b>{email}</b>
+              <button
+                type="button"
+                onClick={() => {
+                  setStep("email");
+                  setError("");
+                }}
+                className="ml-2 font-bold text-steps underline underline-offset-4 cursor-pointer"
+              >
+                Cambiar
+              </button>
+            </p>
+            <OTPInput onComplete={handleVerifyOTP} disabled={loading} error={otpError} />
+            {loading && (
+              <p className="flex items-center gap-2 text-sm font-semibold">
+                <Spinner /> Revisando…
               </p>
-            </motion.div>
-          )}
+            )}
+          </motion.div>
+        )}
 
-          {step === "connect" && (
-            <motion.div
-              key="connect"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <EmbeddedSignup />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {step === "kind" && (
+          <motion.div key="kind" {...enter} className="flex flex-col gap-3">
+            <StepTitle>¿Qué hará tu empleado?</StepTitle>
+            {KINDS.map(({ kind, label }) => (
+              <button
+                key={kind}
+                type="button"
+                disabled={loading}
+                onClick={() => void handleChooseKind(kind)}
+                className="flex flex-col gap-1 rounded-xl border-[2.5px] border-ink bg-white px-4 py-3.5 text-left shadow-[3px_3px_0_var(--color-ink)] transition-transform hover:-translate-y-0.5 hover:bg-money/30 disabled:opacity-50 cursor-pointer"
+              >
+                <span className="text-lg font-extrabold">{label}</span>
+                <span className="text-sm text-ink-muted">{SWITCH_SAYS[kind]}</span>
+              </button>
+            ))}
+            <p className="text-sm text-ink-muted">Más adelante puedes activar lo otro desde Ajustes.</p>
+          </motion.div>
+        )}
 
-        {/* Error message */}
-        <AnimatePresence>
-          {error && (
-            <motion.p
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="text-red-400 text-sm mt-4"
-            >
-              {error}
-            </motion.p>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
+        {step === "connect" && (
+          <motion.div key="connect" {...enter} className="flex flex-col gap-4">
+            <StepTitle>Conecta tu WhatsApp</StepTitle>
+            <p className="text-sm">
+              Meta te pedirá entrar con tu cuenta de Facebook y elegir el número de tu negocio.
+            </p>
+            <EmbeddedSignup />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && <ErrorNote>{error}</ErrorNote>}
+
+      {(step === "kind" || step === "connect") && (
+        <Link href="/dashboard" className="mt-5 block text-center text-sm font-bold underline underline-offset-4">
+          Hacerlo después e ir a mi panel
+        </Link>
+      )}
+    </ConnectShell>
   );
 }

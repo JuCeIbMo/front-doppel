@@ -29,6 +29,51 @@
         ],
         "createdAt": "2026-09-28T03:35:12.042Z",
         "reason": "user confirmed: el fondo crema es el papel del cuaderno; el blanco puro abruma"
+      },
+      {
+        "rule": "clipped-overflow-container",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/landing-anuncio.html"
+        ],
+        "createdAt": "2026-09-29T05:32:32.867Z",
+        "reason": "model: los mocks simulan pantallas de celular; el recorte del marco es intencional"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "bounce",
+        "files": [
+          ".impeccable/mocks/landing-anuncio.html"
+        ],
+        "createdAt": "2026-09-29T05:33:16.160Z",
+        "reason": "model: es el nombre del keyframe de los puntitos de 'escribiendo', movimiento literal"
+      },
+      {
+        "rule": "bounce-easing",
+        "value": "cubic-bezier(.2, .9, .3, 1.35)",
+        "files": [
+          ".impeccable/mocks/landing-anuncio.html"
+        ],
+        "createdAt": "2026-09-29T05:33:16.179Z",
+        "reason": "model: rebote de sticker del estilo cartoon de la referencia; solo en el mock, se revisa al elegir forma"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/landing-doble-escena.html"
+        ],
+        "createdAt": "2026-09-29T05:42:01.377Z",
+        "reason": "model: el marco del celular del mock contiene la barra superior; no son tarjetas anidadas reales"
+      },
+      {
+        "rule": "nested-cards",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/landing-empleado-scroll.html"
+        ],
+        "createdAt": "2026-09-29T05:54:58.387Z",
+        "reason": "model: el mock simula un celular que muestra un chat de WhatsApp; el anidamiento es el propio dispositivo"
       }
     ]
   }

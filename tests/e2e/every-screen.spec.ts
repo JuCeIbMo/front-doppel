@@ -232,7 +232,7 @@ test("the connect screens fit a phone", async ({ page }) => {
   await page.setViewportSize(PHONE);
 
   await page.goto("/connect");
-  await expect(page.getByRole("heading", { name: "Conecta tu WhatsApp Business" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Entra con tu correo" })).toBeVisible();
   expect(await overflowsSideways(page)).toBe(false);
 
   await page.goto("/connect/manager?phone=%2B591%2070000000&business=Panader%C3%ADa");

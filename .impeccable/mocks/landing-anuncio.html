@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Landing como anuncio · 3 muestras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--cream:#FBF7F2;--ink:#231A16;--muted:#7A6A60;--rule:#DCCAB8;--grid:#EBDFD3;
+    --red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#E5437A;--pen:#2B2D84;
+    --table:#E9E6E2;--screen:var(--cream)}
+  body.loud{--table:#C8102E;--screen:#F2A900}
+  body{font-family:Figtree,system-ui,sans-serif;background:var(--table);color:var(--ink);min-height:100vh;transition:background .4s}
+  .bar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:2px solid var(--ink);padding:12px 24px;display:flex;flex-wrap:wrap;gap:14px 28px;align-items:center}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .group{display:flex;gap:6px;align-items:center}
+  .group>span{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#71717a;margin-right:4px}
+  .group button{font:inherit;font-size:13px;border:2px solid var(--ink);background:#fff;border-radius:999px;padding:5px 12px;cursor:pointer;font-weight:700}
+  .group button[aria-pressed=true]{background:var(--ink);color:#fff}
+  .help{padding:14px 24px 0;font-size:13px;color:#52525b;max-width:980px}
+  body.loud .help{color:#fff}
+  .stage{display:flex;gap:44px;padding:26px 24px 70px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .col{display:flex;flex-direction:column;gap:10px;align-items:center;max-width:360px}
+  .col h2{font-family:Archivo;font-stretch:80%;font-weight:900;font-size:22px;text-transform:uppercase;letter-spacing:.02em}
+  .col p.what{font-size:13px;line-height:1.4;text-align:center;min-height:54px}
+  body.loud .col h2,body.loud .col p.what{color:#fff}
+
+  .phone{width:360px;height:740px;border-radius:40px;border:10px solid var(--ink);overflow:hidden;position:relative;background:var(--screen);
+    box-shadow:14px 14px 0 var(--ink);transition:background .4s}
+  .screen{position:absolute;inset:0;overflow:hidden}
+
+  /* motor de la línea de tiempo */
+  .tl{opacity:0;transform:translateY(14px) scale(.96);transition:opacity .35s,transform .45s cubic-bezier(.2,.9,.3,1.35)}
+  .tl.on{opacity:1;transform:none}
+  .tl.pop{transform:scale(.3) rotate(-8deg)}
+  .tl.pop.on{transform:scale(1) rotate(0)}
+  .tl.stamp{transform:scale(2.4) rotate(-20deg)}
+  .tl.stamp.on{transform:scale(1) rotate(-9deg)}
+  .tl.fade{transform:none}
+  .tl.gone{opacity:0;transform:translateY(-10px)}
+  .hand{clip-path:inset(0 100% 0 0);transition:clip-path .9s linear}
+  .hand.on{clip-path:inset(0 0 0 0)}
+  .noanim, .noanim *{transition:none!important;animation:none!important}
+  .caret:after{content:"|";animation:blink .7s steps(1) infinite;margin-left:1px;font-weight:400}
+  @keyframes blink{50%{opacity:0}}
+
+  /* piezas comunes */
+  .sh{box-shadow:3px 3px 0 var(--ink);border:2px solid var(--ink)}
+  .bub{max-width:80%;padding:8px 11px;font-size:13.5px;line-height:1.3;border-radius:14px;background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink)}
+  .bub.in{align-self:flex-start;border-bottom-left-radius:3px}
+  .bub.out{align-self:flex-end;background:#D6EFE0;border-bottom-right-radius:3px}
+  .bub small{display:block;font-size:10px;color:var(--muted);text-align:right;margin-top:3px}
+  .dots{align-self:flex-end;display:flex;gap:4px;padding:12px 14px}
+  .dots i{width:7px;height:7px;border-radius:50%;background:var(--ink);animation:bounce 1s infinite}
+  .dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+  @keyframes bounce{0%,60%,100%{transform:none}30%{transform:translateY(-5px)}}
+  .star{position:absolute;width:22px;height:22px;background:currentColor;clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);animation:tw 1.6s ease-in-out infinite}
+  @keyframes tw{50%{transform:scale(.55) rotate(45deg)}}
+  .burst{display:grid;place-items:center;text-align:center;background:var(--red);color:#fff;font-family:Archivo;font-weight:900;font-stretch:75%;line-height:.95;
+    clip-path:polygon(50% 0%,60% 18%,79% 7%,78% 28%,98% 30%,85% 46%,100% 62%,80% 68%,86% 88%,65% 83%,55% 100%,44% 84%,25% 94%,24% 74%,3% 70%,15% 53%,0% 36%,20% 30%,17% 9%,38% 17%)}
+  .aguayo{height:26px;background:
+    linear-gradient(to bottom,var(--red) 0 5px,var(--yellow) 5px 8px,var(--green) 8px 13px,var(--pink) 13px 16px,var(--blue) 16px 21px,var(--red) 21px 26px)}
+  .zig{height:12px;background:conic-gradient(from 135deg at 50% 0,var(--ink) 90deg,transparent 0) 0 0/14px 12px repeat-x}
+  .cta{display:inline-flex;align-items:center;gap:8px;background:var(--ink);color:#fff;font-weight:800;font-size:16px;padding:14px 18px;border-radius:12px;box-shadow:4px 4px 0 var(--red)}
+  .finger{position:absolute;width:34px;height:34px;border-radius:50%;background:rgba(35,26,22,.35);border:3px solid #fff;box-shadow:0 0 0 2px var(--ink);z-index:20;pointer-events:none}
+  .finger.on{animation:tap .5s .35s both}
+  @keyframes tap{50%{transform:scale(.7)}}
+  .big{font-family:Archivo;font-weight:900;font-stretch:70%;line-height:.86;text-transform:uppercase}
+  .kal{font-family:Kalam;font-weight:700;color:var(--pen)}
+
+  /* ============ A · Del chat al cuaderno ============ */
+  #A .chathead{height:58px;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:2px solid var(--ink)}
+  #A .av{width:34px;height:34px;border-radius:50%;background:var(--yellow);border:2px solid var(--ink);display:grid;place-items:center;font-family:Archivo;font-weight:900;color:var(--ink)}
+  #A .chathead b{display:block;font-size:15px}#A .chathead small{font-size:11px;opacity:.85}
+  #A .chat{height:392px;overflow:hidden;padding:12px 12px;display:flex;flex-direction:column;gap:9px;justify-content:flex-end}
+  #A .prod{display:flex;gap:9px;align-items:center;margin-bottom:6px}
+  #A .prod .img{width:46px;height:46px;border:2px solid var(--ink);background:linear-gradient(to bottom,var(--red) 0 30%,var(--yellow) 30% 40%,var(--green) 40% 60%,var(--pink) 60% 70%,var(--blue) 70%)}
+  #A .prod b{display:block;font-size:13px}
+  #A .note{position:absolute;left:10px;right:10px;top:462px;bottom:14px;background:var(--cream);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink);padding:12px 12px 0 48px;
+    background-image:linear-gradient(transparent 31px,var(--rule) 31px);background-size:100% 32px;background-position:0 6px}
+  #A .note:before{content:"";position:absolute;left:36px;top:0;bottom:0;width:2px;background:var(--red)}
+  #A .note .d{font-family:Kalam;font-weight:700;color:var(--pen);font-size:19px;height:32px;line-height:32px}
+  #A .ln{display:flex;justify-content:space-between;height:32px;line-height:32px;font-size:14px}
+  #A .ln .kal{font-size:19px}
+  #A .ln.new{color:var(--ink);font-weight:800}
+  #A .tot{display:flex;justify-content:space-between;border-top:3px double var(--ink);height:40px;align-items:center;font-weight:800;margin-top:2px}
+  #A .tot .kal{font-size:25px}
+  #A .anotado{position:absolute;right:18px;top:480px;border:3px solid var(--red);color:var(--red);font-family:Archivo;font-weight:900;font-stretch:80%;font-size:22px;padding:6px 12px;letter-spacing:.06em;background:rgba(251,247,242,.9);z-index:5}
+  #A .cartel{position:absolute;left:0;right:0;bottom:0;height:380px;background:var(--red);color:#fff;padding:28px 22px;border-top:3px solid var(--ink);transform:translateY(100%);transition:transform .55s cubic-bezier(.2,.9,.3,1.1);z-index:10;opacity:1}
+  #A .cartel.on{transform:none}
+  #A .cartel .big{font-size:58px}
+  #A .cartel p{font-size:16px;font-weight:600;margin:14px 0 22px;max-width:270px}
+  #A .cartel .cta{background:var(--cream);color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+
+  /* ============ B · Cartel por escenas ============ */
+  #B .seg{position:absolute;top:14px;left:14px;right:14px;display:flex;gap:5px;z-index:30}
+  #B .seg i{flex:1;height:5px;background:rgba(35,26,22,.25);border-radius:3px;overflow:hidden}
+  #B .seg i b{display:block;height:100%;width:0;background:var(--ink)}
+  #B .scene{position:absolute;inset:0;padding:48px 22px 22px;transform:translateX(105%);transition:transform .5s cubic-bezier(.7,0,.2,1);display:flex;flex-direction:column}
+  #B .scene.on{transform:none}
+  #B .scene.gone{transform:translateX(-35%)}
+  #B .scene .big{font-size:64px}
+  #B .scene .k{font-family:Archivo;font-weight:800;font-stretch:85%;font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:10px}
+  #B .s1{background:var(--blue);color:var(--cream)} #B .s1 .clock{font-family:Archivo;font-weight:900;font-stretch:65%;font-size:150px;line-height:.8;margin:26px 0 6px;color:var(--yellow)}
+  #B .s2{background:var(--yellow)} #B .s3{background:var(--red);color:#fff} #B .s4{background:var(--pink);color:var(--ink)}
+  #B .s5{background:var(--green);color:#fff} #B .s6{background:var(--cream)}
+  #B .bub{color:var(--ink)}
+  #B .card{background:var(--cream);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:14px;border-radius:14px}
+  #B .pimg{height:150px;border:2px solid var(--ink);border-radius:8px;margin-bottom:10px;background:
+    linear-gradient(to bottom,var(--red) 0 18%,var(--yellow) 18% 24%,var(--green) 24% 40%,var(--pink) 40% 46%,var(--blue) 46% 62%,var(--yellow) 62% 68%,var(--red) 68%)}
+  #B .price{position:absolute;right:26px;top:300px;width:110px;height:110px;font-size:26px}
+  #B .btns{display:flex;gap:8px;margin-top:12px}
+  #B .btns span{flex:1;text-align:center;font-weight:800;padding:12px;border:2px solid var(--ink);border-radius:10px;box-shadow:3px 3px 0 var(--ink);position:relative;overflow:hidden}
+  #B .btns .ok b{position:absolute;inset:0;display:grid;place-items:center;background:var(--green);color:#fff}
+  #B .mini{background:var(--cream);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);padding:10px 14px 4px 44px;position:relative;
+    background-image:linear-gradient(transparent 33px,var(--rule) 33px);background-size:100% 34px;background-position:0 10px}
+  #B .mini:before{content:"";position:absolute;left:32px;top:0;bottom:0;width:2px;background:var(--red)}
+  #B .mini div{display:flex;justify-content:space-between;height:34px;line-height:34px;font-size:14px}
+  #B .mini .kal{font-size:19px}
+  #B .word{font-family:Archivo;font-weight:900;font-stretch:72%;font-size:96px;line-height:.85;letter-spacing:-.01em;margin-top:60px}
+  #B .word em{font-style:normal;color:var(--red)}
+
+  /* ============ C · El onboarding es el anuncio ============ */
+  #C .prev{position:absolute;left:14px;right:14px;top:16px;height:270px;background:var(--cream);border:3px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--ink);overflow:hidden}
+  #C .prev .lbl{position:absolute;top:-1px;right:12px;background:var(--ink);color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;border-radius:0 0 6px 6px;z-index:2}
+  #C .ph{height:56px;background:var(--green);color:#fff;display:flex;align-items:center;gap:10px;padding:0 12px;border-bottom:2px solid var(--ink)}
+  #C .ph .av{width:32px;height:32px;border-radius:50%;background:var(--yellow);color:var(--ink);border:2px solid var(--ink);display:grid;place-items:center;font-family:Archivo;font-weight:900}
+  #C .ph b{display:block;font-size:14px;min-height:18px}#C .ph small{font-size:11px;opacity:.85}
+  #C .pc{padding:12px;display:flex;flex-direction:column;gap:8px;height:210px;justify-content:flex-end}
+  #C .pc .bub{font-size:13px}
+  #C .nums{position:absolute;top:306px;left:18px;right:18px;display:flex;gap:8px;align-items:center}
+  #C .nums span{width:40px;height:40px;border:2px solid var(--ink);border-radius:9px;box-shadow:3px 3px 0 var(--ink);background:var(--cream);display:grid;place-items:center;font-family:Archivo;font-weight:900;font-size:17px;position:relative;overflow:hidden}
+  #C .nums span b{position:absolute;inset:0;display:grid;place-items:center;background:var(--green);color:#fff}
+  #C .nums em{font-style:normal;margin-left:auto;font-family:Kalam;font-weight:700;color:var(--pen);font-size:18px}
+  body.loud #C .nums em{color:var(--ink)}
+  #C .step{position:absolute;left:14px;right:14px;top:366px;bottom:16px;background:var(--cream);border:3px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--ink);padding:20px 18px;
+    transform:translateX(115%);transition:transform .5s cubic-bezier(.7,0,.2,1)}
+  #C .step.on{transform:none}#C .step.gone{transform:translateX(-115%)}
+  #C .step h3{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:34px;line-height:.95;text-transform:uppercase;margin-bottom:14px}
+  #C .field{border:2px solid var(--ink);border-radius:10px;padding:13px 12px;font-size:17px;font-weight:600;min-height:52px;background:#fff}
+  #C .otp{display:flex;gap:6px;margin-top:12px}
+  #C .otp span{flex:1;height:48px;border:2px solid var(--ink);border-radius:9px;display:grid;place-items:center;font-family:Kalam;font-weight:700;font-size:24px;color:var(--pen);background:#fff}
+  #C .chips{display:flex;flex-direction:column;gap:9px}
+  #C .chip{border:2px solid var(--ink);border-radius:12px;padding:12px 14px;font-weight:800;font-size:16px;position:relative;overflow:hidden;background:#fff}
+  #C .chip small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+  #C .chip b{position:absolute;inset:0;background:var(--blue);color:#fff;padding:12px 14px;font-weight:800}
+  #C .chip b small{color:rgba(255,255,255,.8)}
+  #C .wa{margin-top:6px;display:grid;place-items:center;height:64px;border-radius:14px;border:3px solid var(--ink);box-shadow:5px 5px 0 var(--ink);font-weight:900;font-size:18px;position:relative;overflow:hidden;background:var(--yellow)}
+  #C .wa b{position:absolute;inset:0;display:grid;place-items:center;background:var(--green);color:#fff}
+  #C .wa i{position:absolute;inset:0;display:grid;place-items:center;background:var(--blue);color:#fff;font-style:normal}
+  #C .step p{font-size:13px;color:var(--muted);margin-top:12px;line-height:1.4}
+  #C .fin{position:absolute;inset:0;background:var(--green);color:#fff;z-index:15;padding:40px 22px;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .55s cubic-bezier(.2,.9,.3,1.1);opacity:1}
+  #C .fin.on{transform:none}
+  #C .fin .big{font-size:56px}
+  #C .fin .card{margin-top:22px;background:var(--cream);color:var(--ink);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);border-radius:14px;padding:14px}
+  #C .fin .card .kal{font-size:40px;display:block}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Doppel · Landing como anuncio · 3 muestras</h1>
+  <div class="group"><span>Color</span><button data-c="paper" aria-pressed="true">Papel (crema)</button><button data-c="loud" aria-pressed="false">Fuerte (saturado)</button></div>
+  <div class="group"><span>Animación</span><button id="pause">Pausar</button><button id="restart">Reiniciar</button></div>
+</div>
+<p class="help">Tres ideas de forma, en bucle. Datos de ejemplo. El color es un eje aparte: prueba cada una en Papel y en Fuerte. Nada sale de la landing actual.</p>
+
+<div class="stage">
+
+<!-- ================= A ================= -->
+<div class="col">
+  <h2>A · Del chat al cuaderno</h2>
+  <p class="what">Una venta real de principio a fin: el cliente escribe, el bot vende y la venta cae escrita en el cuaderno. Cierra con el cartel.</p>
+  <div class="phone" id="A" data-len="12"><div class="screen">
+    <div class="chathead"><div class="av">W</div><div><b>Tejidos Wara</b><small>responde Doppel · en línea</small></div></div>
+    <div class="chat">
+      <div class="bub in tl" data-at=".3">Hola, ¿tienen la mochila tejida en rojo?<small>23:48</small></div>
+      <div class="dots tl fade" data-at="1.2" data-out="2.2"><i></i><i></i><i></i></div>
+      <div class="bub out tl" data-at="2.2"><div class="prod"><div class="img"></div><div><b>Mochila tejida · roja</b>Bs 180 · quedan 3</div></div>¡Sí! ¿Te la separo?<small>23:48</small></div>
+      <div class="bub in tl" data-at="3.8">Sí, porfa. Paso mañana<small>23:49</small></div>
+      <div class="bub out tl" data-at="4.8">Listo, pedido #214 a tu nombre. Te espero mañana<small>23:49</small></div>
+    </div>
+    <div class="note">
+      <div class="d">martes 29</div>
+      <div class="ln"><span>Aguayo chico</span><span class="kal">Bs 95</span></div>
+      <div class="ln"><span>Chalina de alpaca</span><span class="kal">Bs 240</span></div>
+      <div class="ln new"><span class="hand" data-at="6">Mochila tejida roja · #214</span><span class="kal hand" data-at="6.8">Bs 180</span></div>
+      <div class="tot"><span>Vendido hoy</span><span class="kal" data-count="335>515" data-at="7" data-dur=".8">Bs 335</span></div>
+    </div>
+    <div class="anotado tl stamp" data-at="5.6">ANOTADO</div>
+    <div class="cartel tl" data-at="8.6">
+      <div class="big">Tú duermes.<br>Doppel vende<br>y anota.</div>
+      <p>Atiende tu WhatsApp con tu catálogo real y deja cada venta escrita.</p>
+      <span class="cta">Conecta tu WhatsApp →</span>
+      <span class="star" style="color:var(--yellow);right:26px;top:24px"></span>
+      <span class="star" style="color:#fff;right:60px;top:120px;animation-delay:.5s"></span>
+    </div>
+  </div></div>
+</div>
+
+<!-- ================= B ================= -->
+<div class="col">
+  <h2>B · Cartel por escenas</h2>
+  <p class="what">Tipo historia de Instagram: seis carteles de color, uno por idea, con stickers. Lo más cercano a la energía de la referencia.</p>
+  <div class="phone" id="B" data-len="15"><div class="screen">
+    <div class="seg"><i data-s="0" data-e="2.4"><b></b></i><i data-s="2.4" data-e="4.8"><b></b></i><i data-s="4.8" data-e="7.2"><b></b></i><i data-s="7.2" data-e="9.8"><b></b></i><i data-s="9.8" data-e="12"><b></b></i><i data-s="12" data-e="15"><b></b></i></div>
+
+    <div class="scene s1" data-at="0" data-out="2.4">
+      <div class="k">Sábado · de madrugada</div>
+      <div class="clock">3:12</div>
+      <div class="big" style="font-size:44px">Te escriben.<br>Tú duermes.</div>
+      <div class="bub in tl" data-at=".8" style="margin-top:26px">¿Hacen envíos a El Alto?</div>
+      <span class="star" style="color:var(--yellow);right:34px;top:90px"></span>
+      <span class="star" style="color:var(--cream);right:90px;top:170px;animation-delay:.6s;width:14px;height:14px"></span>
+    </div>
+    <div class="scene s2" data-at="2.4" data-out="4.8">
+      <div class="k">Doppel contesta</div>
+      <div class="big">Al toque,<br>como tú.</div>
+      <div style="display:flex;flex-direction:column;gap:9px;margin-top:30px">
+        <div class="bub in">¿Hacen envíos a El Alto?</div>
+        <div class="bub out tl" data-at="3.1">¡Sí! Salen hoy a las 10. ¿Qué te gustaría pedir?</div>
+      </div>
+      <div class="burst tl pop" data-at="3.6" style="width:120px;height:120px;font-size:22px;position:absolute;right:18px;bottom:60px">EN 4<br>SEG</div>
+    </div>
+    <div class="scene s3" data-at="4.8" data-out="7.2">
+      <div class="k">Vende de verdad</div>
+      <div class="big">Con tu<br>catálogo<br>real</div>
+      <div class="card tl" data-at="5.3" style="margin-top:20px"><div class="pimg"></div><b>Mochila tejida · roja</b><div style="font-size:13px">Quedan 3 en tu inventario</div></div>
+      <div class="burst tl pop price" data-at="5.9" style="background:var(--yellow);color:var(--ink)">Bs<br>180</div>
+    </div>
+    <div class="scene s4" data-at="7.2" data-out="9.8">
+      <div class="k">Tú tienes la última palabra</div>
+      <div class="big">Lo delicado<br>te lo<br>pregunta</div>
+      <div class="card tl" data-at="7.7" style="margin-top:24px">
+        <b>Ana pide 10% de descuento</b><div style="font-size:13px;color:var(--muted)">Pedido #214 · Bs 180 → Bs 162</div>
+        <div class="btns"><span>No</span><span class="ok">Aprobar<b class="tl fade" data-at="9">✓ Aprobado</b></span></div>
+      </div>
+      <div class="finger tl fade" data-at="8.5" data-out="9.4" style="right:70px;bottom:192px"></div>
+    </div>
+    <div class="scene s5" data-at="9.8" data-out="12">
+      <div class="k">Y no se pierde nada</div>
+      <div class="big">Todo queda<br>anotado</div>
+      <div class="mini tl" data-at="10.2" style="margin-top:26px">
+        <div><span>Chalina de alpaca</span><span class="kal">Bs 240</span></div>
+        <div><span>Cita · corte · 16:00</span><span class="kal">Bs 50</span></div>
+        <div><b class="hand" data-at="10.7">Mochila roja · #214</b><span class="kal hand" data-at="11.2">Bs 162</span></div>
+      </div>
+    </div>
+    <div class="scene s6" data-at="12" data-out="99">
+      <div class="word">dop<br>pel<em>.</em></div>
+      <p style="font-size:18px;font-weight:700;margin:18px 0 22px;max-width:260px">Tu WhatsApp atiende, vende y agenda solo. Tú apruebas.</p>
+      <span class="cta tl" data-at="12.6" style="align-self:flex-start">Conecta tu WhatsApp →</span>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px">Listo en minutos, sin código.</p>
+      <div class="aguayo" style="position:absolute;left:0;right:0;bottom:0"></div>
+      <span class="star" style="color:var(--red);right:40px;top:80px"></span>
+      <span class="star" style="color:var(--yellow);right:100px;top:150px;animation-delay:.5s"></span>
+    </div>
+  </div></div>
+</div>
+
+<!-- ================= C ================= -->
+<div class="col">
+  <h2>C · El onboarding es el anuncio</h2>
+  <p class="what">Mientras te registras, arriba ves a tu bot tomando forma con tu nombre. Sirve de landing (en bucle) y de onboarding real (interactivo).</p>
+  <div class="phone" id="C" data-len="17"><div class="screen">
+    <div class="prev"><div class="lbl">Así te verán</div>
+      <div class="ph"><div class="av"><span class="tl pop" data-at="3.4">S</span></div><div><b data-type="Salteñería Doña Rosa" data-at="3.4" data-dur="1.6"></b><small>responde al instante</small></div></div>
+      <div class="pc">
+        <div class="bub in tl" data-at="4.8">Hola, ¿qué tienen hoy?</div>
+        <div class="bub out tl" data-at="6.6">Hoy de pollo y de carne, Bs 8 c/u. ¿Cuántas te separo?</div>
+        <div class="bub out tl" data-at="7.8">¿O prefieres reservar mesa para el domingo?</div>
+      </div>
+    </div>
+    <div class="nums">
+      <span>1<b class="tl fade" data-at="2.8">✓</b></span><span>2<b class="tl fade" data-at="5.4">✓</b></span><span>3<b class="tl fade" data-at="8.6">✓</b></span><span>4<b class="tl fade" data-at="12">✓</b></span>
+      <em>≈ 2 minutos</em>
+    </div>
+    <div class="step" data-at="0" data-out="3">
+      <h3>Entra con<br>tu correo</h3>
+      <div class="field"><span data-type="rosa@gmail.com" data-at=".4" data-dur="1"></span></div>
+      <div class="otp"><span class="tl pop" data-at="1.6">4</span><span class="tl pop" data-at="1.75">8</span><span class="tl pop" data-at="1.9">1</span><span class="tl pop" data-at="2.05">0</span><span class="tl pop" data-at="2.2">7</span><span class="tl pop" data-at="2.35">2</span></div>
+      <p>Te mandamos un código. Sin contraseñas.</p>
+    </div>
+    <div class="step" data-at="3" data-out="5.8">
+      <h3>¿Cómo se llama<br>tu negocio?</h3>
+      <div class="field"><span data-type="Salteñería Doña Rosa" data-at="3.4" data-dur="1.6"></span></div>
+      <p>Así lo verán tus clientes en WhatsApp. ↑</p>
+    </div>
+    <div class="step" data-at="5.8" data-out="9">
+      <h3>¿Qué hará<br>tu bot?</h3>
+      <div class="chips">
+        <div class="chip">Vender<small>Toma pedidos con tu catálogo</small><b class="tl fade" data-at="6.4" data-out="7.6">Vender<small>Toma pedidos con tu catálogo</small></b></div>
+        <div class="chip">Agendar<small>Reserva citas y mesas</small></div>
+        <div class="chip">Las dos<small>Vende y agenda</small><b class="tl fade" data-at="7.6">Las dos<small>Vende y agenda</small></b></div>
+      </div>
+    </div>
+    <div class="step" data-at="9" data-out="12.4">
+      <h3>Conecta tu<br>WhatsApp</h3>
+      <div class="wa">Conectar con WhatsApp<i class="tl fade" data-at="10.4">Conectando con Meta…</i><b class="tl fade" data-at="11.4">✓ Conectado</b></div>
+      <p>Meta te pedirá entrar con tu cuenta. Tu número sigue siendo tuyo.</p>
+    </div>
+    <div class="finger tl fade" data-at="6.2" data-out="6.8" style="left:120px;top:470px"></div>
+    <div class="finger tl fade" data-at="7.4" data-out="8" style="left:120px;top:610px"></div>
+    <div class="finger tl fade" data-at="10" data-out="10.6" style="left:170px;top:480px"></div>
+    <div class="fin tl" data-at="12.6">
+      <div class="big">Tu bot ya<br>está<br>atendiendo</div>
+      <div class="card"><small style="font-weight:800;text-transform:uppercase;letter-spacing:.1em;font-size:11px">Primer cliente respondido</small><span class="kal">hoy, 23:48</span></div>
+      <span class="cta tl" data-at="13.4" style="align-self:flex-start;margin-top:26px;background:var(--cream);color:var(--ink);box-shadow:4px 4px 0 var(--ink)">Ver mi panel →</span>
+      <div class="aguayo" style="position:absolute;left:0;right:0;bottom:0"></div>
+      <span class="star" style="color:var(--yellow);right:30px;top:40px"></span>
+    </div>
+  </div></div>
+</div>
+
+</div>
+
+<script>
+const phones=[...document.querySelectorAll('.phone')];
+let paused=false,t0=performance.now(),pauseAt=0;
+const fmt=n=>'Bs '+n.toLocaleString('es-BO');
+const last={};
+function reset(p){
+  p.classList.add('noanim');
+  p.querySelectorAll('.on,.gone').forEach(e=>e.classList.remove('on','gone'));
+  p.querySelectorAll('[data-type]').forEach(e=>{e.textContent='';e.classList.remove('caret')});
+  p.querySelectorAll('[data-count]').forEach(e=>e.textContent=fmt(+e.dataset.count.split('>')[0]));
+  void p.offsetWidth; p.classList.remove('noanim');
+}
+function frame(now){
+  if(!paused){
+    const el=(now-t0)/1000;
+    for(const p of phones){
+      const len=+p.dataset.len, t=el%len, loop=Math.floor(el/len);
+      if(last[p.id]!==loop){last[p.id]=loop;reset(p)}
+      p.querySelectorAll('[data-at]').forEach(e=>{
+        const at=+e.dataset.at, out=e.dataset.out?+e.dataset.out:1e9;
+        if(e.dataset.type!==undefined){
+          const d=+e.dataset.dur, full=e.dataset.type, k=Math.max(0,Math.min(1,(t-at)/d));
+          e.textContent=full.slice(0,Math.round(full.length*k));
+          e.classList.toggle('caret',t>=at&&k<1);
+          return;
+        }
+        if(e.dataset.count){
+          const [a,b]=e.dataset.count.split('>').map(Number), k=Math.max(0,Math.min(1,(t-at)/+e.dataset.dur));
+          e.textContent=fmt(Math.round(a+(b-a)*k)); return;
+        }
+        e.classList.toggle('on',t>=at&&t<out);
+        if(e.classList.contains('scene')||e.classList.contains('step')) e.classList.toggle('gone',t>=out);
+      });
+      p.querySelectorAll('.seg i').forEach(s=>{
+        const k=Math.max(0,Math.min(1,(t-s.dataset.s)/(s.dataset.e-s.dataset.s)));
+        s.firstChild.style.width=(k*100)+'%';
+      });
+    }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+document.getElementById('pause').onclick=e=>{
+  paused=!paused;
+  if(paused){pauseAt=performance.now();e.target.textContent='Seguir'}
+  else{t0+=performance.now()-pauseAt;e.target.textContent='Pausar'}
+};
+document.getElementById('restart').onclick=()=>{t0=performance.now();pauseAt=t0;for(const k in last)delete last[k]};
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{
+  document.body.classList.toggle('loud',b.dataset.c==='loud');
+  document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+});
+</script>
+</body>
+</html>

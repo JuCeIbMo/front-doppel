@@ -34,7 +34,7 @@ describe("AuthFlow", () => {
   it("asks whether the Business sells or books before connecting WhatsApp", async () => {
     render(<AuthFlow />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Agendo citas/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Que agende mis citas/ }));
 
     expect(await screen.findByText("Conectar con Meta")).toBeInTheDocument();
     expect(chooseKind).toHaveBeenCalledWith("booking");
@@ -44,7 +44,7 @@ describe("AuthFlow", () => {
     chooseKind.mockRejectedValue(new Error("Tienes 1 cita por venir."));
     render(<AuthFlow />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /Vendo productos/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Que venda mis productos/ }));
 
     expect(await screen.findByText("Tienes 1 cita por venir.")).toBeInTheDocument();
     expect(screen.queryByText("Conectar con Meta")).not.toBeInTheDocument();
@@ -56,7 +56,7 @@ describe("AuthFlow", () => {
     render(<AuthFlow />);
 
     expect(await screen.findByText("Conectar con Meta")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Agendo citas/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Que agende mis citas/ })).not.toBeInTheDocument();
     expect(chooseKind).not.toHaveBeenCalled();
   });
 });

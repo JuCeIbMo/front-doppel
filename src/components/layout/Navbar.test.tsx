@@ -11,29 +11,23 @@ import { Navbar } from "./Navbar";
 describe("Navbar auth entry", () => {
   beforeEach(() => useHasSessionMock.mockReset());
 
-  it("shows 'Iniciar sesión' and 'Conectar WhatsApp' when logged out", () => {
+  it("offers 'Iniciar sesión' when logged out", () => {
     useHasSessionMock.mockReturnValue(false);
     render(<Navbar />);
 
-    const login = screen.getByRole("link", { name: "Iniciar sesión" });
-    expect(login).toHaveAttribute("href", "/connect");
-    expect(screen.getByRole("link", { name: "Conectar WhatsApp" })).toHaveAttribute(
-      "href",
-      "/connect",
-    );
-    expect(screen.queryByRole("link", { name: /Ir al dashboard/ })).toBeNull();
+    expect(screen.getByRole("link", { name: "Iniciar sesión" })).toHaveAttribute("href", "/connect");
+    expect(screen.queryByRole("link", { name: /Ir a mi panel/ })).toBeNull();
   });
 
-  it("collapses to a single 'Ir al dashboard' when a session exists", () => {
+  it("offers 'Ir a mi panel' when a session exists", () => {
     useHasSessionMock.mockReturnValue(true);
     render(<Navbar />);
 
-    expect(screen.getByRole("link", { name: /Ir al dashboard/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Ir a mi panel/ })).toHaveAttribute(
       "href",
-      "/dashboard/automation",
+      "/dashboard",
     );
     expect(screen.queryByRole("link", { name: "Iniciar sesión" })).toBeNull();
-    expect(screen.queryByRole("link", { name: "Conectar WhatsApp" })).toBeNull();
   });
 
   it("defaults to the logged-out view while session state is unknown", () => {
@@ -41,7 +35,6 @@ describe("Navbar auth entry", () => {
     render(<Navbar />);
 
     expect(screen.getByRole("link", { name: "Iniciar sesión" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Conectar WhatsApp" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Ir al dashboard/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /Ir a mi panel/ })).toBeNull();
   });
 });

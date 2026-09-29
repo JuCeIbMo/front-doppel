@@ -14,7 +14,7 @@ web
 
 ## Product Purpose
 
-Doppel atiende el WhatsApp de un negocio chico: un asistente de IA responde a los clientes, vende con el catálogo real y agenda citas, y cada pedido, venta o cita queda registrado en un ERP ligero. El panel web sirve para **ver, supervisar y configurar**. La operación del día a día (aprobar, cobrar, entregar) va sobre todo por WhatsApp con el Admin Agent, aunque la web también la permite.
+Doppel atiende el WhatsApp de un negocio chico: un asistente de IA responde a los clientes (por mensaje y por llamada de voz), vende con el catálogo real y agenda citas, y cada pedido, venta o cita queda registrado en un ERP ligero. El panel web sirve para **ver, supervisar y configurar**. La operación del día a día (aprobar, cobrar, entregar) va sobre todo por WhatsApp con el Admin Agent, aunque la web también la permite.
 
 Éxito: el Owner deja de contestar WhatsApp a mano, conserva el control de lo importante y puede ver en cualquier momento qué hizo el bot.
 
