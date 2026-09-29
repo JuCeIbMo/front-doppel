@@ -266,7 +266,14 @@ Una barra de 12 px con contorno de tinta de 1,5 px sobre papel, llena de amarill
 Una franja de 36 px de ancho y a todo el alto de su sección, en el margen, con el nombre de la sección en vertical. Su color es el rol de la sección: amarillo para Hoy, rosa para Mes.
 
 ### Movimiento
-Un solo gesto: el cartel del día se asienta una vez al cargar ("paste", 420 ms, cubic-bezier(0.16, 1, 0.3, 1)), desde ya visible, recortado desde abajo. Con movimiento reducido no se anima.
+Todo con la misma curva, cubic-bezier(0.16, 1, 0.3, 1): arranca rápido y se asienta despacio, como el papel.
+- **Pasar la hoja:** al cambiar de pantalla, la nueva entra desde el lado que le toca en el cuaderno (340 ms, 28 px y desde opacidad 0,2): por la derecha si está más abajo en el menú o más adentro (un detalle, un alta), por la izquierda si está más arriba o es la vuelta. La primera pantalla ya está abierta y no se anima.
+- **La tinta viaja:** el bloque de tinta del ítem activo se desliza hasta el nuevo, en el menú lateral y en la barra inferior (320 ms), pasando por detrás de los demás ítems.
+- **Asentar el plano:** el cartel del día se asienta una vez al cargar ("paste", 420 ms), desde ya visible, recortado desde abajo.
+- **La hoja "Más":** sube desde abajo (340 ms) y baja más rápido al cerrarse (200 ms); el fondo se oscurece y aclara con ella.
+- **Sello:** un contador rojo que cambia se vuelve a sellar (260 ms, desde escala 1,35).
+- **Al presionar:** el ítem se lava en tinta al 10–15% mientras está apretado.
+Con movimiento reducido no hay desplazamientos: la hoja se funde en 160 ms, la tinta salta y ni el plano ni el sello se animan.
 
 ## Do's and Don'ts
 
@@ -277,7 +284,7 @@ Un solo gesto: el cartel del día se asienta una vez al cargar ("paste", 420 ms,
 - **Do** recortar la chakana de 10 px arriba en todo plano de color lleno.
 - **Do** escribir a mano (Kalam 700) las fechas, los montos y las advertencias; contar y titular en Archivo condensado pesado.
 - **Do** usar el margen para números, checks y pestañas de sección, y poner pestaña solo donde la sección necesita orientación.
-- **Do** respetar `prefers-reduced-motion`: sin el asentado del plano.
+- **Do** respetar `prefers-reduced-motion`: sin desplazamientos, solo fundidos cortos.
 
 ### Don't:
 - **Don't** usar el rojo para navegación, estado activo o decoración.
