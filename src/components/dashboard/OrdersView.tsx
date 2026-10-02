@@ -123,7 +123,9 @@ export function OrdersView({
     return kept.sort((a, b) => order * a.starts_at.localeCompare(b.starts_at));
   };
   const count = (pile: Pile) => ordersIn(pile).length + appointmentsIn(pile).length;
-  const pile: Pile = chosen ?? (count("placed") > 0 ? "placed" : count("paid") > 0 ? "paid" : "done");
+  // The first pile with something in it; with nothing anywhere, the first one.
+  const pile: Pile =
+    chosen ?? PILES.map((item) => item.id).find((id) => count(id) > 0) ?? "placed";
   const shownOrders = ordersIn(pile);
   const shownAppointments = appointmentsIn(pile);
   const both = selling && booking;
@@ -259,7 +261,7 @@ function emptySays(pile: Pile, selling: boolean, booking: boolean): string {
         ? "No hay citas confirmadas por venir."
         : "No hay pedidos por entregar.";
   }
-  return `No hay ${things} cerrados en el último mes.`;
+  return `No hay ${things} ${booking && !selling ? "cerradas" : "cerrados"} en el último mes.`;
 }
 
 /** "vence en 2 h", "vence en 25 min", or "venció", for an Order still waiting for payment. */
