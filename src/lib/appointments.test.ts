@@ -10,7 +10,6 @@ import {
   agendaActions,
   bookingAction,
   businessDay,
-  byProfessional,
   clockTime,
   paymentSays,
   shiftDays,
@@ -158,25 +157,6 @@ describe("the agenda", () => {
     ]);
     expect(names({ ...BOOKED, status: "attended", amount_due: "0" }, AFTER)).toEqual(["mark_no_show"]);
     expect(names({ ...BOOKED, status: "no_show", amount_due: "0" }, AFTER)).toEqual([]);
-  });
-
-  it("lays a day out by Professional, the team first and anyone else after", () => {
-    const pedro = { ...BOOKED, appointment_code: "APT002", professional_code: "PRO002", professional: "Pedro" };
-    const team = [
-      { professional_code: "PRO001", name: "Rosa" },
-      { professional_code: "PRO003", name: "Ana" },
-    ];
-
-    expect(
-      byProfessional([pedro, BOOKED], team).map((column) => [
-        column.name,
-        column.appointments.map((a) => a.appointment_code),
-      ]),
-    ).toEqual([
-      ["Rosa", ["APT001"]],
-      ["Ana", []],
-      ["Pedro", ["APT002"]],
-    ]);
   });
 
   it("says a refusal in Spanish", async () => {

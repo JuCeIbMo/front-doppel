@@ -83,16 +83,22 @@ describe("AgendaView", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it("shows today by Professional, with each one's status and payment", async () => {
+  it("marks the month and lists today's Appointments by the hour, with status and payment", async () => {
     answers([CORTE, TINTE]);
     renderView();
 
-    const pedro = await screen.findByRole("region", { name: "Pedro" });
+    const today = await screen.findByRole("region", { name: "Martes, 6 de octubre" });
+    expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-01&last_day=2026-10-31");
     expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-06&last_day=2026-10-12");
-    expect(within(pedro).getByText(/10:00–10:30 · Corte/)).toBeInTheDocument();
-    expect(within(pedro).getByText(/Falta pagar/)).toBeInTheDocument();
-    expect(within(pedro).getByText("Pagada")).toBeInTheDocument();
-    expect(within(screen.getByRole("region", { name: "Rosa" })).getByText("Sin citas")).toBeInTheDocument();
+    expect(within(today).getByText("Hoy, martes 6 de octubre")).toBeInTheDocument();
+    expect(within(today).getByText("Corte")).toBeInTheDocument();
+    expect(within(today).getAllByText("con Pedro")).toHaveLength(2);
+    expect(within(today).getByText(/Falta pagar/)).toBeInTheDocument();
+    expect(within(today).getByText("Pagada")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "Martes, 6 de octubre: 2 citas, falta pagar" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Miércoles, 7 de octubre" })).toHaveTextContent("Sin citas");
     expect(screen.getByText(/rosa@gmail.com/)).toBeInTheDocument();
     expect(screen.getByText(/lo que cambies allí no cambia tus citas/i)).toBeInTheDocument();
   });
@@ -133,17 +139,22 @@ describe("AgendaView", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/ya empezó/)));
   });
 
-  it("walks the week and shows another day's Appointments", async () => {
-    answers([{ ...CORTE, starts_at: "2026-10-08T10:00:00-04:00", ends_at: "2026-10-08T10:30:00-04:00" }]);
+  it("lists from the day picked on the month, and walks to the next month", async () => {
+    answers([{ ...CORTE, starts_at: "2026-10-20T10:00:00-04:00", ends_at: "2026-10-20T10:30:00-04:00" }]);
     renderView();
 
-    expect(await screen.findAllByText("Sin citas")).toHaveLength(2);
-    fireEvent.click(screen.getByRole("button", { name: /jue.*8/i }));
-    expect(await screen.findByText(/10:00–10:30 · Corte/)).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole("button", { name: "Semana siguiente" }));
+    fireEvent.click(await screen.findByRole("button", { name: /^Martes, 20 de octubre: 1 cita/ }));
     await waitFor(() =>
-      expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-13&last_day=2026-10-19"),
+      expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-20&last_day=2026-10-26"),
     );
+    const day = await screen.findByRole("region", { name: "Martes, 20 de octubre" });
+    expect(await within(day).findByText("Corte")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Mes siguiente" }));
+    await waitFor(() =>
+      expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-11-01&last_day=2026-11-30"),
+    );
+    expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-11-01&last_day=2026-11-07");
+    expect(screen.getByRole("heading", { name: "noviembre 2026" })).toBeInTheDocument();
   });
 });

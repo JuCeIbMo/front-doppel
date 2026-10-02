@@ -112,6 +112,32 @@
   );
 }
 
+/* Behind a Conversation, the way WhatsApp papers its chats: a soft dotted wall. */
+.chat-wall {
+  background-color: #F3EBE1;
+  background-image: radial-gradient(rgba(35, 26, 22, 0.07) 1.2px, transparent 1.2px);
+  background-size: 14px 14px;
+}
+
+/* The little tail on the first bubble of a run, pointing to who said it. */
+.bubble-tail-in::before,
+.bubble-tail-out::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  border-top: 8px solid;
+}
+.bubble-tail-in::before {
+  left: -7px;
+  border-top-color: #fff;
+  border-left: 8px solid transparent;
+}
+.bubble-tail-out::before {
+  right: -7px;
+  border-top-color: #DCEFE3;
+  border-right: 8px solid transparent;
+}
+
 /* A plane pasted onto the page settles in once, from already visible. */
 @keyframes paste {
   from { clip-path: polygon(0 10px, 10px 10px, 10px 0, calc(100% - 10px) 0, calc(100% - 10px) 10px, 100% 10px, 100% 82%, 0 82%); opacity: 0.85; }

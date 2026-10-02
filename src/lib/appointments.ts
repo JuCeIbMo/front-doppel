@@ -378,37 +378,6 @@ export function agendaActions(appointment: AgendaAppointment, now: Date): Agenda
   return actions;
 }
 
-export interface AgendaColumn {
-  professional_code: string;
-  name: string;
-  appointments: AgendaAppointment[];
-}
-
-/** A day by Professional: everyone on the team, then anyone retired who still had one. */
-export function byProfessional(
-  appointments: AgendaAppointment[],
-  team: { professional_code: string; name: string }[],
-): AgendaColumn[] {
-  const columns: AgendaColumn[] = team.map((member) => ({
-    professional_code: member.professional_code,
-    name: member.name,
-    appointments: [],
-  }));
-  for (const appointment of appointments) {
-    let column = columns.find((c) => c.professional_code === appointment.professional_code);
-    if (!column) {
-      column = {
-        professional_code: appointment.professional_code,
-        name: appointment.professional,
-        appointments: [],
-      };
-      columns.push(column);
-    }
-    column.appointments.push(appointment);
-  }
-  return columns;
-}
-
 export const AGENDA_KEY = ["agenda"];
 export const TIMES_TO_MOVE_KEY = ["times-to-move"];
 export const CONTACT_APPOINTMENTS_KEY = ["contact-appointments"];

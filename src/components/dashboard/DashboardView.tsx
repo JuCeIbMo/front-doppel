@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { ArrowLeft, PhoneCall, Search } from "lucide-react";
+import { ArrowLeft, PhoneCall, Search, SendHorizontal, User } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   useApprovedTemplates,
@@ -69,6 +69,14 @@ function writtenDay(value: string) {
     month: "long",
   }).format(new Date(value));
   return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** The pill between days, as WhatsApp says it: "Hoy", "Ayer" or the written day. */
+function chatDay(value: string, now: Date = new Date()) {
+  const day = dayKey(value);
+  if (day === dayKey(now)) return "Hoy";
+  if (day === dayKey(new Date(now.getTime() - 86400000))) return "Ayer";
+  return writtenDay(value);
 }
 
 function groupByDay(thread: PipelineItem[]) {
@@ -154,12 +162,12 @@ export function DashboardView() {
     <section
       aria-label="Lista de conversaciones"
       className={cx(
-        "flex min-h-0 flex-col lg:border-r-2 lg:border-ink lg:pr-0",
+        "flex min-h-0 flex-col lg:border-r lg:border-paper-rule lg:pr-0",
         threadOpen && "max-lg:hidden",
       )}
     >
       <div className="flex flex-col gap-3 pb-3 lg:pr-4">
-        <div role="tablist" aria-label="Filtrar" className="flex border-2 border-ink">
+        <div role="tablist" aria-label="Filtrar" className="flex gap-2">
           {(
             [
               { id: "all", label: "Todas", count: conversations.length },
@@ -175,14 +183,14 @@ export function DashboardView() {
                 aria-selected={active}
                 onClick={() => setFilter(option.id)}
                 className={cx(
-                  "flex min-h-11 flex-1 items-center justify-center gap-2 text-sm font-bold transition-colors",
-                  active ? "bg-ink text-paper" : "text-ink hover:bg-ink/[0.07]",
+                  "flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-colors",
+                  active ? "bg-ink text-paper" : "bg-ink/[0.07] text-ink hover:bg-ink/[0.12]",
                 )}
               >
                 {option.label}
                 <span
                   className={cx(
-                    "min-w-5 px-1 font-display text-xs font-black tabular-nums",
+                    "min-w-5 rounded-full px-1.5 font-display text-xs font-black tabular-nums",
                     option.id === "you" && option.count > 0 && "bg-waiting text-paper",
                   )}
                 >
@@ -204,12 +212,12 @@ export function DashboardView() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Buscar nombre o número"
-            className="min-h-11 w-full border border-ink/35 bg-paper pl-9 pr-3 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink"
+            className="min-h-11 w-full rounded-full border border-transparent bg-ink/[0.07] pl-9 pr-3 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink/40 focus:bg-paper"
           />
         </label>
       </div>
 
-      <ul className="min-h-0 flex-1 overflow-y-auto border-t-2 border-ink lg:pr-0">
+      <ul className="min-h-0 flex-1 overflow-y-auto lg:pr-0">
         {visible.length === 0 ? (
           <li className="px-1 py-10 text-[15px] text-ink-muted">
             {conversations.length === 0
@@ -267,7 +275,7 @@ export function DashboardView() {
         {list}
         <section
           aria-label="Conversación"
-          className={cx("flex min-h-0 flex-col lg:pl-6", !threadOpen && "max-lg:hidden")}
+          className={cx("flex min-h-0 flex-col lg:pl-4", !threadOpen && "max-lg:hidden")}
         >
           {selected ? (
             <Thread
@@ -300,40 +308,83 @@ function ConversationRow({
   onOpen: () => void;
 }) {
   const called = conversation.lastMessage === "Llamada";
+  const name =
+    conversation.displayName === conversation.phone
+      ? formatPhone(conversation.phone)
+      : conversation.displayName;
   return (
-    <li className="border-b border-paper-rule">
+    <li>
       <button
         type="button"
         onClick={onOpen}
         aria-current={active ? "true" : undefined}
         className={cx(
-          "flex w-full flex-col gap-1 px-2 py-3 text-left transition-colors",
-          active ? "lg:bg-ink/[0.07]" : "hover:bg-ink/[0.04]",
+          "flex w-full items-center gap-3 px-2 text-left transition-colors",
+          active
+            ? "lg:bg-ink/[0.07]"
+            : conversation.humanTakeover
+              ? "bg-waiting/[0.06] hover:bg-waiting/[0.1]"
+              : "hover:bg-ink/[0.04]",
         )}
       >
-        <span className="flex items-baseline justify-between gap-3">
-          <span className={cx("truncate text-[15px]", conversation.humanTakeover ? "font-extrabold" : "font-semibold")}>
-            {conversation.displayName === conversation.phone
-              ? formatPhone(conversation.phone)
-              : conversation.displayName}
-          </span>
-          <span className="shrink-0 text-xs text-ink-muted tabular-nums">
-            {listTime(conversation.lastActivityAt)}
-          </span>
-        </span>
-        <span className="flex items-center gap-2">
-          {conversation.humanTakeover && (
-            <span className="shrink-0 bg-waiting px-1.5 py-px text-[11px] font-bold text-paper">
-              Atiendes tú
+        <Avatar conversation={conversation} />
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5 border-b border-paper-rule py-3">
+          <span className="flex items-baseline justify-between gap-3">
+            <span className="truncate text-base font-bold">{name}</span>
+            <span
+              className={cx(
+                "shrink-0 text-xs tabular-nums",
+                conversation.humanTakeover ? "font-extrabold text-waiting" : "text-ink-muted",
+              )}
+            >
+              {listTime(conversation.lastActivityAt)}
             </span>
-          )}
-          <span className="flex min-w-0 items-center gap-1.5 truncate text-sm text-ink-muted">
-            {called && <PhoneCall aria-hidden size={13} />}
-            <span className="truncate">{conversation.lastMessage || "Sin mensajes"}</span>
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-ink-muted">
+              {called && <PhoneCall aria-hidden size={13} className="shrink-0" />}
+              <span className="truncate">{conversation.lastMessage || "Sin mensajes"}</span>
+            </span>
+            {conversation.humanTakeover && (
+              <span className="shrink-0 rounded-full bg-waiting px-2 py-px text-[11px] font-bold text-paper">
+                Atiendes tú
+              </span>
+            )}
           </span>
         </span>
       </button>
     </li>
+  );
+}
+
+const AVATAR_COLORS = ["bg-waiting", "bg-settled", "bg-steps", "bg-month", "bg-ink"];
+
+/** A round mark for a Contact, as WhatsApp shows one: their initials, or a person if only the number is known. */
+function Avatar({ conversation, small = false }: { conversation: ConversationSummary; small?: boolean }) {
+  const named = conversation.displayName !== conversation.phone;
+  const initials = conversation.displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+  const color =
+    AVATAR_COLORS[
+      [...conversation.contactCode].reduce((sum, char) => sum + char.charCodeAt(0), 0) %
+        AVATAR_COLORS.length
+    ];
+  return (
+    <span
+      aria-hidden
+      className={cx(
+        "flex shrink-0 items-center justify-center rounded-full font-display font-black text-paper",
+        small ? "h-10 w-10 text-sm" : "h-12 w-12 text-base",
+        color,
+      )}
+    >
+      {named && initials ? initials : <User size={small ? 18 : 22} />}
+    </span>
   );
 }
 
@@ -357,48 +408,53 @@ function Thread({
       ? formatPhone(conversation.phone)
       : conversation.displayName;
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b-2 border-ink pb-3">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-xl">
+      <div className="flex items-center gap-3 bg-ink px-3 py-2.5 text-paper">
         <button
           type="button"
           onClick={onBack}
           aria-label="Volver a la lista"
-          className="-ml-2 flex h-11 w-11 items-center justify-center lg:hidden"
+          className="-ml-1 flex h-11 w-9 items-center justify-center lg:hidden"
         >
           <ArrowLeft size={22} />
         </button>
+        <Avatar conversation={conversation} small />
         <div className="min-w-0">
-          <h2 className="truncate text-2xl leading-tight">{name}</h2>
-          <p className="text-sm text-ink-muted">
+          <h2 className="truncate font-body text-base font-bold leading-tight">{name}</h2>
+          <p className="truncate text-xs text-paper/75">
             {name === formatPhone(conversation.phone)
               ? conversation.contactCode
               : `${formatPhone(conversation.phone)} · ${conversation.contactCode}`}
+            {conversation.humanTakeover && " · atiendes tú"}
           </p>
         </div>
       </div>
 
-      <div className="min-h-[40vh] flex-1 overflow-y-auto py-4 lg:min-h-0">
+      <div className="chat-wall min-h-[40vh] flex-1 overflow-y-auto px-3 py-3 lg:min-h-0 lg:px-6">
         {loadingThread ? (
           <div className="flex flex-col gap-3">
-            <div className="h-14 w-2/3 animate-pulse bg-paper-rule/40" />
-            <div className="ml-auto h-14 w-2/3 animate-pulse bg-paper-rule/40" />
+            <div className="h-14 w-2/3 animate-pulse rounded-lg bg-paper/70" />
+            <div className="ml-auto h-14 w-2/3 animate-pulse rounded-lg bg-paper/70" />
           </div>
         ) : thread.length === 0 ? (
-          <p className="py-10 text-center text-[15px] text-ink-muted">Todavía no hay mensajes.</p>
+          <p className="mx-auto mt-10 w-fit rounded-lg bg-paper px-3 py-1.5 text-sm text-ink-muted">
+            Todavía no hay mensajes.
+          </p>
         ) : (
           groupByDay(thread).map(([day, group]) => (
-            <div key={day} className="mb-5">
-              <p className="mb-3 text-center font-hand text-lg font-bold text-steps">
-                {writtenDay(group[0].created_at)}
+            <div key={day} className="mb-3">
+              <p className="mx-auto mb-2 w-fit rounded-lg bg-paper px-3 py-1 text-xs font-bold text-ink-muted shadow-[0_1px_0_rgba(35,26,22,0.08)]">
+                {chatDay(group[0].created_at)}
               </p>
-              <div className="flex flex-col gap-2.5">
-                {group.map((item) =>
-                  item.kind === "call" ? (
-                    <CallEntry key={item.id} call={item} />
-                  ) : (
-                    <MessageBubble key={item.id} message={item} />
-                  ),
-                )}
+              <div className="flex flex-col gap-1">
+                {group.map((item, index) => {
+                  if (item.kind === "call") return <CallEntry key={item.id} call={item} />;
+                  const previous = group[index - 1];
+                  // Like WhatsApp: only the first of a run from the same side gets the tail.
+                  const first =
+                    !previous || previous.kind === "call" || previous.direction !== item.direction;
+                  return <MessageBubble key={item.id} message={item} first={first} />;
+                })}
               </div>
             </div>
           ))
@@ -413,30 +469,24 @@ function Thread({
   );
 }
 
-function MessageBubble({ message }: { message: PipelineMessage }) {
+function MessageBubble({ message, first }: { message: PipelineMessage; first: boolean }) {
   const fromBusiness = message.direction === "outbound";
   return (
     <div
       className={cx(
-        "max-w-[85%] px-3.5 py-2.5",
-        fromBusiness
-          ? "ml-auto bg-ink/[0.07]"
-          : "border border-ink/30 bg-paper",
+        "relative max-w-[85%] rounded-lg px-2.5 pb-1.5 pt-1.5 shadow-[0_1px_0_rgba(35,26,22,0.1)] lg:max-w-[70%]",
+        fromBusiness ? "ml-auto bg-[#DCEFE3]" : "mr-auto bg-white",
+        first && "mt-1.5",
+        first && (fromBusiness ? "bubble-tail-out rounded-tr-none" : "bubble-tail-in rounded-tl-none"),
       )}
     >
-      <div className="flex items-center justify-between gap-4">
-        <span
-          className={cx(
-            "font-display text-[11px] font-extrabold uppercase tracking-[0.12em]",
-            fromBusiness ? "text-settled" : "text-ink-muted",
-          )}
-        >
-          {fromBusiness ? "Doppel" : "Cliente"}
-        </span>
-        <span className="text-[11px] text-ink-muted tabular-nums">{formatTimestamp(message.created_at)}</span>
-      </div>
       <MessageMedia message={message} />
-      <p className="mt-1 whitespace-pre-wrap text-[15px] leading-6">{messageText(message)}</p>
+      <p className="whitespace-pre-wrap text-[15px] leading-snug">
+        {messageText(message)}
+        <span className="float-right ml-3 mt-1.5 text-[11px] leading-none text-ink-muted tabular-nums">
+          {formatTimestamp(message.created_at)}
+        </span>
+      </p>
     </div>
   );
 }
@@ -499,17 +549,17 @@ function ConversationFooter({
   }
 
   return (
-    <div className="flex flex-col gap-3 border-t-2 border-ink pt-3">
+    <div className="flex flex-col gap-2 bg-paper-grid/60 px-3 pb-3 pt-2 lg:px-4">
       {conversation.pausedUntil && botEnabled && (
-        <div className="chakana flex flex-wrap items-center justify-between gap-3 bg-waiting px-4 pb-3 pt-5 text-paper">
-          <p className="text-[15px] font-bold">
+        <div className="-mx-3 -mt-2 flex flex-wrap items-center justify-between gap-3 bg-waiting px-4 py-2.5 text-paper lg:-mx-4">
+          <p className="text-sm font-bold">
             Atiendes tú. El bot vuelve a las {formatTimestamp(conversation.pausedUntil)}.
           </p>
           <button
             type="button"
             onClick={resume}
             disabled={resuming}
-            className="min-h-11 border-2 border-paper px-4 text-sm font-bold transition-colors hover:bg-paper hover:text-waiting disabled:opacity-60"
+            className="min-h-10 rounded-full border-2 border-paper px-4 text-sm font-bold transition-colors hover:bg-paper hover:text-waiting disabled:opacity-60"
           >
             {resuming ? "Devolviendo…" : "Devolver al bot"}
           </button>
@@ -533,15 +583,20 @@ function ConversationFooter({
                 void send();
               }
             }}
-            rows={2}
-            placeholder="Escribe un mensaje…"
+            rows={1}
+            placeholder="Escribe un mensaje"
             aria-label="Respuesta al cliente"
             aria-describedby="reply-pauses-bot"
-            className="min-h-12 w-full flex-1 resize-none border border-ink/35 bg-paper px-3 py-2.5 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none focus:border-ink"
+            className="max-h-36 min-h-12 w-full flex-1 resize-none rounded-3xl bg-white px-4 py-3 text-[15px] text-ink placeholder:text-ink-muted/80 outline-none [field-sizing:content] focus:ring-2 focus:ring-ink/20"
           />
-          <Button type="submit" disabled={sending || !draft.trim()}>
-            {sending ? "Enviando…" : "Enviar"}
-          </Button>
+          <button
+            type="submit"
+            aria-label={sending ? "Enviando…" : "Enviar"}
+            disabled={sending || !draft.trim()}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-settled text-paper transition-opacity disabled:opacity-50"
+          >
+            <SendHorizontal size={20} />
+          </button>
         </form>
       ) : (
         <div className="flex flex-col gap-3">
@@ -550,7 +605,7 @@ function ConversationFooter({
         </div>
       )}
       {windowOpen && (
-        <p id="reply-pauses-bot" className="text-xs text-ink-muted">
+        <p id="reply-pauses-bot" className="px-2 text-xs text-ink-muted">
           Al responder, el bot se pausa 30 minutos en este chat.
         </p>
       )}
@@ -703,7 +758,7 @@ function CallEntry({ call }: { call: PipelineCall }) {
         ? "Llamada perdida"
         : "Llamada en curso";
   return (
-    <div className="mx-auto w-full max-w-[85%] border-y border-dashed border-ink/40 px-3.5 py-2.5">
+    <div className="mx-auto my-1.5 w-full max-w-[85%] rounded-lg bg-paper px-3.5 py-2 shadow-[0_1px_0_rgba(35,26,22,0.08)] lg:max-w-[70%]">
       <div className="flex items-center justify-between gap-4">
         <span className="flex items-center gap-2 text-sm font-bold">
           <PhoneCall aria-hidden size={15} />
