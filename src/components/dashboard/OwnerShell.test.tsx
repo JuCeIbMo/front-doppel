@@ -26,7 +26,7 @@ describe("OwnerShell", () => {
     readApi.mockReset();
   });
 
-  it("hides Products and Orders from a Business that only books", async () => {
+  it("hides Products from a Business that only books, and calls Pedidos Citas", async () => {
     renderShell({ selling_enabled: false, booking_enabled: true });
 
     // The links behind a switch wait for the Business, so let it arrive first.
@@ -36,6 +36,7 @@ describe("OwnerShell", () => {
     expect(screen.queryByRole("link", { name: /Productos/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Inventario/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Citas" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Horarios/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Agenda/ }).length).toBeGreaterThan(0);
     expect(readApi).toHaveBeenCalledWith("/dashboard/business");

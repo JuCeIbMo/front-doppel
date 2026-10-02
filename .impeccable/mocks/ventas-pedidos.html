@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Ventas y Pedidos, ordenados</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Figtree,system-ui,sans-serif;background:#E9E6E2;color:#18181B}
+  .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #d4d4d8;padding:14px 24px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .bar a{font-size:13px;font-weight:700;color:#18181B}
+  section.part{padding:30px 24px 50px}
+  section.part>h2{font-size:22px;font-weight:800;text-align:center}
+  section.part>p{font-size:13px;color:#52525b;text-align:center;max-width:760px;margin:6px auto 0}
+  .stage{display:flex;gap:32px;padding-top:24px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .variant{display:flex;flex-direction:column;gap:10px;align-items:center;background:#f4f2ef;border-radius:20px;padding:16px 18px 20px}
+  .variant>h3{font-size:16px;font-weight:800}
+  .variant>small{font-size:12px;color:#52525b;max-width:380px;text-align:center}
+
+  /* ==== el flujo ==== */
+  .flow{max-width:900px;margin:24px auto 0;display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:12px;align-items:center}
+  .box{background:#fff;border:2px solid #18181B;padding:14px;font-size:14px;line-height:1.4}
+  .box b{display:block;font-size:16px;margin-bottom:4px}
+  .box.sale{background:#FFF4D6}
+  .arrow{font-size:28px;font-weight:900;text-align:center}
+  .flow .lane{display:contents}
+  .lanes{max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:14px;padding-top:20px}
+  .lane-row{display:grid;grid-template-columns:200px 40px 1fr 40px 200px;gap:10px;align-items:center}
+  .lane-row .tag{font-size:12px;font-weight:800;text-transform:uppercase;color:#52525b}
+  .note{max-width:900px;margin:18px auto 0;font-size:13px;background:#fff;border:2px solid #C8102E;padding:12px 14px;line-height:1.5}
+
+  .phone{width:360px;height:740px;border-radius:36px;border:10px solid #18181B;overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,.35);
+    --bg:#FBF7F2;--ink:#231A16;--muted:#75655B;--rule:#DCCAB8;--elev:#F1E8DE;
+    --red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#D0356B}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);color:var(--ink);font-size:15px}
+  .scroll{flex:1;overflow-y:auto}
+  .scroll::-webkit-scrollbar{display:none}
+  .top{padding:16px 16px 6px}
+  .top h1{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:30px;line-height:1}
+  .top p{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+  .hand{font-family:Kalam,cursive;font-weight:700;color:var(--blue)}
+  .money{background:var(--yellow);padding:2px 8px;font-family:Kalam;font-weight:700;color:var(--ink)}
+  .chips{display:flex;gap:6px;padding:8px 16px;flex-wrap:wrap}
+  .chip{font-size:13px;font-weight:700;padding:6px 11px;background:var(--elev)}
+  .chip.on{background:var(--ink);color:var(--bg)}
+  .chip b{font-weight:800;opacity:.7;margin-left:3px}
+  .dayhead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 16px 0;border-bottom:2px solid var(--ink);padding-bottom:4px}
+  .dayhead h2{font-family:Kalam;font-size:19px;color:var(--blue)}
+  .dayhead span{font-size:12px;color:var(--muted);font-weight:700}
+
+  /* fila de venta */
+  .sale{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule);align-items:flex-start}
+  .ico{flex:none;width:36px;height:36px;display:grid;place-items:center;font-size:17px;color:#fff}
+  .ico.p{background:var(--blue)} .ico.c{background:var(--green)} .ico.m{background:var(--muted)}
+  .sale .mid{flex:1;min-width:0}
+  .sale .what{font-weight:700;font-size:15px;line-height:1.25}
+  .sale .who{font-size:13px;color:var(--muted);margin-top:2px}
+  .sale .end{text-align:right;flex:none}
+  .sale .amt{font-family:Kalam;font-weight:700;font-size:18px;color:var(--blue)}
+  .sale .pay{font-size:11px;color:var(--muted);font-weight:700}
+  .sale.void .what,.sale.void .amt{text-decoration:line-through;color:var(--muted)}
+  .tagv{font-size:11px;font-weight:800;background:var(--elev);color:var(--ink);padding:3px 8px;margin-left:4px;text-decoration:none!important;display:inline-block}
+
+  /* B: resumen arriba */
+  .sum{margin:6px 16px 0;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .sum div{background:var(--elev);padding:8px}
+  .sum small{display:block;font-size:11px;font-weight:800;color:var(--ink);text-transform:uppercase}
+  .sum b{font-family:Archivo;font-weight:900;font-stretch:80%;font-size:20px}
+
+  /* pedidos */
+  .tabs{display:flex;margin:8px 16px 0;border:2px solid var(--ink)}
+  .tabs div{flex:1;text-align:center;font-size:13px;font-weight:800;padding:8px 2px}
+  .tabs div.on{background:var(--ink);color:var(--bg)}
+  .tabs div b{display:block;font-family:Archivo;font-size:18px;font-stretch:80%}
+  .order{margin:10px 16px 0;border:2px solid var(--ink);background:#fff}
+  .order .h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--rule)}
+  .order .h strong{font-size:15px}
+  .order .h small{display:block;font-size:12px;color:var(--muted)}
+  .order ul{list-style:none;padding:6px 10px;font-size:14px}
+  .order li{display:flex;justify-content:space-between;padding:2px 0}
+  .order .f{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--rule);align-items:center}
+  .btn{font-size:13px;font-weight:800;padding:7px 10px;border:2px solid var(--ink);background:var(--bg)}
+  .btn.pri{background:var(--ink);color:var(--bg)}
+  .warn{font-size:12px;font-weight:800;color:var(--red);margin-left:auto}
+  .proof{font-size:12px;background:#DCEFE3;color:var(--green);font-weight:800;padding:4px 8px;margin:0 10px 8px}
+  .chat{font-size:12px;font-weight:800;color:var(--blue);text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="bar">
+  <h1>Ventas y Pedidos · propuesta</h1>
+  <a href="#flujo">1 · Cómo funciona</a>
+  <a href="#ventas">2 · Ventas (A o B)</a>
+  <a href="#pedidos">3 · Pedidos</a>
+</div>
+
+<section class="part" id="flujo">
+  <h2>1 · Cómo funciona por dentro</h2>
+  <p>Un <b>Pedido</b> es algo que todavía no terminó: el cliente pidió productos por WhatsApp y falta cobrar o entregar. Una <b>Venta</b> es la plata que ya entró. Todo termina en Ventas, venga de donde venga.</p>
+  <div class="lanes">
+    <div class="lane-row">
+      <div class="box"><span class="tag">Productos</span><b>Pedido</b>El cliente pide por WhatsApp. Se aparta el stock.</div>
+      <div class="arrow">→</div>
+      <div class="box">Te paga (comprobante) → lo <b style="display:inline">entregas</b></div>
+      <div class="arrow">→</div>
+      <div class="box sale"><b>Venta</b>con sus productos</div>
+    </div>
+    <div class="lane-row">
+      <div class="box"><span class="tag">Servicios</span><b>Cita</b>El cliente agenda. Puede pagar adelantado.</div>
+      <div class="arrow">→</div>
+      <div class="box">Llega la hora → queda <b style="display:inline">atendida</b></div>
+      <div class="arrow">→</div>
+      <div class="box sale"><b>Venta</b>con su servicio</div>
+    </div>
+    <div class="lane-row">
+      <div class="box"><span class="tag">En persona</span><b>Venta directa</b>Le dices al bot "vendí 2 poleras".</div>
+      <div class="arrow">→</div>
+      <div class="box" style="border-style:dashed;color:#52525b">(no hay paso intermedio)</div>
+      <div class="arrow">→</div>
+      <div class="box sale"><b>Venta</b></div>
+    </div>
+  </div>
+  <div class="note">
+    <b>El problema de hoy:</b> la lista de Ventas solo muestra el código (<code>S-0012</code>), la hora y el método de pago.
+    No dice <b>qué</b> se vendió, <b>a quién</b> ni <b>de dónde</b> vino. Por eso parece un código raro. Pedidos y Agenda están bien separados;
+    lo que confunde es Ventas.
+  </div>
+</section>
+
+<section class="part" id="ventas">
+  <h2>2 · Ventas que se entienden</h2>
+  <p>Cada venta dice qué fue, a quién y de dónde vino (ícono: 🛍 pedido, ✂ cita, 💵 en persona). El código desaparece de la lista; queda solo en el detalle.</p>
+  <div class="stage">
+
+    <div class="variant">
+      <h3>A · Lista por día</h3>
+      <small>Como hoy, pero cada fila se lee sola. Los filtros separan productos y citas sin tener dos pantallas.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Ventas</h1><p>Lo que ya cobraste. Llegan solas cuando entregas un pedido o atiendes una cita.</p></div>
+        <div class="chips"><span class="chip on">Todo</span><span class="chip">🛍 Pedidos</span><span class="chip">✂ Citas</span><span class="chip">💵 En persona</span></div>
+        <div class="dayhead"><h2>Hoy, viernes 2</h2><span>4 ventas · <span class="money">Bs 485</span></span></div>
+        <div class="sale"><div class="ico c">✂</div><div class="mid"><div class="what">Atención psicológica</div><div class="who">María Quispe · 16:00</div></div><div class="end"><div class="amt">Bs 120</div><div class="pay">Transferencia</div></div></div>
+        <div class="sale"><div class="ico p">🛍</div><div class="mid"><div class="what">2 Poleras negras, 1 Gorra</div><div class="who">+591 72906023 · 14:20</div></div><div class="end"><div class="amt">Bs 215</div><div class="pay">QR</div></div></div>
+        <div class="sale"><div class="ico m">💵</div><div class="mid"><div class="what">1 Polera blanca</div><div class="who">En el local · 11:05</div></div><div class="end"><div class="amt">Bs 80</div><div class="pay">Efectivo</div></div></div>
+        <div class="sale void"><div class="ico c">✂</div><div class="mid"><div class="what">Terapia de pareja <span class="tagv">Anulada · no vino</span></div><div class="who">Juan Pérez · 09:00</div></div><div class="end"><div class="amt">Bs 150</div><div class="pay">—</div></div></div>
+        <div class="sale"><div class="ico c">✂</div><div class="mid"><div class="what">Atención psicológica</div><div class="who">Ana Rojas · 08:00</div></div><div class="end"><div class="amt">Bs 70</div><div class="pay">Efectivo</div></div></div>
+        <div class="dayhead"><h2>Ayer, jueves 1</h2><span>2 ventas · <span class="money">Bs 300</span></span></div>
+        <div class="sale"><div class="ico p">🛍</div><div class="mid"><div class="what">3 Gorras</div><div class="who">Carlos · 18:40</div></div><div class="end"><div class="amt">Bs 180</div><div class="pay">QR</div></div></div>
+        <div class="sale"><div class="ico c">✂</div><div class="mid"><div class="what">Atención psicológica</div><div class="who">María Quispe · 10:00</div></div><div class="end"><div class="amt">Bs 120</div><div class="pay">Transferencia</div></div></div>
+      </div></div></div>
+    </div>
+
+    <div class="variant">
+      <h3>B · Resumen arriba + lista</h3>
+      <small>Primero cuánto entró y de dónde; abajo el detalle. Más "caja del día" que "historial".</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Ventas</h1><p>Hoy, viernes 2</p></div>
+        <div style="margin:4px 16px 0;display:flex;align-items:baseline;gap:8px"><span style="font-family:Archivo;font-weight:900;font-stretch:78%;font-size:40px">Bs 485</span><span style="font-size:13px;color:var(--muted);font-weight:700">en 4 ventas</span></div>
+        <div class="sum">
+          <div><small>✂ Citas</small><b>Bs 190</b></div>
+          <div><small>🛍 Pedidos</small><b>Bs 215</b></div>
+          <div><small>💵 En persona</small><b>Bs 80</b></div>
+        </div>
+        <div class="chips" style="margin-top:6px"><span class="chip on">Hoy</span><span class="chip">Esta semana</span><span class="chip">Este mes</span></div>
+        <div class="sale"><div class="ico c">✂</div><div class="mid"><div class="what">Atención psicológica</div><div class="who">María Quispe · 16:00</div></div><div class="end"><div class="amt">Bs 120</div><div class="pay">Transferencia</div></div></div>
+        <div class="sale"><div class="ico p">🛍</div><div class="mid"><div class="what">2 Poleras negras, 1 Gorra</div><div class="who">+591 72906023 · 14:20</div></div><div class="end"><div class="amt">Bs 215</div><div class="pay">QR</div></div></div>
+        <div class="sale"><div class="ico m">💵</div><div class="mid"><div class="what">1 Polera blanca</div><div class="who">En el local · 11:05</div></div><div class="end"><div class="amt">Bs 80</div><div class="pay">Efectivo</div></div></div>
+        <div class="sale void"><div class="ico c">✂</div><div class="mid"><div class="what">Terapia de pareja <span class="tagv">Anulada · no vino</span></div><div class="who">Juan Pérez · 09:00</div></div><div class="end"><div class="amt">Bs 150</div><div class="pay">—</div></div></div>
+        <div class="sale"><div class="ico c">✂</div><div class="mid"><div class="what">Atención psicológica</div><div class="who">Ana Rojas · 08:00</div></div><div class="end"><div class="amt">Bs 70</div><div class="pay">Efectivo</div></div></div>
+      </div></div></div>
+    </div>
+
+  </div>
+</section>
+
+<section class="part" id="pedidos">
+  <h2>3 · Pedidos: lo que falta cobrar o entregar</h2>
+  <p>Solo aparece si vendes productos. Cada pedido muestra qué pidió, quién (con enlace al chat) y el botón del siguiente paso. Cuando lo entregas, se va a Ventas.</p>
+  <div class="stage">
+    <div class="variant">
+      <h3>Pedidos como tareas</h3>
+      <small>Las tres pilas de hoy, pero cada tarjeta dice qué hay que hacer.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Pedidos</h1><p>Lo que te pidieron por WhatsApp y todavía no terminó.</p></div>
+        <div class="tabs"><div class="on"><b>2</b>Por cobrar</div><div><b>1</b>Por entregar</div><div><b>&nbsp;</b>Terminados</div></div>
+        <div class="order">
+          <div class="h"><div><strong>+591 72906023</strong><small>Pidió hoy 14:02 · <span class="chat">abrir chat</span></small></div><span class="hand" style="font-size:20px">Bs 215</span></div>
+          <ul><li><span>2 × Polera negra</span><span>Bs 160</span></li><li><span>1 × Gorra</span><span>Bs 55</span></li></ul>
+          <div class="proof">✓ Mandó comprobante por Bs 215 · coincide</div>
+          <div class="f"><span class="btn pri">Confirmar pago</span><span class="btn">Cancelar</span></div>
+        </div>
+        <div class="order">
+          <div class="h"><div><strong>Carlos</strong><small>Pidió hoy 10:15 · <span class="chat">abrir chat</span></small></div><span class="hand" style="font-size:20px">Bs 80</span></div>
+          <ul><li><span>1 × Polera blanca</span><span>Bs 80</span></li></ul>
+          <div class="f"><span class="btn pri">Confirmar pago</span><span class="btn">Cancelar</span><span class="warn">vence en 3 h</span></div>
+        </div>
+      </div></div></div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

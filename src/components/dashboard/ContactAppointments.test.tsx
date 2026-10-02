@@ -62,6 +62,9 @@ describe("ContactAppointments", () => {
     expect(await screen.findByText("Corte")).toBeInTheDocument();
     expect(screen.getByText(/jueves, 8 de octubre · 10:00/)).toBeInTheDocument();
     expect(screen.getByText("No vino")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Corte/ }).getAttribute("href")).toMatch(
+      /^\/dashboard\/agenda\?dia=2026-10-08&cita=/,
+    );
   });
 
   it("stays away from a Business that does not book", async () => {

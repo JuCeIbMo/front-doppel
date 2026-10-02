@@ -42,8 +42,8 @@ export function approvalTitle(approval: Pick<PendingApproval, "operation" | "pay
 /** Where the thing an Approval is about can be seen. */
 function approvalLink(payload: Record<string, unknown>): { href: string; label: string } | null {
   if (text(payload.sale_code)) return { href: `/dashboard/sales/${text(payload.sale_code)}`, label: "Ver la venta" };
-  if (text(payload.order_code)) return { href: "/dashboard/orders?estado=placed", label: "Ver los pedidos" };
-  if (text(payload.appointment_code)) return { href: "/dashboard/agenda", label: "Ver la agenda" };
+  if (text(payload.order_code)) return { href: "/dashboard/orders", label: "Ver en Pedidos" };
+  if (text(payload.appointment_code)) return { href: "/dashboard/orders", label: "Ver en Citas" };
   return null;
 }
 
@@ -56,12 +56,23 @@ function expiresIn(moment: string, now: Date = new Date()): string {
   return hours < 48 ? `vence en ${hours} h` : `vence el ${formatDateTime(moment)}`;
 }
 
-export function ApprovalsView() {
-  const queryClient = useQueryClient();
-  const query = useQuery({
-    queryKey: ["approvals"],
+export const APPROVALS_KEY = ["approvals"];
+
+export function useApprovals() {
+  return useQuery({
+    queryKey: APPROVALS_KEY,
     queryFn: () => readApi<PendingApproval[]>("/dashboard/approvals"),
   });
+}
+
+/** Whether an Approval is about an Order or an Appointment, the things Pedidos y citas works on. */
+export function aboutOrderOrAppointment(approval: Pick<PendingApproval, "payload">): boolean {
+  return Boolean(text(approval.payload.order_code) || text(approval.payload.appointment_code));
+}
+
+/** Each Approval as a card the Owner says yes or no to. */
+export function ApprovalCards({ approvals, showLinks = true }: { approvals: PendingApproval[]; showLinks?: boolean }) {
+  const queryClient = useQueryClient();
   const answer = useMutation({
     mutationFn: async ({ id, choice }: { id: string; choice: "approve" | "decline" }) => {
       const result = await answerApproval(id, choice);
@@ -74,12 +85,69 @@ export function ApprovalsView() {
       toast.success(choice === "approve" ? "Aprobado." : "Rechazado.");
     },
     onError: async (error) => {
-      await queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      await queryClient.invalidateQueries({ queryKey: APPROVALS_KEY });
       toast.error(error instanceof Error ? error.message : "No se pudo responder.");
     },
   });
 
+  return (
+    <ul className="flex flex-col gap-4">
+      {approvals.map((approval) => {
+        const link = showLinks ? approvalLink(approval.payload) : null;
+        const title = approvalTitle(approval);
+        return (
+          <li key={approval.id} className="border-2 border-ink bg-paper">
+            <div className="border-b border-paper-rule px-4 pb-3 pt-4">
+              <p className="font-display text-xl font-extrabold leading-tight [font-stretch:85%]">
+                {title}
+              </p>
+              {approval.reason && <p className="mt-2 text-[15px]">&ldquo;{approval.reason}&rdquo;</p>}
+              <p className="mt-2 text-sm text-ink-muted">
+                Pidió: {REQUESTER[approval.requested_by.kind ?? ""] ?? "Alguien"} ·{" "}
+                <span className="font-hand text-base font-bold text-waiting">
+                  {expiresIn(approval.expires_at)}
+                </span>
+              </p>
+              {link && (
+                <Link
+                  href={link.href}
+                  className="mt-2 inline-flex min-h-9 items-center text-sm font-bold underline underline-offset-4"
+                >
+                  {link.label}
+                </Link>
+              )}
+            </div>
+            <div className="flex">
+              <button
+                type="button"
+                disabled={answer.isPending}
+                onClick={() => answer.mutate({ id: approval.id, choice: "decline" })}
+                className="min-h-12 flex-1 border-r-2 border-ink text-[15px] font-bold transition-colors hover:bg-ink/[0.07] disabled:opacity-50"
+              >
+                Rechazar
+              </button>
+              <button
+                type="button"
+                disabled={answer.isPending}
+                onClick={() => {
+                  if (confirm(`¿Aprobar? ${title}.`)) {
+                    answer.mutate({ id: approval.id, choice: "approve" });
+                  }
+                }}
+                className="min-h-12 flex-1 bg-ink text-[15px] font-bold text-paper transition-colors hover:bg-steps disabled:opacity-50"
+              >
+                Aprobar
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
+export function ApprovalsView() {
+  const query = useApprovals();
   const pending = query.data ?? [];
 
   return (
@@ -112,60 +180,7 @@ export function ApprovalsView() {
           <p className="mb-3 font-display text-lg font-extrabold [font-stretch:85%]">
             {pending.length === 1 ? "1 espera tu respuesta" : `${pending.length} esperan tu respuesta`}
           </p>
-          <ul className="flex flex-col gap-4">
-            {pending.map((approval) => {
-              const link = approvalLink(approval.payload);
-              const title = approvalTitle(approval);
-              return (
-                <li key={approval.id} className="border-2 border-ink bg-paper">
-                  <div className="border-b border-paper-rule px-4 pb-3 pt-4">
-                    <p className="font-display text-xl font-extrabold leading-tight [font-stretch:85%]">
-                      {title}
-                    </p>
-                    {approval.reason && (
-                      <p className="mt-2 text-[15px]">&ldquo;{approval.reason}&rdquo;</p>
-                    )}
-                    <p className="mt-2 text-sm text-ink-muted">
-                      Pidió: {REQUESTER[approval.requested_by.kind ?? ""] ?? "Alguien"} ·{" "}
-                      <span className="font-hand text-base font-bold text-waiting">
-                        {expiresIn(approval.expires_at)}
-                      </span>
-                    </p>
-                    {link && (
-                      <Link
-                        href={link.href}
-                        className="mt-2 inline-flex min-h-9 items-center text-sm font-bold underline underline-offset-4"
-                      >
-                        {link.label}
-                      </Link>
-                    )}
-                  </div>
-                  <div className="flex">
-                    <button
-                      type="button"
-                      disabled={answer.isPending}
-                      onClick={() => answer.mutate({ id: approval.id, choice: "decline" })}
-                      className="min-h-12 flex-1 border-r-2 border-ink text-[15px] font-bold transition-colors hover:bg-ink/[0.07] disabled:opacity-50"
-                    >
-                      Rechazar
-                    </button>
-                    <button
-                      type="button"
-                      disabled={answer.isPending}
-                      onClick={() => {
-                        if (confirm(`¿Aprobar? ${title}.`)) {
-                          answer.mutate({ id: approval.id, choice: "approve" });
-                        }
-                      }}
-                      className="min-h-12 flex-1 bg-ink text-[15px] font-bold text-paper transition-colors hover:bg-steps disabled:opacity-50"
-                    >
-                      Aprobar
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+          <ApprovalCards approvals={pending} />
         </section>
       )}
     </div>

@@ -10,6 +10,17 @@ import { readApi, runOperation } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
 import type { Schema } from "@/lib/api-types";
 import { formatPhone } from "@/lib/phone";
+import {
+  BOOKING_HORIZON_DAYS,
+  awaitingPayment,
+  businessDay,
+  shiftDays,
+  useAgenda,
+  type AgendaAppointment,
+} from "@/lib/appointments";
+import { isOn, useBusiness, workTitle } from "@/lib/business";
+import { AppointmentTask } from "@/components/dashboard/AppointmentTask";
+import { ApprovalCards, aboutOrderOrAppointment, useApprovals } from "@/components/dashboard/ApprovalsView";
 
 type OrderStatus = "placed" | "paid" | "delivered" | "cancelled" | "refunded" | "expired";
 
@@ -42,12 +53,12 @@ const ACTIONS: Partial<Record<OrderStatus, Array<{ operation: string; label: str
   ],
 };
 
-/** The three piles an Order sits in, as the Owner thinks of them. */
+/** The three piles an Order or an Appointment sits in, as the Owner thinks of them. */
 const PILES = [
-  { id: "placed", label: "Por cobrar", has: ["placed"] },
-  { id: "paid", label: "Por entregar", has: ["paid"] },
-  { id: "done", label: "Terminados", has: ["delivered", "cancelled", "expired", "refunded"] },
-] as const satisfies ReadonlyArray<{ id: string; label: string; has: readonly OrderStatus[] }>;
+  { id: "placed", has: ["placed"] },
+  { id: "paid", has: ["paid"] },
+  { id: "done", has: ["delivered", "cancelled", "expired", "refunded"] },
+] as const satisfies ReadonlyArray<{ id: string; has: readonly OrderStatus[] }>;
 
 type Pile = (typeof PILES)[number]["id"];
 
@@ -55,48 +66,115 @@ function isPile(value: string | undefined): value is Pile {
   return PILES.some((pile) => pile.id === value);
 }
 
+function pileLabel(pile: Pile, selling: boolean, booking: boolean): string {
+  if (pile === "placed") return "Por cobrar";
+  if (pile === "done") return "Cerrados";
+  if (selling && booking) return "Por entregar o atender";
+  return booking ? "Por atender" : "Por entregar";
+}
+
+/** Which pile an Appointment is in: owing, confirmed and still to come, or over. */
+function appointmentPile(appointment: AgendaAppointment): Pile {
+  if (awaitingPayment(appointment)) return "placed";
+  if (appointment.status === "booked" || appointment.status === "paid") return "paid";
+  return "done";
+}
+
 /**
- * Pedidos: what is to collect, what is to deliver, and what is done. Inicio links here
- * with `?estado=placed` or `?estado=paid`; without one, the first pile that has something.
+ * Pedidos y citas: what is to collect, what is to deliver or attend, and what is closed,
+ * with the Approvals about them on top. Products and Appointments go through the same
+ * three piles; the screen shows only the side the Business uses. Inicio links here with
+ * `?estado=placed` or `?estado=paid`; without one, the first pile that has something.
  */
-export function OrdersView({ initialStatus }: { initialStatus?: string } = {}) {
+export function OrdersView({
+  initialStatus,
+  highlight,
+}: { initialStatus?: string; highlight?: string } = {}) {
   const [open, setOpen] = useState<string | null>(null);
   const [chosen, setChosen] = useState<Pile | null>(isPile(initialStatus) ? initialStatus : null);
+  const { data: business, isError: businessUnknown } = useBusiness();
+  // A Business that cannot be read keeps both sides: a failed read must not hide work.
+  const selling = businessUnknown || isOn(business, "selling");
+  const booking = businessUnknown || isOn(business, "booking");
+  const today = businessDay(new Date());
+
   const query = useQuery({
     queryKey: ["orders"],
     queryFn: () => readApi<OrderSummary[]>("/dashboard/orders"),
+    enabled: selling,
   });
+  // The agenda answers at most a month at a time: the month to come, and the one gone.
+  const coming = useAgenda(today, shiftDays(today, BOOKING_HORIZON_DAYS), booking);
+  const gone = useAgenda(shiftDays(today, -30), shiftDays(today, -1), booking);
+  const approvals = useApprovals();
 
-  const orders = query.data ?? [];
-  const inPile = (pile: Pile) =>
+  const orders = selling ? (query.data ?? []) : [];
+  const appointments = booking ? [...(gone.data ?? []), ...(coming.data ?? [])] : [];
+  const asked = (approvals.data ?? []).filter(aboutOrderOrAppointment);
+
+  const ordersIn = (pile: Pile) =>
     orders.filter((order) =>
       (PILES.find((item) => item.id === pile)?.has as readonly OrderStatus[]).includes(order.status),
     );
-  const pile: Pile =
-    chosen ?? (inPile("placed").length > 0 ? "placed" : inPile("paid").length > 0 ? "paid" : "done");
-  const shown = inPile(pile);
+  const appointmentsIn = (pile: Pile) => {
+    const kept = appointments.filter((appointment) => appointmentPile(appointment) === pile);
+    // What is ahead reads soonest first; what is closed, latest first.
+    const order = pile === "done" ? -1 : 1;
+    return kept.sort((a, b) => order * a.starts_at.localeCompare(b.starts_at));
+  };
+  const count = (pile: Pile) => ordersIn(pile).length + appointmentsIn(pile).length;
+  const pile: Pile = chosen ?? (count("placed") > 0 ? "placed" : count("paid") > 0 ? "paid" : "done");
+  const shownOrders = ordersIn(pile);
+  const shownAppointments = appointmentsIn(pile);
+  const both = selling && booking;
+
+  const loading = (selling && query.isLoading) || (booking && (coming.isLoading || gone.isLoading));
+  const failed = (selling && query.error) || (booking && (coming.error || gone.error));
+  const title = workTitle(selling, booking);
 
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1>Pedidos</h1>
+        <h1>{title}</h1>
         <p className="text-sm text-text-secondary">
-          Los pedidos que tus clientes hicieron por WhatsApp, los más nuevos primero.
+          {both
+            ? "Lo que te pidieron y lo que agendaron, hasta que se cobra y se entrega o se atiende."
+            : booking
+              ? "Las citas que esperan pago y las confirmadas que vienen. Aquí las mueves, las cancelas o marcas quién no vino."
+              : "Los pedidos que tus clientes hicieron por WhatsApp, hasta que se cobran y se entregan."}
         </p>
       </div>
 
-      {query.isLoading ? (
+      {asked.length > 0 && (
+        <section aria-label="Esperan tu sí" className="max-w-3xl">
+          <h2 className="mb-3 font-display text-lg font-extrabold [font-stretch:85%]">
+            {asked.length === 1 ? "1 espera tu sí" : `${asked.length} esperan tu sí`}
+          </h2>
+          <ApprovalCards approvals={asked} showLinks={false} />
+        </section>
+      )}
+
+      {loading ? (
         <div className="flex flex-col gap-2" aria-busy="true">
           {[0, 1, 2].map((row) => (
             <div key={row} className="h-14 animate-pulse bg-paper-rule/40" />
           ))}
         </div>
-      ) : query.error ? (
+      ) : failed ? (
         <div className="flex flex-col items-start gap-3">
           <p className="font-hand text-lg font-bold text-danger">
-            {query.error instanceof Error ? query.error.message : "No pudimos cargar tus pedidos."}
+            {failed instanceof Error ? failed.message : `No pudimos cargar ${title.toLowerCase()}.`}
           </p>
-          <Button variant="secondary" onClick={() => void query.refetch()}>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (selling) void query.refetch();
+              if (booking) {
+                void coming.refetch();
+                void gone.refetch();
+              }
+            }}
+          >
             Reintentar
           </Button>
         </div>
@@ -105,7 +183,7 @@ export function OrdersView({ initialStatus }: { initialStatus?: string } = {}) {
           <div role="tablist" aria-label="Estado" className="flex max-w-xl border-2 border-ink">
             {PILES.map((item) => {
               const active = item.id === pile;
-              const count = inPile(item.id).length;
+              const many = count(item.id);
               return (
                 <button
                   key={item.id}
@@ -120,41 +198,68 @@ export function OrdersView({ initialStatus }: { initialStatus?: string } = {}) {
                     active ? "bg-ink text-paper" : "text-ink hover:bg-ink/[0.07]"
                   }`}
                 >
-                  {item.label}
-                  {item.id !== "done" && count > 0 && (
-                    <span className="font-display text-xs font-black tabular-nums">{count}</span>
+                  {pileLabel(item.id, selling, booking)}
+                  {item.id !== "done" && many > 0 && (
+                    <span className="font-display text-xs font-black tabular-nums">{many}</span>
                   )}
                 </button>
               );
             })}
           </div>
 
-          {shown.length === 0 ? (
-            <p className="py-10 text-[15px] text-ink-muted">
-              {orders.length === 0
-                ? "Todavía no hay pedidos. Cuando un cliente pida por WhatsApp, aparece aquí."
-                : pile === "placed"
-                  ? "No hay pedidos por cobrar."
-                  : pile === "paid"
-                    ? "No hay pedidos por entregar."
-                    : "Todavía no terminaste ningún pedido."}
-            </p>
+          {shownOrders.length === 0 && shownAppointments.length === 0 ? (
+            <p className="py-10 text-[15px] text-ink-muted">{emptySays(pile, selling, booking)}</p>
           ) : (
-            <ul className="mt-4 border-t-2 border-ink">
-              {shown.map((order) => (
-                <OrderRow
-                  key={order.code}
-                  order={order}
-                  open={open === order.code}
-                  onToggle={() => setOpen(open === order.code ? null : order.code)}
-                />
-              ))}
-            </ul>
+            <div className="mt-4 flex max-w-3xl flex-col gap-6">
+              {shownOrders.length > 0 && (
+                <div>
+                  {both && <h2 className="mb-1 text-lg">Productos</h2>}
+                  <ul className="border-t-2 border-ink">
+                    {shownOrders.map((order) => (
+                      <OrderRow
+                        key={order.code}
+                        order={order}
+                        open={open === order.code}
+                        onToggle={() => setOpen(open === order.code ? null : order.code)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {shownAppointments.length > 0 && (
+                <div>
+                  {both && <h2 className="mb-1 text-lg">Citas</h2>}
+                  <div className="border-t-2 border-ink">
+                    {shownAppointments.map((appointment) => (
+                      <AppointmentTask
+                        key={appointment.appointment_code}
+                        appointment={appointment}
+                        highlighted={appointment.appointment_code === highlight}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </section>
       )}
     </div>
   );
+}
+
+/** What an empty pile says. */
+function emptySays(pile: Pile, selling: boolean, booking: boolean): string {
+  const things = selling && booking ? "pedidos ni citas" : booking ? "citas" : "pedidos";
+  if (pile === "placed") return `No hay ${things} por cobrar.`;
+  if (pile === "paid") {
+    return selling && booking
+      ? "No hay nada por entregar ni por atender."
+      : booking
+        ? "No hay citas confirmadas por venir."
+        : "No hay pedidos por entregar.";
+  }
+  return `No hay ${things} cerrados en el último mes.`;
 }
 
 /** "vence en 2 h", "vence en 25 min", or "venció", for an Order still waiting for payment. */

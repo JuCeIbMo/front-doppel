@@ -93,14 +93,15 @@ function groupByDay(thread: PipelineItem[]) {
  * and the thread of the one chosen. On a computer the list and the thread sit side by
  * side; on a phone the thread opens over the list, with a way back.
  */
-export function DashboardView() {
+export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
   const { line, conversations: pipelineData, refetchConversations, loading, loadError } =
     useInbox();
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [threadOpen, setThreadOpen] = useState(false);
+  // Coming from an Appointment's number, its chat opens straight away.
+  const [threadOpen, setThreadOpen] = useState(Boolean(openNumber));
 
   const conversations = useMemo(() => {
     const all = buildConversationSummaries(pipelineData ?? [], {});
@@ -123,8 +124,12 @@ export function DashboardView() {
     });
   }, [conversations, filter, deferredQuery]);
 
+  const asked = openNumber?.replace(/\D/g, "");
   const selected =
-    visible.find((item) => item.conversationId === selectedId) ?? visible[0] ?? null;
+    visible.find((item) => item.conversationId === selectedId) ??
+    (selectedId === null && asked ? visible.find((item) => item.phone.replace(/\D/g, "") === asked) : undefined) ??
+    visible[0] ??
+    null;
   const threadQuery = useConversationThread(selected?.conversationId ?? null);
   const refetchThread = threadQuery.refetch;
   const refreshSelected = useCallback(async () => {

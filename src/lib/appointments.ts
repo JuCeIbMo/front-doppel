@@ -266,7 +266,7 @@ export const APPOINTMENT_STATUS: Record<
   AppointmentStatus,
   { label: string; variant: "success" | "warning" | "danger" | "neutral" }
 > = {
-  booked: { label: "Agendada", variant: "warning" },
+  booked: { label: "Confirmada", variant: "success" },
   paid: { label: "Pagada", variant: "success" },
   attended: { label: "Atendida", variant: "success" },
   no_show: { label: "No vino", variant: "danger" },
@@ -274,6 +274,27 @@ export const APPOINTMENT_STATUS: Record<
   expired: { label: "Vencida sin pago", variant: "neutral" },
   refunded: { label: "Reembolsada", variant: "neutral" },
 };
+
+/** Booked and still owing money ahead: not confirmed until it is paid, and it lapses if not. */
+export function awaitingPayment(appointment: Pick<AgendaAppointment, "status" | "amount_due">): boolean {
+  return appointment.status === "booked" && Number(appointment.amount_due) > 0;
+}
+
+/** How an Appointment stands, in the Owner's words: one still owing reads "Por cobrar". */
+export function appointmentStatus(
+  appointment: Pick<AgendaAppointment, "status" | "amount_due">,
+): (typeof APPOINTMENT_STATUS)[AppointmentStatus] {
+  return awaitingPayment(appointment)
+    ? { label: "Por cobrar", variant: "warning" }
+    : APPOINTMENT_STATUS[appointment.status];
+}
+
+/** What the Agenda shows: what is really going to happen, or already did. Nothing owing,
+ * nothing called off. */
+export function onAgenda(appointment: Pick<AgendaAppointment, "status" | "amount_due">): boolean {
+  if (awaitingPayment(appointment)) return false;
+  return ["booked", "paid", "attended", "no_show"].includes(appointment.status);
+}
 
 /** The Business's clock: every day and time on these screens is read in it. */
 export const BUSINESS_TIME_ZONE = "America/La_Paz";
@@ -368,7 +389,7 @@ export function agendaActions(appointment: AgendaAppointment, now: Date): Agenda
   if (started && (status === "booked" || status === "paid" || status === "attended")) {
     actions.push({
       operation: "mark_no_show",
-      label: "No vino",
+      label: "Marcar que no vino",
       confirm:
         status === "attended"
           ? "¿El cliente no vino? Se anula la venta que hizo esta cita."
@@ -385,9 +406,10 @@ export const CONTACT_APPOINTMENTS_KEY = ["contact-appointments"];
 /** How far ahead an Appointment can be set, as the backend's BOOKING_HORIZON. */
 export const BOOKING_HORIZON_DAYS = 30;
 
-export function useAgenda(firstDay: string, lastDay: string) {
+export function useAgenda(firstDay: string, lastDay: string, enabled = true) {
   return useQuery({
     queryKey: [...AGENDA_KEY, firstDay, lastDay],
+    enabled,
     queryFn: () =>
       readApi<AgendaAppointment[]>(`/dashboard/agenda?first_day=${firstDay}&last_day=${lastDay}`),
   });

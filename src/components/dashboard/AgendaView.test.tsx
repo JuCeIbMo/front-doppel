@@ -48,6 +48,17 @@ const TINTE = {
   pay_by: null,
 };
 
+const BARBA = {
+  ...CORTE,
+  appointment_code: "APT003",
+  starts_at: "2026-10-06T15:00:00-04:00",
+  ends_at: "2026-10-06T15:30:00-04:00",
+  service: "Barba",
+  amount_due: "0",
+  pay_by: null,
+};
+const CANCELADA = { ...BARBA, appointment_code: "APT004", service: "Peinado", status: "cancelled" };
+
 function answers(agenda: unknown[]) {
   readApi.mockImplementation(async (path: string) => {
     if (path.startsWith("/dashboard/agenda?")) return agenda;
@@ -62,11 +73,11 @@ function answers(agenda: unknown[]) {
   });
 }
 
-function renderView() {
+function renderView(props: { initialDay?: string; highlight?: string } = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
-      <AgendaView />
+      <AgendaView {...props} />
     </QueryClientProvider>,
   );
 }
@@ -83,64 +94,47 @@ describe("AgendaView", () => {
 
   afterEach(() => vi.useRealTimers());
 
-  it("marks the month and lists today's Appointments by the hour, with status and payment", async () => {
-    answers([CORTE, TINTE]);
+  it("shows only what is confirmed, with how it stands, and nothing to press", async () => {
+    answers([CORTE, TINTE, BARBA, CANCELADA]);
     renderView();
 
     const today = await screen.findByRole("region", { name: "Martes, 6 de octubre" });
     expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-01&last_day=2026-10-31");
     expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-06&last_day=2026-10-12");
     expect(within(today).getByText("Hoy, martes 6 de octubre")).toBeInTheDocument();
-    expect(within(today).getByText("Corte")).toBeInTheDocument();
-    expect(within(today).getAllByText("con Pedro")).toHaveLength(2);
-    expect(within(today).getByText(/Falta pagar/)).toBeInTheDocument();
+    // Corte still owes its deposit and Peinado was called off: neither is on the Agenda.
+    expect(within(today).queryByText("Corte")).not.toBeInTheDocument();
+    expect(within(today).queryByText("Peinado")).not.toBeInTheDocument();
+    expect(within(today).getByText("Tinte")).toBeInTheDocument();
     expect(within(today).getByText("Pagada")).toBeInTheDocument();
+    expect(within(today).getByText("Barba")).toBeInTheDocument();
+    expect(within(today).getByText("Confirmada")).toBeInTheDocument();
+    expect(within(today).getByText("2 citas")).toBeInTheDocument();
+    expect(within(today).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(today).queryByText(/con Pedro/)).not.toBeInTheDocument();
+    expect(within(today).getAllByRole("link", { name: /abrir su conversación/ })[0]).toHaveAttribute(
+      "href",
+      "/dashboard/automation?numero=%2B59170123456",
+    );
     expect(
-      await screen.findByRole("button", { name: "Martes, 6 de octubre: 2 citas, falta pagar" }),
+      await screen.findByRole("button", { name: "Martes, 6 de octubre: 2 citas" }),
     ).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "Miércoles, 7 de octubre" })).toHaveTextContent("Sin citas");
     expect(screen.getByText(/rosa@gmail.com/)).toBeInTheDocument();
-    expect(screen.getByText(/lo que cambies allí no cambia tus citas/i)).toBeInTheDocument();
   });
 
-  it("moves an Appointment to a free time of the day the Owner picks", async () => {
-    answers([CORTE]);
-    renderView();
+  it("opens on the day asked and points at the Appointment asked", async () => {
+    const later = { ...TINTE, starts_at: "2026-10-20T11:00:00-04:00", ends_at: "2026-10-20T12:00:00-04:00" };
+    answers([CORTE, later]);
+    renderView({ initialDay: "2026-10-20", highlight: "APT002" });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Mover" }));
-    fireEvent.change(screen.getByLabelText("Nuevo día"), { target: { value: "2026-10-07" } });
-    fireEvent.click(await screen.findByRole("button", { name: "09:30" }));
-
-    await waitFor(() =>
-      expect(runOperation).toHaveBeenCalledWith("move_appointment", {
-        appointment_code: "APT001",
-        starts_at: "2026-10-07T09:30:00-04:00",
-      }),
-    );
-    expect(readApi).toHaveBeenCalledWith("/dashboard/agenda/APT001/free-times?day=2026-10-07");
-  });
-
-  it("cancels, and says when a refund waits for approval or was refused", async () => {
-    answers([CORTE, TINTE]);
-    renderView();
-
-    const [corte, tinte] = await screen.findAllByRole("article");
-    fireEvent.click(within(corte).getByRole("button", { name: "Cancelar" }));
-    await waitFor(() =>
-      expect(runOperation).toHaveBeenCalledWith("cancel_appointment", { appointment_code: "APT001" }),
-    );
-
-    runOperation.mockResolvedValueOnce({ status: "approval_created", result: { approval_id: "a1" } });
-    fireEvent.click(within(tinte).getByRole("button", { name: "Reembolsar" }));
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringMatching(/Aprobaciones/)));
-
-    runOperation.mockResolvedValueOnce({ status: "rejected", code: "APPOINTMENT_STARTED", message: "x" });
-    fireEvent.click(within(corte).getByRole("button", { name: "Cancelar" }));
-    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/ya empezó/)));
+    const day = await screen.findByRole("region", { name: "Martes, 20 de octubre" });
+    expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-20&last_day=2026-10-26");
+    expect(await within(day).findByRole("article")).toHaveAttribute("aria-current", "true");
   });
 
   it("lists from the day picked on the month, and walks to the next month", async () => {
-    answers([{ ...CORTE, starts_at: "2026-10-20T10:00:00-04:00", ends_at: "2026-10-20T10:30:00-04:00" }]);
+    answers([{ ...BARBA, starts_at: "2026-10-20T10:00:00-04:00", ends_at: "2026-10-20T10:30:00-04:00" }]);
     renderView();
 
     fireEvent.click(await screen.findByRole("button", { name: /^Martes, 20 de octubre: 1 cita/ }));
@@ -148,7 +142,7 @@ describe("AgendaView", () => {
       expect(readApi).toHaveBeenCalledWith("/dashboard/agenda?first_day=2026-10-20&last_day=2026-10-26"),
     );
     const day = await screen.findByRole("region", { name: "Martes, 20 de octubre" });
-    expect(await within(day).findByText("Corte")).toBeInTheDocument();
+    expect(await within(day).findByText("Barba")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Mes siguiente" }));
     await waitFor(() =>

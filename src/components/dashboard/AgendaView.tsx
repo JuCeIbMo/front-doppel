@@ -2,34 +2,23 @@
 
 import { formatPhone } from "@/lib/phone";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 import {
-  AGENDA_KEY,
-  APPOINTMENT_STATUS,
-  BOOKING_HORIZON_DAYS,
-  CONTACT_APPOINTMENTS_KEY,
-  TIMES_TO_MOVE_KEY,
-  agendaActions,
-  bookingAction,
+  appointmentStatus,
   businessDay,
   clockTime,
-  paymentSays,
+  onAgenda,
   shiftDays,
   useAgenda,
   weekFrom,
-  type AgendaAction,
   type AgendaAppointment,
 } from "@/lib/appointments";
 import { useBusiness } from "@/lib/business";
-import { readApi } from "@/lib/operations";
 import { useCurrency } from "@/hooks/useCurrency";
-import type { Schema } from "@/lib/api-types";
+import { stripColor } from "@/components/dashboard/AppointmentTask";
 
 const MONTH = new Intl.DateTimeFormat("es-BO", { month: "long", year: "numeric", timeZone: "UTC" });
 const WEEKDAY_LETTERS = ["L", "M", "M", "J", "V", "S", "D"];
@@ -83,40 +72,34 @@ function listDay(day: string, today: string): string {
   return written;
 }
 
-/** Still waiting for money ahead. */
-function owes(appointment: AgendaAppointment): boolean {
-  return appointment.status === "booked" && Number(appointment.amount_due) > 0;
-}
-
-const CANCELLED: AgendaAppointment["status"][] = ["cancelled", "expired", "refunded"];
-
-/** The strip beside an Appointment, colored by how it stands. */
-function stripColor(appointment: AgendaAppointment): string {
-  if (CANCELLED.includes(appointment.status)) return "border-paper-rule";
-  if (appointment.status === "no_show") return "border-waiting";
-  if (appointment.status === "paid" || appointment.status === "attended") return "border-settled";
-  return owes(appointment) ? "border-money" : "border-steps";
-}
-
 /**
  * The month on one sheet, each day marked with its Appointments, and below it the
- * Appointments of the chosen day and the six after it, one list by the hour.
+ * Appointments of the chosen day and the six after it, one list by the hour. Only what is
+ * really going to happen: one still owing its payment, or called off, is not here but in
+ * Pedidos y citas, where the Owner works on it. Nothing to press: it is the list to attend.
  */
-export function AgendaView() {
+export function AgendaView({
+  initialDay,
+  highlight,
+}: {
+  /** The day to open on, YYYY-MM-DD; today when missing. */
+  initialDay?: string;
+  /** The code of an Appointment to point at, coming from elsewhere. */
+  highlight?: string;
+} = {}) {
   const today = businessDay(new Date());
-  const [month, setMonth] = useState(monthStart(today));
-  const [day, setDay] = useState(today);
+  const opening = initialDay && /^\d{4}-\d{2}-\d{2}$/.test(initialDay) ? initialDay : today;
+  const [month, setMonth] = useState(monthStart(opening));
+  const [day, setDay] = useState(opening);
   const sheet = monthSheet(month);
   const ofMonth = useAgenda(month, monthEnd(month));
   const listed = weekFrom(day);
   const agenda = useAgenda(day, listed[6]);
 
-  const marks = new Map<string, { count: number; owing: boolean }>();
-  for (const appointment of ofMonth.data ?? []) {
-    if (CANCELLED.includes(appointment.status)) continue;
+  const marks = new Map<string, number>();
+  for (const appointment of (ofMonth.data ?? []).filter(onAgenda)) {
     const key = appointment.starts_at.slice(0, 10);
-    const mark = marks.get(key) ?? { count: 0, owing: false };
-    marks.set(key, { count: mark.count + 1, owing: mark.owing || owes(appointment) });
+    marks.set(key, (marks.get(key) ?? 0) + 1);
   }
 
   const moveMonth = (months: number) => {
@@ -134,7 +117,11 @@ export function AgendaView() {
       <div>
         <h1>Agenda</h1>
         <p className="mt-0.5 text-sm text-text-secondary">
-          Toca un día para ver sus citas y las que siguen. Muévelas, cancélalas o marca quién no vino.
+          Las citas confirmadas, para atender. Las que esperan pago, y mover o cancelar una, están en{" "}
+          <Link href="/dashboard/orders" className="font-bold underline underline-offset-4">
+            Pedidos y citas
+          </Link>
+          .
         </p>
       </div>
 
@@ -181,9 +168,8 @@ export function AgendaView() {
             ))}
             {sheet.map((each) => {
               const inMonth = each.slice(0, 7) === month.slice(0, 7);
-              const mark = inMonth ? marks.get(each) : undefined;
+              const count = inMonth ? (marks.get(each) ?? 0) : 0;
               const chosen = each === day;
-              const count = mark?.count ?? 0;
               return (
                 <button
                   key={each}
@@ -195,7 +181,7 @@ export function AgendaView() {
                   aria-pressed={chosen}
                   aria-label={`${writtenDay(each)}: ${
                     count === 0 ? "sin citas" : count === 1 ? "1 cita" : `${count} citas`
-                  }${mark?.owing ? ", falta pagar" : ""}`}
+                  }`}
                   className={`flex h-12 flex-col items-center pt-1 text-sm font-semibold transition-colors hover:bg-ink/[0.06] ${
                     inMonth ? "" : "text-ink-muted/50"
                   }`}
@@ -210,10 +196,7 @@ export function AgendaView() {
                   {count > 0 && (
                     <span aria-hidden className="mt-1 flex gap-0.5">
                       {Array.from({ length: Math.min(count, 4) }, (_, index) => (
-                        <i
-                          key={index}
-                          className={`h-1.5 w-1.5 ${index === 0 && mark?.owing ? "bg-money" : "bg-steps"}`}
-                        />
+                        <i key={index} className="h-1.5 w-1.5 bg-steps" />
                       ))}
                     </span>
                   )}
@@ -222,16 +205,6 @@ export function AgendaView() {
             })}
           </div>
 
-          <p className="mt-2 flex gap-4 text-xs text-ink-muted">
-            <span className="flex items-center gap-1.5">
-              <i aria-hidden className="h-2 w-2 bg-steps" />
-              cita
-            </span>
-            <span className="flex items-center gap-1.5">
-              <i aria-hidden className="h-2 w-2 bg-money" />
-              falta pagar
-            </span>
-          </p>
         </section>
 
         <section aria-label="Citas" className="min-w-0 max-w-3xl">
@@ -245,7 +218,10 @@ export function AgendaView() {
                 key={each}
                 day={each}
                 today={today}
-                appointments={(agenda.data ?? []).filter((a) => a.starts_at.startsWith(each))}
+                highlight={highlight}
+                appointments={(agenda.data ?? []).filter(
+                  (a) => onAgenda(a) && a.starts_at.startsWith(each),
+                )}
               />
             ))
           )}
@@ -255,19 +231,18 @@ export function AgendaView() {
   );
 }
 
-/** One day of the list: its title, what it adds up to, and its Appointments by the hour. */
+/** One day of the list: its title, how many, and its Appointments by the hour. */
 function DayList({
   day,
   today,
+  highlight,
   appointments,
 }: {
   day: string;
   today: string;
+  highlight?: string;
   appointments: AgendaAppointment[];
 }) {
-  const { format } = useCurrency();
-  const holding = appointments.filter((a) => !CANCELLED.includes(a.status));
-  const owing = holding.filter(owes);
   const now = new Date().getTime();
   const nextIndex =
     day === today ? appointments.findIndex((a) => new Date(a.starts_at).getTime() > now) : -1;
@@ -277,19 +252,20 @@ function DayList({
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 border-b-2 border-ink pb-1.5">
         <h2 className="font-hand text-xl font-bold text-steps">{listDay(day, today)}</h2>
         <p className="text-xs font-bold text-ink-muted">
-          {holding.length === 0
+          {appointments.length === 0
             ? "Sin citas"
-            : holding.length === 1
+            : appointments.length === 1
               ? "1 cita"
-              : `${holding.length} citas`}
-          {owing.length > 0 &&
-            ` · falta pagar ${format(owing.reduce((sum, a) => sum + Number(a.amount_due), 0))}`}
+              : `${appointments.length} citas`}
         </p>
       </div>
       {appointments.map((appointment, index) => (
         <div key={appointment.appointment_code}>
           {index === nextIndex && <NowLine />}
-          <AppointmentRow appointment={appointment} />
+          <AgendaRow
+            appointment={appointment}
+            highlighted={appointment.appointment_code === highlight}
+          />
         </div>
       ))}
       {day === today && appointments.length > 0 && nextIndex === -1 && <NowLine />}
@@ -324,149 +300,53 @@ function GoogleNote() {
   );
 }
 
-function AppointmentRow({ appointment }: { appointment: AgendaAppointment }) {
-  const queryClient = useQueryClient();
+/** One Appointment to attend: when, what, who (a tap away from their chat) and how it stands. */
+function AgendaRow({
+  appointment,
+  highlighted = false,
+}: {
+  appointment: AgendaAppointment;
+  highlighted?: boolean;
+}) {
   const { format } = useCurrency();
-  const [moving, setMoving] = useState(false);
-  const status = APPOINTMENT_STATUS[appointment.status];
-  const action = useMutation({
-    mutationFn: ({ operation, payload }: { operation: string; payload: Record<string, unknown> }) =>
-      bookingAction(operation, { appointment_code: appointment.appointment_code, ...payload }),
-    onSuccess: async (done) => {
-      setMoving(false);
-      await queryClient.invalidateQueries({ queryKey: AGENDA_KEY });
-      await queryClient.invalidateQueries({ queryKey: TIMES_TO_MOVE_KEY });
-      await queryClient.invalidateQueries({ queryKey: CONTACT_APPOINTMENTS_KEY });
-      if (done === "approval_created") {
-        toast.info("Quedó pendiente de aprobación. Revísala en Aprobaciones.");
-      } else {
-        toast.success("Listo.");
-      }
-    },
-    onError: (error) =>
-      toast.error(error instanceof Error ? error.message : "No se pudo completar la acción."),
-  });
+  const row = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (highlighted) row.current?.scrollIntoView?.({ block: "center" });
+  }, [highlighted]);
+  const status = appointmentStatus(appointment);
 
-  const run = (option: AgendaAction) => {
-    if (option.operation === "move") {
-      setMoving(!moving);
-      return;
-    }
-    if (option.confirm && !confirm(option.confirm)) return;
-    action.mutate({ operation: option.operation, payload: {} });
-  };
-
-  const cancelled = CANCELLED.includes(appointment.status);
-  const options = agendaActions(appointment, new Date());
   return (
-    <article className="flex gap-3 border-b border-paper-rule py-3">
+    <article
+      ref={row}
+      aria-current={highlighted || undefined}
+      className={`flex gap-3 border-b border-paper-rule py-3 ${highlighted ? "bg-steps/[0.08] outline-2 outline-steps" : ""}`}
+    >
       <p className="w-14 shrink-0 text-right">
         <span className="block font-display text-xl font-black leading-none [font-stretch:80%] tabular-nums">
           {clockTime(appointment.starts_at)}
         </span>
         <span className="text-xs text-ink-muted tabular-nums">a {clockTime(appointment.ends_at)}</span>
       </p>
-      <div className={`min-w-0 flex-1 border-l-[5px] pl-3 ${stripColor(appointment)} ${cancelled ? "opacity-60" : ""}`}>
-        <p className={`text-base font-extrabold ${cancelled ? "line-through" : ""}`}>{appointment.service}</p>
-        <p className="text-sm">
-          {appointment.customer}
+      <div className={`min-w-0 flex-1 border-l-[5px] pl-3 ${stripColor(appointment)}`}>
+        <p className="text-base font-extrabold">{appointment.service}</p>
+        <p className="flex flex-wrap items-center gap-x-2 text-sm">
           {appointment.customer !== appointment.whatsapp_number && (
-            <span className="text-ink-muted"> · {formatPhone(appointment.whatsapp_number)}</span>
+            <span className="font-semibold">{appointment.customer}</span>
           )}
+          <Link
+            href={`/dashboard/automation?numero=${encodeURIComponent(appointment.whatsapp_number)}`}
+            className="inline-flex min-h-8 items-center gap-1 font-bold text-steps underline underline-offset-4"
+          >
+            <MessageCircle size={14} aria-hidden />
+            {formatPhone(appointment.whatsapp_number)}
+            <span className="sr-only">: abrir su conversación</span>
+          </Link>
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-          <span className="bg-ink/[0.07] px-2 py-0.5 text-xs font-bold">con {appointment.professional}</span>
           <Badge variant={status.variant}>{status.label}</Badge>
           <span className="ml-auto text-sm font-bold tabular-nums">{format(Number(appointment.price))}</span>
         </div>
-        {owes(appointment) && (
-          <p className="mt-1 text-xs text-ink-muted">{paymentSays(appointment, format)}</p>
-        )}
-        {options.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {options.map((option) => (
-              <Button
-                key={option.operation}
-                size="sm"
-                variant={option.operation === "confirm_appointment_payment" ? "primary" : "secondary"}
-                disabled={action.isPending}
-                onClick={() => run(option)}
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-        )}
-        {moving && (
-          <MoveTo
-            appointment={appointment}
-            disabled={action.isPending}
-            onPick={(startsAt) =>
-              action.mutate({ operation: "move_appointment", payload: { starts_at: startsAt } })
-            }
-          />
-        )}
       </div>
     </article>
-  );
-}
-
-/** The free times of a day this Appointment can move to, with its Professional and length. */
-function MoveTo({
-  appointment,
-  disabled,
-  onPick,
-}: {
-  appointment: AgendaAppointment;
-  disabled: boolean;
-  onPick: (startsAt: string) => void;
-}) {
-  const [day, setDay] = useState(appointment.starts_at.slice(0, 10));
-  const times = useQuery({
-    queryKey: [...TIMES_TO_MOVE_KEY, appointment.appointment_code, day],
-    queryFn: () =>
-      readApi<Schema<"FreeTime">[]>(
-        `/dashboard/agenda/${appointment.appointment_code}/free-times?day=${day}`,
-      ),
-    enabled: Boolean(day),
-  });
-
-  return (
-    <div className="mt-3 border-t border-border pt-3">
-      <label className="block text-xs text-text-secondary">
-        Nuevo día
-        <input
-          type="date"
-          value={day}
-          min={businessDay(new Date())}
-          max={shiftDays(businessDay(new Date()), BOOKING_HORIZON_DAYS)}
-          onChange={(event) => setDay(event.target.value)}
-          className="mt-1 block border border-border bg-bg-elevated px-3 py-1.5 text-sm text-text-primary"
-        />
-      </label>
-      {times.isLoading ? (
-        <div className="mt-2 h-8 animate-pulse bg-bg-elevated" />
-      ) : times.error ? (
-        <p className="mt-2 text-sm text-danger">No se pudieron leer los horarios libres.</p>
-      ) : (times.data ?? []).length === 0 ? (
-        <p className="mt-2 text-sm text-text-secondary">
-          {appointment.professional} no tiene horarios libres ese día.
-        </p>
-      ) : (
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {(times.data ?? []).map((free) => (
-            <Button
-              key={free.starts_at}
-              size="sm"
-              variant="secondary"
-              disabled={disabled}
-              onClick={() => onPick(free.starts_at)}
-            >
-              {clockTime(free.starts_at)}
-            </Button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

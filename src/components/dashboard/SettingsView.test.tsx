@@ -75,19 +75,28 @@ describe("SettingsView", () => {
     );
   });
 
-  it("turns booking on for a Business that sells", async () => {
+  it("changes a Business that sells to booking, only after warning what changes", async () => {
     renderView();
 
-    const selling = await screen.findByRole("switch", { name: "Vender productos" });
-    const booking = screen.getByRole("switch", { name: "Agendar citas" });
+    const selling = await screen.findByRole("radio", { name: /Vendo productos/ });
+    const booking = screen.getByRole("radio", { name: /Agendo citas/ });
     expect(selling).toHaveAttribute("aria-checked", "true");
     expect(booking).toHaveAttribute("aria-checked", "false");
-    fireEvent.click(booking);
 
+    fireEvent.click(booking);
+    const warning = screen.getByRole("alertdialog", { name: "¿Cambiar a agendar citas?" });
+    expect(warning).toHaveTextContent(/Productos y Pedidos se esconden/);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    expect(runOperation).not.toHaveBeenCalled();
+
+    fireEvent.click(booking);
+    fireEvent.click(screen.getByRole("button", { name: "Sí, cambiar" }));
     await waitFor(() => expect(runOperation).toHaveBeenCalledWith("enable_booking"));
+    expect(runOperation.mock.calls.map(([name]) => name)).toEqual(["disable_selling", "enable_booking"]);
   });
 
-  it("says why selling could not be turned off", async () => {
+  it("says why selling could not be turned off, and leaves the Business as it was", async () => {
     runOperation.mockResolvedValue({
       status: "rejected",
       code: "ORDERS_STILL_OPEN",
@@ -96,7 +105,8 @@ describe("SettingsView", () => {
     });
     renderView();
 
-    fireEvent.click(await screen.findByRole("switch", { name: "Vender productos" }));
+    fireEvent.click(await screen.findByRole("radio", { name: /Agendo citas/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Sí, cambiar" }));
 
     expect(
       await screen.findByText(
@@ -104,12 +114,25 @@ describe("SettingsView", () => {
       ),
     ).toBeInTheDocument();
     expect(runOperation).toHaveBeenCalledWith("disable_selling");
+    expect(runOperation).not.toHaveBeenCalledWith("enable_booking");
+  });
+
+  it("asks a Business that sells and books to choose one", async () => {
+    answers(null, { selling_enabled: true, booking_enabled: true });
+    renderView();
+
+    expect(await screen.findByText(/vende y agenda a la vez/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: /Vendo productos/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Sí, cambiar" }));
+
+    await waitFor(() => expect(runOperation).toHaveBeenCalledWith("disable_booking"));
+    expect(runOperation).not.toHaveBeenCalledWith("enable_selling");
   });
 
   it("does not ask Meta about reminders while the Business does not book", async () => {
     renderView();
 
-    await screen.findByRole("switch", { name: "Agendar citas" });
+    await screen.findByRole("radio", { name: /Agendo citas/ });
 
     expect(readApi).not.toHaveBeenCalledWith("/dashboard/reminders");
     expect(screen.queryByText(/recordatorio/i)).not.toBeInTheDocument();

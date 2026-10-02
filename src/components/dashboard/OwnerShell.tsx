@@ -26,7 +26,7 @@ import {
 import { signOut } from "@/lib/supabase";
 import { readApi } from "@/lib/operations";
 import type { Schema } from "@/lib/api-types";
-import { isOn, useBusiness, type BusinessSwitch } from "@/lib/business";
+import { isOn, useBusiness, workTitle, type BusinessSwitch } from "@/lib/business";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
 type Overview = Schema<"Overview">;
@@ -41,6 +41,8 @@ type NavLink = {
   /** Shown while the Business has any of these switches on. */
   needs?: BusinessSwitch[];
   waiting?: Waiting;
+  /** The name on the phone's bottom bar, when the full one does not fit. */
+  short?: string;
 };
 
 /** The panel's screens in the three groups of the spec: the day, the setup and the record. */
@@ -55,7 +57,12 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
         icon: MessagesSquare,
         waiting: "conversations",
       },
-      { href: "/dashboard/orders", label: "Pedidos", icon: ClipboardList, needs: ["selling"] },
+      {
+        href: "/dashboard/orders",
+        label: "Pedidos",
+        icon: ClipboardList,
+        needs: ["selling", "booking"],
+      },
       {
         href: "/dashboard/sales",
         label: "Ventas",
@@ -93,12 +100,12 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
 const ALL_LINKS = GROUPS.flatMap((group) => group.links);
 
 /**
- * The tabs a phone keeps at the bottom, by what the Business does: Pedidos for one that
- * sells, Agenda for one that books, both for one that does both, and then Aprobaciones
- * moves into "Más" (its count still shows on Inicio and on "Más").
+ * The tabs a phone keeps at the bottom, by what the Business does: Pedidos (y citas) for
+ * any, and Agenda too for one that books, when Aprobaciones moves into "Más" (its count
+ * still shows on Inicio and on "Más", and those about Orders and Appointments on Pedidos).
  */
 function barHrefs(selling: boolean, booking: boolean): string[] {
-  const work = [selling && "/dashboard/orders", booking && "/dashboard/agenda"].filter(
+  const work = [(selling || booking) && "/dashboard/orders", booking && "/dashboard/agenda"].filter(
     (href): href is string => Boolean(href),
   );
   const tail = work.length === 2 ? [] : ["/dashboard/approvals"];
@@ -116,9 +123,15 @@ const SHORT: Record<string, string> = {
  */
 function useOffered(links: NavLink[]): NavLink[] {
   const { data: business, isError } = useBusiness();
-  return links.filter(
-    (link) => !link.needs || isError || link.needs.some((kind) => isOn(business, kind)),
-  );
+  const selling = isError || isOn(business, "selling");
+  const booking = isError || isOn(business, "booking");
+  return links
+    .filter((link) => !link.needs || isError || link.needs.some((kind) => isOn(business, kind)))
+    .map((link) =>
+      link.href === "/dashboard/orders"
+        ? { ...link, label: workTitle(selling, booking), short: selling ? "Pedidos" : "Citas" }
+        : link,
+    );
 }
 
 /** How many things wait on each screen, from the same overview Inicio polls. */
@@ -273,7 +286,8 @@ function MobileNav({ pathname, onLogout }: { pathname: string; onLogout: () => v
   const selling = isError || isOn(business, "selling");
   const booking = isError || isOn(business, "booking");
   const hrefs = barHrefs(selling, booking);
-  const barLinks = hrefs.flatMap((href) => ALL_LINKS.filter((link) => link.href === href));
+  const offered = useOffered(ALL_LINKS);
+  const barLinks = hrefs.flatMap((href) => offered.filter((link) => link.href === href));
   // What waits behind "Más": Aprobaciones when it left the bar.
   const hiddenWaiting = hrefs.includes("/dashboard/approvals") ? 0 : waiting.approvals;
   const inMore = !hrefs.some((href) => isActiveLink(pathname, href));
@@ -307,7 +321,7 @@ function MobileNav({ pathname, onLogout }: { pathname: string; onLogout: () => v
                 />
               )}
               <Icon aria-hidden size={20} strokeWidth={active ? 2.25 : 1.75} />
-              <span>{SHORT[link.href] ?? link.label}</span>
+              <span>{link.short ?? SHORT[link.href] ?? link.label}</span>
               <Count value={count} className="absolute right-[calc(50%-22px)] top-1" />
               {count > 0 && <span className="sr-only">, {count} pendientes</span>}
             </Link>

@@ -10,6 +10,7 @@ import {
   BUSINESS_TIME_ZONE,
   businessDay,
   clockTime,
+  onAgenda,
   useAgenda,
   type AgendaAppointment,
 } from "@/lib/appointments";
@@ -293,9 +294,7 @@ function TodaysAppointments() {
   const agenda = useAgenda(today, today);
   const now = CLOCK.format(new Date());
   const appointments = (agenda.data ?? [])
-    .filter((appointment: AgendaAppointment) =>
-      ["booked", "paid", "attended", "no_show"].includes(appointment.status),
-    )
+    .filter((appointment: AgendaAppointment) => onAgenda(appointment))
     .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
   const next = appointments.find(
     (appointment) =>
@@ -328,7 +327,7 @@ function TodaysAppointments() {
                 <span className={`min-w-0 flex-1 ${isNext ? "font-extrabold" : ""}`}>
                   <span className="block truncate">{appointment.customer}</span>
                   <span className="block truncate text-xs font-normal text-ink-muted">
-                    {appointment.service} · {appointment.professional}
+                    {appointment.service}
                   </span>
                 </span>
                 {isNext && (

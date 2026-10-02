@@ -14,7 +14,7 @@ import { readApi, runOperationOrThrow } from "@/lib/operations";
 import {
   SWITCH_SAYS,
   isOn,
-  turnSwitch,
+  switchKind,
   useBusiness,
   type Business,
   type BusinessSwitch,
@@ -239,48 +239,156 @@ function Toggle({
 }
 
 const KINDS: { kind: BusinessSwitch; label: string }[] = [
-  { kind: "selling", label: "Vender productos" },
-  { kind: "booking", label: "Agendar citas" },
+  { kind: "selling", label: "Vendo productos" },
+  { kind: "booking", label: "Agendo citas" },
 ];
 
-/** Selling and booking, each turned on or off apart; turning one off may be refused. */
+/** What changing to each kind does, said before it is done. */
+const CHANGE_SAYS: Record<BusinessSwitch, { title: string; points: string[] }> = {
+  selling: {
+    title: "¿Cambiar a vender productos?",
+    points: [
+      "Tu asistente deja de ofrecer horarios y agendar. Desde ahora muestra tu catálogo, toma pedidos y cobra.",
+      "Servicios, Horarios y Agenda se esconden del panel. No se borra nada: si vuelves a agendar, siguen ahí.",
+      "Si tienes citas por venir, primero tienes que cancelarlas.",
+    ],
+  },
+  booking: {
+    title: "¿Cambiar a agendar citas?",
+    points: [
+      "Tu asistente deja de mostrar tu catálogo y tomar pedidos. Desde ahora ofrece horarios libres y agenda a tus clientes.",
+      "Productos y Pedidos se esconden del panel. No se borra nada: si vuelves a vender, siguen ahí.",
+      "Si tienes pedidos abiertos, primero tienes que entregarlos, cancelarlos o devolverlos.",
+    ],
+  },
+};
+
+/**
+ * What the Business does: sell or book, one of the two. Changing asks first, saying what
+ * changes; a refusal (open Orders, Appointments to come) leaves it as it was.
+ */
 function WhatItDoes({ business }: { business: Business }) {
   const queryClient = useQueryClient();
   const [refused, setRefused] = useState<string | null>(null);
+  const [asking, setAsking] = useState<BusinessSwitch | null>(null);
   const turn = useMutation({
-    mutationFn: ({ kind, on }: { kind: BusinessSwitch; on: boolean }) => turnSwitch(kind, on),
+    mutationFn: (kind: BusinessSwitch) => switchKind(business, kind),
     onMutate: () => setRefused(null),
     onSuccess: async (reason) => {
       setRefused(reason);
+      setAsking(null);
       await queryClient.invalidateQueries({ queryKey: ["business"] });
       await queryClient.invalidateQueries({ queryKey: ["overview"] });
     },
-    onError: (error) =>
-      setRefused(error instanceof Error ? error.message : "No se pudo cambiar. Intenta de nuevo."),
+    onError: (error) => {
+      setAsking(null);
+      setRefused(error instanceof Error ? error.message : "No se pudo cambiar. Intenta de nuevo.");
+    },
   });
+  const both = isOn(business, "selling") && isOn(business, "booking");
 
   return (
     <Card>
       <CardHeader title="Qué hace tu negocio" />
-      <ul className="flex flex-col gap-4">
-        {KINDS.map(({ kind, label }) => (
-          <li key={kind} className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-medium text-text-primary">{label}</p>
-              <p className="text-sm text-text-secondary">{SWITCH_SAYS[kind]}</p>
-            </div>
-            <Toggle
-              label={label}
-              on={isOn(business, kind)}
+      {both && (
+        <p className="mb-3 text-sm font-bold text-waiting">
+          Hoy tu negocio vende y agenda a la vez. Elige uno: así tu asistente y tu panel se ocupan de
+          una sola cosa.
+        </p>
+      )}
+      <div role="radiogroup" aria-label="Qué hace tu negocio" className="grid gap-3 sm:grid-cols-2">
+        {KINDS.map(({ kind, label }) => {
+          const chosen = isOn(business, kind) && !both;
+          return (
+            <button
+              key={kind}
+              type="button"
+              role="radio"
+              aria-checked={chosen}
               disabled={turn.isPending}
-              onClick={() => turn.mutate({ kind, on: !isOn(business, kind) })}
-            />
-          </li>
-        ))}
-      </ul>
+              onClick={() => {
+                if (!chosen) setAsking(kind);
+              }}
+              className={`flex flex-col items-start gap-1 border-2 p-4 text-left transition-colors disabled:opacity-50 ${
+                chosen ? "border-ink bg-ink text-paper" : "border-paper-rule hover:border-ink"
+              }`}
+            >
+              <span className="flex items-center gap-2 font-display text-lg font-extrabold [font-stretch:85%]">
+                <span
+                  aria-hidden
+                  className={`inline-block h-4 w-4 border-2 ${chosen ? "border-paper bg-money" : "border-ink"}`}
+                />
+                {label}
+              </span>
+              <span className={`text-sm ${chosen ? "" : "text-text-secondary"}`}>{SWITCH_SAYS[kind]}</span>
+            </button>
+          );
+        })}
+      </div>
       {refused && <p className="mt-4 text-sm text-danger">{refused}</p>}
       {business.booking_enabled && <Reminders />}
+      {asking && (
+        <ChangeKind
+          kind={asking}
+          pending={turn.isPending}
+          onCancel={() => setAsking(null)}
+          onConfirm={() => turn.mutate(asking)}
+        />
+      )}
     </Card>
+  );
+}
+
+/** The warning before changing what the Business does, over the screen. */
+function ChangeKind({
+  kind,
+  pending,
+  onCancel,
+  onConfirm,
+}: {
+  kind: BusinessSwitch;
+  pending: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const confirm = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    confirm.current?.focus();
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onCancel();
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [onCancel]);
+  const says = CHANGE_SAYS[kind];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/40 p-4 sm:items-center" onClick={onCancel}>
+      <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="change-kind-title"
+        className="w-full max-w-md border-2 border-ink bg-paper p-5"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h2 id="change-kind-title" className="font-display text-2xl font-black [font-stretch:80%]">
+          {says.title}
+        </h2>
+        <ul className="mt-3 flex list-disc flex-col gap-2 pl-5 text-[15px]">
+          {says.points.map((point) => (
+            <li key={point}>{point}</li>
+          ))}
+        </ul>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel} disabled={pending}>
+            Cancelar
+          </Button>
+          <Button ref={confirm} onClick={onConfirm} disabled={pending}>
+            {pending ? "Cambiando..." : "Sí, cambiar"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 
