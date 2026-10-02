@@ -253,7 +253,8 @@ function NavLinks({
   return (
     <>
       {GROUPS.map((group) => {
-        const links = group.links.filter((link) => offered.includes(link));
+        // By href: the offered Orders link is a renamed copy, not the one in the group.
+        const links = offered.filter((link) => group.links.some((own) => own.href === link.href));
         if (links.length === 0) return null;
         return (
           <div key={group.title} className="mb-5">

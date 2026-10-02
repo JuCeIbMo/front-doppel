@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = { replace: vi.fn() };
@@ -36,7 +36,15 @@ describe("OwnerShell", () => {
     expect(screen.queryByRole("link", { name: /Productos/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Inventario/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link", { name: "Citas" }).length).toBeGreaterThan(0);
+    // In the sidebar as well as on the phone's bar.
+    const navs = screen.getAllByRole("navigation", { name: "Principal" });
+    expect(navs).toHaveLength(2);
+    for (const nav of navs) {
+      expect(within(nav).getByRole("link", { name: "Citas" })).toHaveAttribute(
+        "href",
+        "/dashboard/orders",
+      );
+    }
     expect(screen.getAllByRole("link", { name: /Horarios/ }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: /Agenda/ }).length).toBeGreaterThan(0);
     expect(readApi).toHaveBeenCalledWith("/dashboard/business");
