@@ -74,23 +74,29 @@ export async function chooseKind(kind: BusinessSwitch): Promise<void> {
 /**
  * Makes the Business do only `kind`. The other is turned off first, so a refusal (open
  * Orders, Appointments to come) leaves everything as it was; only then is `kind` turned on,
- * unless it already is. Answers null once done, or why not in the Owner's words.
+ * unless it already is. Turning on is never refused, so a dropped connection is retried
+ * rather than undone; if it still fails, the Business is left doing neither and Cuenta asks
+ * again. Answers null once done, or why not in the Owner's words.
  */
-export async function switchKind(business: Business, kind: BusinessSwitch): Promise<string | null> {
+export async function switchKind(
+  business: Business,
+  kind: BusinessSwitch,
+  pause: (ms: number) => Promise<void> = (ms) => new Promise((done) => setTimeout(done, ms)),
+): Promise<string | null> {
   const other: BusinessSwitch = kind === "selling" ? "booking" : "selling";
   if (isOn(business, other)) {
     const refused = await turnSwitch(other, false);
     if (refused) return refused;
   }
-  if (!isOn(business, kind)) {
-    const refused = await turnSwitch(kind, true);
-    if (refused) {
-      // Never leave the Business doing nothing: put back what it did.
-      if (isOn(business, other)) await turnSwitch(other, true);
-      return refused;
+  if (isOn(business, kind)) return null;
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await turnSwitch(kind, true);
+    } catch (error) {
+      if (attempt === 3) throw error;
+      await pause(attempt * 1000);
     }
   }
-  return null;
 }
 
 /** The name of the screen where Orders and Appointments are worked on, by what the Business does. */

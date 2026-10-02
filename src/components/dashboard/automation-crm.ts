@@ -1,14 +1,13 @@
 import type { Schema } from "@/lib/api-types";
 
-export type LeadStatus =
-  | "new"
-  | "contacted"
-  | "warm"
-  | "negotiation"
-  | "customer"
-  | "no_response";
+/** Where a Contact stands, from what they did; the back works it out, the Owner does not pick it. */
+export type Stage = PipelineConversation["stage"];
 
-export type ConversationFilter = "all" | "unread" | "warm" | "pending";
+export const STAGE_LABEL: Record<Stage, string> = {
+  interested: "Interesado",
+  closing: "Por cerrar",
+  customer: "Cliente",
+};
 
 /**
  * One Contact Conversation as `GET /dashboard/pipeline` lists it. `paused_until` is when
@@ -29,77 +28,48 @@ export type PipelineCall = Schema<"PipelineCall">;
 
 export type PipelineItem = PipelineMessage | PipelineCall;
 
-export type ConversationMeta = {
-  leadStatus: LeadStatus;
-  notes: string;
-  tags: string[];
-  displayName: string | null;
-};
-
 export type ConversationSummary = {
   conversationId: string;
   contactCode: string;
   phone: string;
+  /** The name on their WhatsApp profile, else the number. */
   displayName: string;
-  leadStatus: LeadStatus;
-  notes: string;
-  tags: string[];
+  stage: Stage;
   /** The latest message, or "Llamada" when the Contact called after it. */
   lastMessage: string;
   /** When the latest message or Call happened. */
   lastActivityAt: string | null;
-  unreadCount: number;
+  /** Something happened after the Owner last read it, in this browser. */
+  unread: boolean;
   /** The bot is paused in this Conversation, because the Owner replied or it handed over. */
   humanTakeover: boolean;
   pausedUntil: string | null;
   replyWindowClosesAt: string | null;
 };
 
-const STORAGE_PREFIX = "automation-crm";
-
-const DEFAULT_META: ConversationMeta = {
-  leadStatus: "new",
-  notes: "",
-  tags: [],
-  displayName: null,
-};
-
-export function getConversationStorageKey(tenantId: string, phone: string) {
-  return `${STORAGE_PREFIX}:${tenantId}:${phone}`;
-}
-
-export function mergeConversationMeta(
-  base: ConversationMeta,
-  patch: Partial<ConversationMeta>,
-): ConversationMeta {
-  return {
-    leadStatus: patch.leadStatus ?? base.leadStatus,
-    notes: patch.notes ?? base.notes,
-    tags: patch.tags ?? base.tags,
-    displayName: patch.displayName ?? base.displayName,
-  };
-}
-
+/**
+ * The Pipeline's Conversations, latest activity first. `seen` holds, by Conversation, when
+ * the last thing the Owner read happened; anything later is unread.
+ */
 export function buildConversationSummaries(
   conversations: PipelineConversation[],
-  persisted: Record<string, ConversationMeta>,
+  seen: Record<string, string> = {},
 ): ConversationSummary[] {
   return conversations
     .map((conversation) => {
       const phone = conversation.whatsapp_number;
-      const meta = mergeConversationMeta(DEFAULT_META, persisted[phone] ?? {});
       const called = calledLast(conversation);
+      const lastActivityAt = called ? conversation.last_call_at : conversation.last_message_at;
+      const read = seen[conversation.id];
       return {
         conversationId: conversation.id,
         contactCode: conversation.contact_code,
         phone,
-        displayName: meta.displayName ?? phone,
-        leadStatus: meta.leadStatus,
-        notes: meta.notes,
-        tags: meta.tags,
+        displayName: conversation.profile_name?.trim() || phone,
+        stage: conversation.stage,
         lastMessage: called ? "Llamada" : (conversation.last_message_body ?? ""),
-        lastActivityAt: called ? conversation.last_call_at : conversation.last_message_at,
-        unreadCount: 0,
+        lastActivityAt,
+        unread: lastActivityAt !== null && (!read || timeOf(lastActivityAt) > timeOf(read)),
         humanTakeover: conversation.paused_until !== null,
         pausedUntil: conversation.paused_until,
         replyWindowClosesAt: conversation.reply_window_closes_at,
@@ -124,6 +94,8 @@ export function canReplyFreely(conversation: ConversationSummary, now: Date = ne
 
 /** What a message says: its text, else what was heard or read in its file. */
 export function messageText(message: PipelineMessage): string {
+  // A message with buttons, a list or products shows those apart; its text is the question.
+  if (message.shape) return message.shape.body;
   if (message.body) return message.body;
   if (message.transcript) return message.transcript;
   if (message.summary) return message.summary;
@@ -153,42 +125,4 @@ export function callDuration(seconds: number): string {
   const rest = seconds % 60;
   if (minutes === 0) return `${rest} s`;
   return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
-}
-
-export function filterConversations(
-  conversations: ConversationSummary[],
-  options: { filter: ConversationFilter; query: string },
-) {
-  const query = options.query.trim().toLowerCase();
-
-  return conversations.filter((conversation) => {
-    if (options.filter === "warm" && !["warm", "negotiation"].includes(conversation.leadStatus)) {
-      return false;
-    }
-
-    if (
-      options.filter === "pending" &&
-      !["new", "contacted", "no_response"].includes(conversation.leadStatus)
-    ) {
-      return false;
-    }
-
-    if (options.filter === "unread" && conversation.unreadCount <= 0) {
-      return false;
-    }
-
-    if (!query) return true;
-
-    const haystack = [
-      conversation.displayName,
-      conversation.phone,
-      conversation.lastMessage,
-      conversation.notes,
-      conversation.tags.join(" "),
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    return haystack.includes(query);
-  });
 }

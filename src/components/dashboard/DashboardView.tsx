@@ -1,16 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
-import { ArrowLeft, PhoneCall, Search, SendHorizontal, User } from "lucide-react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  Check,
+  CheckCheck,
+  CircleAlert,
+  List,
+  PhoneCall,
+  Reply,
+  Search,
+  SendHorizontal,
+  User,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import {
   useApprovedTemplates,
   useConversationThread,
   useInbox,
   useResumeBot,
+  useSeen,
   useSendToContact,
 } from "@/lib/pipeline";
+import { readApi } from "@/lib/operations";
+import { formatBs } from "@/lib/currency";
+import type { Product } from "@/lib/products";
+import { PRODUCTS_KEY } from "@/components/dashboard/ProductsView";
 import { placeholderCount, renderTemplate } from "@/lib/templates";
 import { BUSINESS_TIME_ZONE } from "@/lib/appointments";
 import { formatPhone } from "@/lib/phone";
@@ -22,13 +39,27 @@ import {
   callDuration,
   messageText,
   missedReasonText,
+  STAGE_LABEL,
   type ConversationSummary,
+  type Stage,
   type PipelineCall,
   type PipelineItem,
   type PipelineMessage,
 } from "@/components/dashboard/automation-crm";
 
-type Filter = "all" | "you";
+type Filter = "all" | "you" | Stage;
+
+const STAGE_STYLE: Record<Stage, string> = {
+  interested: "bg-ink/[0.07] text-ink",
+  closing: "bg-money text-ink",
+  customer: "bg-settled text-paper",
+};
+
+const STAGE_FILTERS: { id: Stage; label: string }[] = [
+  { id: "interested", label: "Interesados" },
+  { id: "closing", label: "Por cerrar" },
+  { id: "customer", label: "Clientes" },
+];
 
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
@@ -102,12 +133,13 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // Coming from an Appointment's number, its chat opens straight away.
   const [threadOpen, setThreadOpen] = useState(Boolean(openNumber));
+  const { seen, markSeen } = useSeen();
 
   const conversations = useMemo(() => {
-    const all = buildConversationSummaries(pipelineData ?? [], {});
+    const all = buildConversationSummaries(pipelineData ?? [], seen);
     // The ones the Owner is attending come first, then by latest activity.
     return [...all.filter((item) => item.humanTakeover), ...all.filter((item) => !item.humanTakeover)];
-  }, [pipelineData]);
+  }, [pipelineData, seen]);
   const yours = conversations.filter((item) => item.humanTakeover).length;
 
   const visible = useMemo(() => {
@@ -115,6 +147,7 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
     const digits = text.replace(/\D/g, "");
     return conversations.filter((item) => {
       if (filter === "you" && !item.humanTakeover) return false;
+      if (filter !== "all" && filter !== "you" && item.stage !== filter) return false;
       if (!text) return true;
       return (
         item.displayName.toLowerCase().includes(text) ||
@@ -132,6 +165,15 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
     null;
   const threadQuery = useConversationThread(selected?.conversationId ?? null);
   const refetchThread = threadQuery.refetch;
+  const shownId = selected?.conversationId;
+  const selectedAt = selected?.lastActivityAt;
+  const threadLoaded = threadQuery.data !== undefined;
+  // What is on screen is read: on a phone once the chat is open, on a computer as it shows.
+  useEffect(() => {
+    if (!shownId || !selectedAt || !threadLoaded) return;
+    if (!threadOpen && !window.matchMedia?.("(min-width: 1024px)").matches) return;
+    markSeen(shownId, selectedAt);
+  }, [shownId, selectedAt, threadLoaded, threadOpen, markSeen]);
   const refreshSelected = useCallback(async () => {
     await refetchConversations();
     await refetchThread();
@@ -172,13 +214,20 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
       )}
     >
       <div className="flex flex-col gap-3 pb-3 lg:pr-4">
-        <div role="tablist" aria-label="Filtrar" className="flex gap-2">
-          {(
-            [
-              { id: "all", label: "Todas", count: conversations.length },
-              { id: "you", label: "Te necesitan", count: yours },
-            ] as const
-          ).map((option) => {
+        <div
+          role="tablist"
+          aria-label="Filtrar"
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {[
+            { id: "all" as Filter, label: "Todas", count: conversations.length },
+            { id: "you" as Filter, label: "Te necesitan", count: yours },
+            ...STAGE_FILTERS.map((stage) => ({
+              id: stage.id as Filter,
+              label: stage.label,
+              count: conversations.filter((item) => item.stage === stage.id).length,
+            })),
+          ].map((option) => {
             const active = filter === option.id;
             return (
               <button
@@ -188,7 +237,7 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
                 aria-selected={active}
                 onClick={() => setFilter(option.id)}
                 className={cx(
-                  "flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-bold transition-colors",
+                  "flex min-h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-sm font-bold transition-colors",
                   active ? "bg-ink text-paper" : "bg-ink/[0.07] text-ink hover:bg-ink/[0.12]",
                 )}
               >
@@ -229,9 +278,11 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
               ? isConnected
                 ? "Todavía nadie le escribió a tu negocio. Cuando alguien lo haga, aparece aquí."
                 : "Conecta tu WhatsApp para empezar a recibir mensajes."
-              : filter === "you" && !query
-                ? "Ninguna conversación te necesita. El bot se encarga."
-                : "Nada coincide con tu búsqueda."}
+              : query
+                ? "Nada coincide con tu búsqueda."
+                : filter === "you"
+                  ? "Ninguna conversación te necesita. El bot se encarga."
+                  : "No hay nadie en esta etapa."}
           </li>
         ) : (
           visible.map((conversation) => (
@@ -289,6 +340,7 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
               thread={threadQuery.data ?? []}
               loadingThread={threadQuery.isLoading}
               botEnabled={botOn}
+              open={threadOpen}
               onBack={() => setThreadOpen(false)}
               onChanged={refreshSelected}
             />
@@ -303,6 +355,16 @@ export function DashboardView({ openNumber }: { openNumber?: string } = {}) {
   );
 }
 
+/** A Contact's stage, as the back works it out from what they did. */
+function StageTag({ stage, onInk = false }: { stage: Stage; onInk?: boolean }) {
+  const style = onInk && stage === "interested" ? "bg-paper/15 text-paper" : STAGE_STYLE[stage];
+  return (
+    <span className={cx("shrink-0 px-1.5 py-px text-[11px] font-extrabold", style)}>
+      {STAGE_LABEL[stage]}
+    </span>
+  );
+}
+
 function ConversationRow({
   conversation,
   active,
@@ -313,10 +375,9 @@ function ConversationRow({
   onOpen: () => void;
 }) {
   const called = conversation.lastMessage === "Llamada";
-  const name =
-    conversation.displayName === conversation.phone
-      ? formatPhone(conversation.phone)
-      : conversation.displayName;
+  const named = conversation.displayName !== conversation.phone;
+  const name = named ? conversation.displayName : formatPhone(conversation.phone);
+  const unread = conversation.unread && !active;
   return (
     <li>
       <button
@@ -339,22 +400,43 @@ function ConversationRow({
             <span
               className={cx(
                 "shrink-0 text-xs tabular-nums",
-                conversation.humanTakeover ? "font-extrabold text-waiting" : "text-ink-muted",
+                conversation.humanTakeover
+                  ? "font-extrabold text-waiting"
+                  : unread
+                    ? "font-extrabold text-settled"
+                    : "text-ink-muted",
               )}
             >
               {listTime(conversation.lastActivityAt)}
             </span>
           </span>
           <span className="flex items-center gap-2">
-            <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm text-ink-muted">
+            <span
+              className={cx(
+                "flex min-w-0 flex-1 items-center gap-1.5 text-sm",
+                unread ? "font-bold text-ink" : "text-ink-muted",
+              )}
+            >
               {called && <PhoneCall aria-hidden size={13} className="shrink-0" />}
               <span className="truncate">{conversation.lastMessage || "Sin mensajes"}</span>
             </span>
-            {conversation.humanTakeover && (
+            {conversation.humanTakeover ? (
               <span className="shrink-0 rounded-full bg-waiting px-2 py-px text-[11px] font-bold text-paper">
                 Atiendes tú
               </span>
+            ) : (
+              unread && (
+                <span className="h-3 w-3 shrink-0 rounded-full bg-settled">
+                  <span className="sr-only">Sin leer</span>
+                </span>
+              )
             )}
+          </span>
+          <span className="flex items-center justify-between gap-2">
+            <span className="truncate text-xs text-ink-muted tabular-nums">
+              {named ? formatPhone(conversation.phone) : "Sin nombre en su perfil"}
+            </span>
+            <StageTag stage={conversation.stage} />
           </span>
         </span>
       </button>
@@ -398,6 +480,7 @@ function Thread({
   thread,
   loadingThread,
   botEnabled,
+  open,
   onBack,
   onChanged,
 }: {
@@ -405,6 +488,8 @@ function Thread({
   thread: PipelineItem[];
   loadingThread: boolean;
   botEnabled: boolean;
+  /** Opened over the list, on a phone. */
+  open: boolean;
   onBack: () => void;
   onChanged: () => Promise<void>;
 }) {
@@ -412,6 +497,21 @@ function Thread({
     conversation.displayName === conversation.phone
       ? formatPhone(conversation.phone)
       : conversation.displayName;
+  // Like WhatsApp, the chat opens at its latest message and follows the new ones.
+  const wall = useRef<HTMLDivElement>(null);
+  const latest = thread.at(-1)?.id;
+  useEffect(() => {
+    const box = wall.current;
+    // A chat hidden behind the list (on a phone) must not move the page.
+    if (!box || box.offsetParent === null) return;
+    // On a computer the chat scrolls inside its box; on a phone the whole page does.
+    if (box.scrollHeight > box.clientHeight) box.scrollTop = box.scrollHeight;
+    else window.scrollTo?.({ top: document.documentElement.scrollHeight });
+  }, [latest, loadingThread, open]);
+  // The buttons and rows the Contact tapped, to mark which one they chose.
+  const picked = new Set(
+    thread.flatMap((item) => (item.kind === "message" && item.choice_id ? [item.choice_id] : [])),
+  );
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:rounded-xl">
       <div className="flex items-center gap-3 bg-ink px-3 py-2.5 text-paper">
@@ -424,7 +524,7 @@ function Thread({
           <ArrowLeft size={22} />
         </button>
         <Avatar conversation={conversation} small />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="truncate font-body text-base font-bold leading-tight">{name}</h2>
           <p className="truncate text-xs text-paper/75">
             {name === formatPhone(conversation.phone)
@@ -433,9 +533,13 @@ function Thread({
             {conversation.humanTakeover && " · atiendes tú"}
           </p>
         </div>
+        <StageTag stage={conversation.stage} onInk />
       </div>
 
-      <div className="chat-wall min-h-[40vh] flex-1 overflow-y-auto px-3 py-3 lg:min-h-0 lg:px-6">
+      <div
+        ref={wall}
+        className="chat-wall min-h-[40vh] flex-1 overflow-y-auto px-3 py-3 lg:min-h-0 lg:px-6"
+      >
         {loadingThread ? (
           <div className="flex flex-col gap-3">
             <div className="h-14 w-2/3 animate-pulse rounded-lg bg-paper/70" />
@@ -455,10 +559,13 @@ function Thread({
                 {group.map((item, index) => {
                   if (item.kind === "call") return <CallEntry key={item.id} call={item} />;
                   const previous = group[index - 1];
-                  // Like WhatsApp: only the first of a run from the same side gets the tail.
+                  // Like WhatsApp: only the first of a run from the same writer gets the tail.
                   const first =
-                    !previous || previous.kind === "call" || previous.direction !== item.direction;
-                  return <MessageBubble key={item.id} message={item} first={first} />;
+                    !previous ||
+                    previous.kind === "call" ||
+                    previous.direction !== item.direction ||
+                    previous.sent_by !== item.sent_by;
+                  return <MessageBubble key={item.id} message={item} first={first} picked={picked} />;
                 })}
               </div>
             </div>
@@ -474,25 +581,176 @@ function Thread({
   );
 }
 
-function MessageBubble({ message, first }: { message: PipelineMessage; first: boolean }) {
+/** Who wrote a message the Business sent: the bot (and all Doppel sends by itself) or the Owner. */
+const WRITER = { public_agent: "Doppel", owner: "Tú" } as const;
+
+function MessageBubble({
+  message,
+  first,
+  picked,
+}: {
+  message: PipelineMessage;
+  first: boolean;
+  picked: Set<string>;
+}) {
   const fromBusiness = message.direction === "outbound";
+  // The Owner's own words are in ink; the bot's, and the old ones nobody signed, in green.
+  const mine = fromBusiness && message.sent_by === "owner";
+  const shape = message.shape;
   return (
     <div
       className={cx(
-        "relative max-w-[85%] rounded-lg px-2.5 pb-1.5 pt-1.5 shadow-[0_1px_0_rgba(35,26,22,0.1)] lg:max-w-[70%]",
-        fromBusiness ? "ml-auto bg-[#DCEFE3]" : "mr-auto bg-white",
+        "flex max-w-[85%] flex-col gap-[3px] lg:max-w-[70%]",
+        fromBusiness ? "ml-auto items-end" : "mr-auto items-start",
         first && "mt-1.5",
-        first && (fromBusiness ? "bubble-tail-out rounded-tr-none" : "bubble-tail-in rounded-tl-none"),
       )}
     >
-      <MessageMedia message={message} />
-      <p className="whitespace-pre-wrap text-[15px] leading-snug">
-        {messageText(message)}
-        <span className="float-right ml-3 mt-1.5 text-[11px] leading-none text-ink-muted tabular-nums">
-          {formatTimestamp(message.created_at)}
-        </span>
-      </p>
+      <div
+        className={cx(
+          "relative w-full rounded-lg px-2.5 pb-1.5 pt-1.5 shadow-[0_1px_0_rgba(35,26,22,0.1)]",
+          !fromBusiness ? "bg-white" : mine ? "bg-ink text-paper" : "bg-[#DCEFE3]",
+          first &&
+            (fromBusiness
+              ? cx("bubble-tail-out rounded-tr-none", mine && "bubble-ink")
+              : "bubble-tail-in rounded-tl-none"),
+        )}
+      >
+        {first && fromBusiness && message.sent_by && (
+          <span className={cx("block text-xs font-extrabold", mine ? "text-money" : "text-settled")}>
+            {WRITER[message.sent_by]}
+          </span>
+        )}
+        <MessageMedia message={message} />
+        <p className="whitespace-pre-wrap text-[15px] leading-snug">
+          {messageText(message)}
+          {!shape && <BubbleMeta message={message} mine={mine} />}
+        </p>
+        {shape?.kind === "list" && <ListRows shape={shape} picked={picked} />}
+        {shape?.kind === "products" && <ProductCards codes={shape.product_codes} />}
+        {shape && (
+          <p className="text-right">
+            <BubbleMeta message={message} mine={mine} />
+          </p>
+        )}
+      </div>
+      {shape?.kind === "buttons" &&
+        shape.buttons.map((button) => (
+          <span
+            key={button.id}
+            className={cx(
+              "flex w-full items-center justify-center gap-1.5 rounded-md bg-white px-3 py-2 text-sm font-bold text-steps shadow-[0_1px_0_rgba(35,26,22,0.1)]",
+              picked.has(button.id) && "ring-2 ring-inset ring-settled",
+            )}
+          >
+            <Reply aria-hidden size={14} />
+            {button.title}
+            {picked.has(button.id) && <span className="sr-only">(eligió esta)</span>}
+          </span>
+        ))}
+      {message.status === "failed" && (
+        <p className="flex items-center gap-1 px-0.5 text-xs font-extrabold text-waiting">
+          <CircleAlert aria-hidden size={14} />
+          No le llegó
+        </p>
+      )}
     </div>
+  );
+}
+
+/** The time a message left or arrived, and for what the Business sent, how far it got. */
+function BubbleMeta({ message, mine }: { message: PipelineMessage; mine: boolean }) {
+  const muted = mine ? "text-paper/70" : message.direction === "outbound" ? "text-[#41604F]" : "text-ink-muted";
+  return (
+    <span
+      className={cx(
+        "float-right ml-3 mt-1.5 inline-flex items-center gap-1 text-[11px] leading-none tabular-nums",
+        muted,
+      )}
+    >
+      {formatTimestamp(message.created_at)}
+      <Ticks status={message.status} mine={mine} />
+    </span>
+  );
+}
+
+/** WhatsApp's marks: one grey sent, two grey delivered, two blue read. */
+function Ticks({ status, mine }: { status: PipelineMessage["status"]; mine: boolean }) {
+  if (status === "sent") {
+    return (
+      <>
+        <Check aria-hidden size={15} />
+        <span className="sr-only">Enviado</span>
+      </>
+    );
+  }
+  if (status === "delivered" || status === "read") {
+    const read = status === "read";
+    return (
+      <>
+        <CheckCheck
+          aria-hidden
+          size={15}
+          className={read ? (mine ? "text-[#7CC7F5]" : "text-[#1D72B8]") : undefined}
+        />
+        <span className="sr-only">{read ? "Leído" : "Entregado"}</span>
+      </>
+    );
+  }
+  return null;
+}
+
+type ListShape = Extract<NonNullable<PipelineMessage["shape"]>, { kind: "list" }>;
+
+/** A list the bot sent: the label the Contact tapped to open it, and its rows. */
+function ListRows({ shape, picked }: { shape: ListShape; picked: Set<string> }) {
+  return (
+    <div className="mt-1.5 border-t border-ink/15">
+      <p className="flex items-center justify-center gap-1.5 py-1.5 text-sm font-extrabold text-steps">
+        <List aria-hidden size={14} />
+        {shape.button_label}
+      </p>
+      <ul>
+        {shape.rows.map((row) => (
+          <li
+            key={row.id}
+            className={cx(
+              "border-t border-dashed border-ink/15 py-1.5 text-sm",
+              picked.has(row.id) && "font-bold",
+            )}
+          >
+            {row.title}
+            {picked.has(row.id) && <span className="text-settled"> · eligió esta</span>}
+            {row.description && <span className="block text-xs text-[#41604F]">{row.description}</span>}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The Products the bot showed, from the catalog: a photo when there is one, the name and the price. */
+function ProductCards({ codes }: { codes: string[] }) {
+  const catalog = useQuery({
+    queryKey: PRODUCTS_KEY,
+    queryFn: () => readApi<Product[]>("/dashboard/products"),
+  });
+  const shown = codes.flatMap((code) => catalog.data?.filter((product) => product.code === code) ?? []);
+  if (shown.length === 0) return null;
+  return (
+    <ul className="mt-1.5 grid grid-cols-3 gap-1.5">
+      {shown.map((product) => (
+        <li key={product.code} className="bg-white pb-1.5 text-xs font-bold text-ink">
+          {product.signed_url ? (
+            // eslint-disable-next-line @next/next/no-img-element -- a signed Storage link that expires
+            <img src={product.signed_url} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+          ) : (
+            <span aria-hidden className="block aspect-square w-full bg-paper-grid" />
+          )}
+          <span className="mt-1 block truncate px-1.5">{product.name}</span>
+          <span className="block px-1.5 font-hand text-steps">{formatBs(Number(product.unit_price))}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

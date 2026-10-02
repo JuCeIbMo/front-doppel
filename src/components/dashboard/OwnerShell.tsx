@@ -65,7 +65,7 @@ const GROUPS: { title: string; links: NavLink[] }[] = [
       },
       {
         href: "/dashboard/sales",
-        label: "Ventas",
+        label: "Caja",
         icon: ShoppingCart,
         needs: ["selling", "booking"],
       },

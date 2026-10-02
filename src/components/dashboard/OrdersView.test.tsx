@@ -80,6 +80,11 @@ describe("OrdersView", () => {
             whatsapp_number: "+34655000001",
             placed_at: "2026-09-16T10:00:00Z",
             expires_at: "2026-09-17T10:00:00Z",
+            customer_name: "Carlos Mamani",
+            lines: [
+              { name: "Barra", quantity: 2 },
+              { name: "Café", quantity: 1 },
+            ],
           },
         ];
       }
@@ -108,6 +113,13 @@ describe("OrdersView", () => {
 
     expect(await screen.findByRole("heading", { name: "Pedidos" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: /Por entregar/ })).toBeInTheDocument();
+    // The row says whose it is and what was ordered, and opens their chat.
+    expect(await screen.findByText("Carlos Mamani")).toBeInTheDocument();
+    expect(screen.getByText("2 × Barra, 1 × Café")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /abrir su conversación/ })).toHaveAttribute(
+      "href",
+      "/dashboard/automation?numero=+34655000001",
+    );
     fireEvent.click(await screen.findByRole("button", { name: "Ver" }));
     expect(await screen.findByText("Bizum de 2,40")).toBeInTheDocument();
     expect(screen.getByText("2 × Barra")).toBeInTheDocument();

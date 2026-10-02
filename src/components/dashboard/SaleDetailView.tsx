@@ -50,7 +50,7 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <Link href="/dashboard/sales" className="text-sm text-text-secondary hover:text-text-primary">
-        ← Ventas
+        ← Caja
       </Link>
 
       {query.isLoading ? (
@@ -71,7 +71,9 @@ export function SaleDetailView({ saleCode }: { saleCode: string }) {
             <div>
               <h1>Venta {sale.code}</h1>
               <p className="mt-0.5 text-sm text-text-secondary">
-                {formatDateTime(sale.created_at)} · {sale.payment_method && PAYMENT[sale.payment_method]}
+                {sale.customer_name && <>{sale.customer_name} · </>}
+                {formatDateTime(sale.created_at)}
+                {sale.payment_method && ` · ${PAYMENT[sale.payment_method]}`}
                 {sale.order_code && (
                   <>
                     {" · del pedido "}

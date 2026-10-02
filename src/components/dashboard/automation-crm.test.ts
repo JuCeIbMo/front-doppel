@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buildConversationSummaries,
-  filterConversations,
-  getConversationStorageKey,
-  mergeConversationMeta,
   canReplyFreely,
   messageText,
 } from "@/components/dashboard/automation-crm";
@@ -13,6 +10,8 @@ const conversations = [
     id: "c1",
     contact_code: "AAAAAA",
     whatsapp_number: "59170000001",
+    profile_name: "Andrea",
+    stage: "closing" as const,
     last_message_at: "2026-06-17T12:00:00.000Z",
     last_message_body: "Si, claro",
     intervention_started_at: null,
@@ -24,6 +23,8 @@ const conversations = [
     id: "c2",
     contact_code: "BBBBBB",
     whatsapp_number: "59170000002",
+    profile_name: null,
+    stage: "interested" as const,
     last_message_at: "2026-06-17T11:00:00.000Z",
     last_message_body: "Siguen atendiendo?",
     intervention_started_at: "2026-06-17T11:05:00.000Z",
@@ -35,7 +36,7 @@ const conversations = [
 
 describe("buildConversationSummaries", () => {
   it("lists the Pipeline's conversations by most recent activity", () => {
-    const summaries = buildConversationSummaries([...conversations].reverse(), {});
+    const summaries = buildConversationSummaries([...conversations].reverse());
 
     expect(summaries.map((s) => s.phone)).toEqual(["59170000001", "59170000002"]);
     expect(summaries[0]).toMatchObject({
@@ -70,40 +71,22 @@ describe("buildConversationSummaries", () => {
     });
   });
 
-  it("merges persisted CRM metadata into the conversation", () => {
-    const summaries = buildConversationSummaries(conversations, {
-      "59170000001": {
-        leadStatus: "warm",
-        notes: "Pidio precios",
-        tags: ["vip"],
-        displayName: "Andrea",
-      },
-    });
+  it("names each Contact by their WhatsApp profile, else by the number, with their stage", () => {
+    const [andrea, unnamed] = buildConversationSummaries(conversations);
 
-    expect(summaries[0]).toMatchObject({
-      displayName: "Andrea",
-      leadStatus: "warm",
-      notes: "Pidio precios",
-      tags: ["vip"],
-    });
+    expect(andrea).toMatchObject({ displayName: "Andrea", stage: "closing" });
+    expect(unnamed).toMatchObject({ displayName: "59170000002", stage: "interested" });
   });
-});
 
-describe("filterConversations", () => {
-  it("filters by warm lead state and text query", () => {
-    const base = buildConversationSummaries(conversations, {
-      "59170000001": {
-        leadStatus: "warm",
-        notes: "",
-        tags: [],
-        displayName: "Andrea",
-      },
+  it("marks unread what happened after the Owner last read it", () => {
+    const [read, unread] = buildConversationSummaries(conversations, {
+      c1: "2026-06-17T12:00:00.000Z",
+      c2: "2026-06-17T10:30:00.000Z",
     });
-
-    expect(filterConversations(base, { filter: "warm", query: "" })).toHaveLength(1);
-    expect(filterConversations(base, { filter: "all", query: "andre" })[0].phone).toBe(
-      "59170000001",
-    );
+    expect(read.unread).toBe(false);
+    expect(unread.unread).toBe(true);
+    // Never opened in this browser: all of it is new.
+    expect(buildConversationSummaries(conversations)[0].unread).toBe(true);
   });
 });
 
@@ -121,6 +104,9 @@ describe("messageText", () => {
     transcript: null,
     summary: null,
     media_state: null,
+    sent_by: null,
+    shape: null,
+    status: null,
   };
 
   it("prefers the text, then what was heard, then what was read", () => {
@@ -133,30 +119,16 @@ describe("messageText", () => {
       "Procesando image…",
     );
   });
-});
 
-describe("conversation meta helpers", () => {
-  it("builds a stable storage key and merges updates safely", () => {
-    expect(getConversationStorageKey("tenant_1", "59170000001")).toBe(
-      "automation-crm:tenant_1:59170000001",
-    );
-    expect(
-      mergeConversationMeta(
-        { leadStatus: "new", notes: "", tags: [], displayName: null },
-        { leadStatus: "customer", notes: "cerrado" },
-      ),
-    ).toEqual({
-      leadStatus: "customer",
-      notes: "cerrado",
-      tags: [],
-      displayName: null,
-    });
+  it("reads only the question of a message sent with buttons", () => {
+    const shape = { kind: "buttons" as const, body: "¿Cómo pagas?", buttons: [{ id: "qr", title: "QR" }] };
+    expect(messageText({ ...base, body: "¿Cómo pagas? QR", shape })).toBe("¿Cómo pagas?");
   });
 });
 
 describe("canReplyFreely", () => {
   it("lets the Owner write only while the Contact's 24 hours are open", () => {
-    const [open, silent] = buildConversationSummaries(conversations, {});
+    const [open, silent] = buildConversationSummaries(conversations);
 
     expect(canReplyFreely(open, new Date("2026-06-18T11:59:00.000Z"))).toBe(true);
     expect(canReplyFreely(open, new Date("2026-06-18T12:01:00.000Z"))).toBe(false);

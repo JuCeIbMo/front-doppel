@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doppel · Lo que trae el back nuevo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Kalam:wght@400;700&family=Figtree:wght@400..800&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Figtree,system-ui,sans-serif;background:#E9E6E2;color:#18181B}
+  ::selection{background:#F2A900;color:#231A16}
+  .bar{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #d4d4d8;padding:14px 24px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}
+  .bar h1{font-size:15px;font-weight:800;margin-right:auto}
+  .bar a{font-size:13px;font-weight:700;color:#18181B;text-underline-offset:3px}
+  section.part{padding:34px 24px 54px}
+  section.part>h2{font-size:22px;font-weight:800;text-align:center}
+  section.part>p{font-size:14px;color:#3f3f46;text-align:center;max-width:780px;margin:8px auto 0;line-height:1.5}
+  .stage{display:flex;gap:32px;padding-top:26px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  .variant{display:flex;flex-direction:column;gap:10px;align-items:center;background:#f4f2ef;border-radius:20px;padding:18px 20px 22px}
+  .variant>h3{font-size:16px;font-weight:800}
+  .variant>small{font-size:13px;color:#3f3f46;max-width:360px;text-align:center;line-height:1.45}
+  .needs{font-size:12px;font-weight:700;color:#7a0f20;background:#fbe3e7;padding:6px 10px;max-width:360px;line-height:1.4}
+
+  .phone{width:360px;height:740px;border-radius:36px;border:10px solid #18181B;overflow:hidden;position:relative;box-shadow:0 20px 50px -20px rgba(0,0,0,.35);
+    --bg:#FBF7F2;--grid:#EBDFD3;--ink:#231A16;--muted:#75655B;--rule:#DCCAB8;--shade:#F1E8DE;
+    --red:#C8102E;--yellow:#F2A900;--green:#0E7C4A;--blue:#2B2D84;--pink:#D0356B;--mint:#DCEFE3;--read:#1D8FD8}
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;color:var(--ink);font-size:15px;
+    background-color:var(--bg);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:20px 20px}
+  .scroll{flex:1;overflow-y:auto}
+  .scroll::-webkit-scrollbar{display:none}
+  .top{padding:16px 16px 6px}
+  .top h1{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:30px;line-height:1}
+  .top p{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.35}
+  .money{background:var(--yellow);padding:2px 8px;font-family:Kalam;font-weight:700;color:var(--ink)}
+  .chips{display:flex;gap:6px;padding:8px 16px;flex-wrap:wrap}
+  .chip{font-size:13px;font-weight:700;padding:6px 11px;background:var(--shade)}
+  .chip.on{background:var(--ink);color:var(--bg)}
+  .chip b{font-weight:800;opacity:.7;margin-left:3px}
+  .ico{flex:none;width:36px;height:36px;display:grid;place-items:center;color:#fff}
+  .ico svg{width:18px;height:18px}
+  .ico.p{background:var(--blue)} .ico.m{background:var(--muted)}
+  .tabbar{display:flex;border-top:2px solid var(--ink);background:var(--bg)}
+  .tabbar div{flex:1;text-align:center;font-size:11px;font-weight:700;padding:8px 0 10px;color:var(--ink)}
+  .tabbar div.on{background:var(--ink);color:var(--bg)}
+  .tabbar svg{display:block;margin:0 auto 3px;width:20px;height:20px}
+
+  /* ===== Ventas ===== */
+  .big{margin:4px 16px 0;display:flex;align-items:baseline;gap:8px}
+  .big b{font-family:Archivo;font-weight:900;font-stretch:78%;font-size:44px;line-height:1}
+  .big span{font-size:13px;color:var(--muted);font-weight:700}
+  .split{margin:10px 16px 0;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .split div{background:var(--shade);padding:8px 10px}
+  .split small{display:flex;gap:5px;align-items:center;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+  .split small svg{width:13px;height:13px}
+  .split b{font-family:Archivo;font-weight:900;font-stretch:80%;font-size:21px}
+  .dayhead{display:flex;justify-content:space-between;align-items:baseline;margin:14px 16px 0;border-bottom:2px solid var(--ink);padding-bottom:4px}
+  .dayhead h2{font-family:Kalam;font-size:19px;color:var(--blue)}
+  .dayhead span{font-size:12px;color:var(--muted);font-weight:700}
+  .sale{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule);align-items:flex-start;background:var(--bg)}
+  .sale .mid{flex:1;min-width:0}
+  .sale .what{font-weight:700;font-size:15px;line-height:1.25}
+  .sale .who{font-size:13px;color:var(--muted);margin-top:2px}
+  .sale .end{text-align:right;flex:none}
+  .sale .amt{font-family:Kalam;font-weight:700;font-size:18px;color:var(--blue)}
+  .sale .pay{font-size:11px;color:var(--muted);font-weight:700}
+  .sale.void .what,.sale.void .amt{text-decoration:line-through;color:var(--muted)}
+  .tagv{font-size:11px;font-weight:800;background:var(--shade);padding:3px 7px;display:inline-block;text-decoration:none}
+  .missing{outline:2px dashed var(--red);outline-offset:3px;padding:2px 4px}
+
+  /* ===== Inicio ===== */
+  .datehead{padding:16px 16px 0 34px;border-left:2px solid var(--red);margin-left:16px}
+  .datehead h1{font-family:Kalam;font-weight:700;color:var(--blue);font-size:22px}
+  .datehead p{font-size:12px;color:var(--muted);margin-top:2px}
+  .card{margin:12px 16px 0;padding:12px 14px;color:var(--ink)}
+  .card.y{background:var(--yellow)}
+  .card small{font-family:Archivo;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+  .card .fig{font-family:Kalam;font-weight:700;font-size:30px;line-height:1.1}
+  .card .sub{font-size:12px;font-weight:700}
+  .bars{display:flex;align-items:flex-end;gap:2px;height:54px;margin-top:10px}
+  .bars i{flex:1;background:rgba(35,26,22,.35);min-height:2px}
+  .bars i.t{background:var(--ink)}
+  .bars i.z{background:rgba(35,26,22,.15)}
+  .axis{display:flex;justify-content:space-between;font-size:11px;font-weight:700;margin-top:4px}
+  .week{margin:14px 16px 0}
+  .week h3{font-family:Archivo;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:8px}
+  .cal span{aspect-ratio:1;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--shade);color:var(--ink)}
+  .cal span.l1{background:#F8DD94} .cal span.l2{background:#F5C64A} .cal span.l3{background:var(--yellow)}
+  .cal span.t{outline:2px solid var(--ink);outline-offset:-2px}
+  .cal span.e{background:transparent}
+  .cal em{font-style:normal;font-size:11px;font-weight:800;color:var(--muted);text-align:center}
+  .note-hand{font-family:Kalam;color:var(--blue);font-size:16px;margin-top:8px}
+  .row-list{margin:14px 16px 0}
+  .row-list h3{font-family:Archivo;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .row-list p{font-size:14px;color:var(--muted);padding:8px 0;border-bottom:1px solid var(--rule)}
+
+  /* ===== Chat ===== */
+  .chathead{display:flex;gap:10px;align-items:center;padding:12px 14px;border-bottom:2px solid var(--ink);background:var(--bg)}
+  .chathead b{display:block;font-size:16px}
+  .chathead small{font-size:12px;color:var(--muted)}
+  .stagechip{margin-left:auto;font-size:11px;font-weight:800;padding:4px 9px;background:var(--yellow)}
+  .back{width:20px;height:20px}
+  .thread{padding:8px 10px 14px;display:flex;flex-direction:column;gap:4px}
+  .day{align-self:center;font-family:Kalam;font-weight:700;color:var(--blue);font-size:16px;margin:6px 0 2px}
+  .b{max-width:84%;padding:6px 9px 5px;font-size:14.5px;line-height:1.35;position:relative;box-shadow:0 1px 0 rgba(35,26,22,.12);border-radius:8px}
+  .b.in{background:#fff;align-self:flex-start}
+  .b.out{align-self:flex-end}
+  .b .meta{float:right;margin:6px 0 0 10px;font-size:11px;color:var(--muted);display:inline-flex;gap:3px;align-items:center;line-height:1}
+  .b .meta svg{width:16px;height:11px}
+  .b.out .meta,.b.out .list small{color:#41604F}
+  .who{display:block;font-size:11px;font-weight:800;letter-spacing:.04em;margin-bottom:1px}
+  /* A: el bot en verde, tú en tinta */
+  .A .b.out.bot{background:var(--mint)}
+  .A .b.out.bot .who{color:var(--green)}
+  .A .b.out.me{background:var(--ink);color:var(--bg)}
+  .A .b.out.me .meta{color:#CBB9AA}
+  .B .b.out.me .meta,.B .b.out.me .list small{color:#4B4870}
+  .A .b.out.me .who{color:var(--yellow)}
+  /* B: misma burbuja, firma distinta */
+  .B .b.out{background:var(--mint)}
+  .B .sig{display:block;font-family:Kalam;font-weight:700;font-size:13px;margin-top:2px}
+  .B .bot .sig{color:var(--green)}
+  .B .me .sig{color:var(--blue)}
+  .B .b.out.me{background:#E6E3F3}
+  /* shapes */
+  .btns{align-self:flex-end;width:84%;display:flex;flex-direction:column;gap:3px;margin-top:-1px}
+  .btns span{background:#fff;text-align:center;font-size:14px;font-weight:700;color:var(--blue);padding:7px;border-radius:6px;box-shadow:0 1px 0 rgba(35,26,22,.12);display:flex;justify-content:center;gap:6px;align-items:center}
+  .btns span.picked{outline:2px solid var(--green);outline-offset:-2px}
+  .btns svg{width:14px;height:14px}
+  .list{border-top:1px solid rgba(35,26,22,.12);margin-top:6px;padding-top:4px}
+  .list .lb{font-size:13px;font-weight:800;color:var(--blue);display:flex;gap:5px;align-items:center;justify-content:center;padding:4px 0 6px}
+  .list .lb svg{width:14px;height:14px}
+  .list div{padding:5px 0;border-top:1px dashed rgba(35,26,22,.15);font-size:13.5px}
+  .list div small{display:block;font-size:12px;color:var(--muted)}
+  .prods{display:flex;gap:6px;margin-top:6px}
+  .prods div{flex:1;background:#fff;font-size:12px;font-weight:700;padding-bottom:5px}
+  .prods div i{display:block;height:58px;margin-bottom:4px}
+  .prods div span{display:block;padding:0 5px}
+  .prods div em{display:block;padding:0 5px;font-style:normal;color:var(--blue);font-family:Kalam}
+  .failed{align-self:flex-end;font-size:12px;font-weight:800;color:var(--red);display:flex;gap:4px;align-items:center;margin:-1px 2px 2px}
+  .failed svg{width:14px;height:14px}
+  .composer{display:flex;gap:6px;padding:8px 10px;border-top:2px solid var(--ink);background:var(--bg)}
+  .composer div{flex:1;border:1px solid var(--rule);background:#fff;font-size:14px;color:var(--muted);padding:9px 10px}
+  .composer span{background:var(--ink);color:var(--bg);font-weight:800;font-size:13px;padding:0 12px;display:grid;place-items:center}
+
+  /* lista de chats */
+  .search{margin:6px 16px 0;border:1px solid var(--rule);background:#fff;padding:9px 10px;font-size:14px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .search svg{width:16px;height:16px}
+  .contact{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule);background:var(--bg)}
+  .contact .mid{flex:1;min-width:0}
+  .contact .l1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .contact b{font-size:15px}
+  .contact time{font-size:11px;color:var(--muted);font-weight:700}
+  .contact time.new{color:var(--green)}
+  .contact .num{font-size:12px;color:var(--muted)}
+  .contact .l2{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:3px}
+  .contact .last{font-size:13.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .contact .last.bold{color:var(--ink);font-weight:700}
+  .unread{flex:none;min-width:20px;height:20px;border-radius:10px;background:var(--green);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center;padding:0 6px}
+  .st{font-size:11px;font-weight:800;padding:3px 8px;letter-spacing:.02em}
+  .st.int{background:var(--shade);color:var(--ink)}
+  .st.clo{background:var(--yellow);color:var(--ink)}
+  .st.cus{background:var(--green);color:#fff}
+  .legend{max-width:900px;margin:22px auto 0;display:flex;gap:22px;flex-wrap:wrap;justify-content:center;font-size:13px;color:#3f3f46;align-items:center}
+  .legend span{display:inline-flex;gap:6px;align-items:center}
+  .legend svg{width:18px;height:12px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="tick1" viewBox="0 0 16 11"><path d="M3 6l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="tick2" viewBox="0 0 16 11"><path d="M1 6l3 3 6-7M6.5 8.4L7.5 9.2l6-7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 7v6M12 16.5v.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="bag" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7z M9 7a3 3 0 0 1 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="store" viewBox="0 0 24 24"><path d="M4 10l1.5-5h13L20 10M5 10v9h14v-9M4 10h16M10 19v-5h4v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.2A8 8 0 1 1 20 12z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+    <symbol id="list" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+    <symbol id="reply" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 6 6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+    <symbol id="left" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+    <symbol id="cart" viewBox="0 0 24 24"><path d="M3 4h2l2.4 11h11L21 7H6.2M9 20h.01M18 20h.01" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+    <symbol id="clip" viewBox="0 0 24 24"><path d="M8 4h8v3H8zM6 5.5H5v15h14v-15h-1M9 12h6M9 16h4" fill="none" stroke="currentColor" stroke-width="1.8"/></symbol>
+  </defs>
+</svg>
+
+<div class="bar">
+  <h1>Lo que trae el back nuevo · elegir antes de construir</h1>
+  <a href="#ventas">1 · Ventas B</a>
+  <a href="#inicio">2 · Inicio: últimos 30 días</a>
+  <a href="#chat">3 · Chat: bot o tú</a>
+  <a href="#lista">4 · Lista de chats</a>
+</div>
+
+<!-- ============ 1 · VENTAS ============ -->
+<section class="part" id="ventas">
+  <h2>1 · Ventas B: qué entra ahora y qué falta</h2>
+  <p>Con lo que el back ya manda puedo hacer el total grande, Hoy / Semana / Mes y <b>a quién</b> se vendió. Faltan dos datos en la lista de ventas para lo demás: <b>qué</b> se vendió y <b>de dónde</b> vino (WhatsApp o en el local). Como cada negocio vende <b>o</b> agenda, el desglose ya no es de tres sino de dos.</p>
+  <div class="stage">
+
+    <div class="variant">
+      <h3>Lo que entra ya</h3>
+      <small>La fila dice a quién y cómo pagó. El "qué" todavía no: dice "Venta" y se ve al abrirla.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Ventas</h1><p>Hoy, viernes 2</p></div>
+        <div class="big"><b>Bs 485</b><span>en 4 ventas</span></div>
+        <div class="chips" style="margin-top:6px"><span class="chip on">Hoy</span><span class="chip">Esta semana</span><span class="chip">Este mes</span></div>
+        <div class="sale"><div class="mid"><div class="what">María Quispe</div><div class="who">16:00 · Transferencia</div></div><div class="end"><div class="amt">Bs 120</div></div></div>
+        <div class="sale"><div class="mid"><div class="what">Carlos Mamani</div><div class="who">14:20 · QR</div></div><div class="end"><div class="amt">Bs 215</div></div></div>
+        <div class="sale"><div class="mid"><div class="what">Sin cliente</div><div class="who">11:05 · Efectivo</div></div><div class="end"><div class="amt">Bs 80</div></div></div>
+        <div class="sale void"><div class="mid"><div class="what">Juan Pérez <span class="tagv">Anulada</span></div><div class="who">09:00 · QR</div></div><div class="end"><div class="amt">Bs 150</div></div></div>
+        <div class="sale"><div class="mid"><div class="what">Ana Rojas</div><div class="who">08:00 · Efectivo</div></div><div class="end"><div class="amt">Bs 70</div></div></div>
+      </div>
+      <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#i-chat"/></svg>Chats</div><div><svg><use href="#clip"/></svg>Pedidos</div><div class="on"><svg><use href="#cart"/></svg>Ventas</div><div><svg><use href="#menu"/></svg>Más</div></div>
+      </div></div>
+    </div>
+
+    <div class="variant">
+      <h3>B completa (con 2 campos más)</h3>
+      <small>Igual a la B que elegiste: el resumen arriba y cada fila dice qué fue. Lo marcado en rojo punteado es lo que hoy no llega.</small>
+      <div class="needs">Pedirle al back, en <code>GET /dashboard/sales</code>: <b>origin</b> (whatsapp / en el local) y <b>lines</b> o un resumen ("2 × Polera negra").</div>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Ventas</h1><p>Hoy, viernes 2</p></div>
+        <div class="big"><b>Bs 485</b><span>en 4 ventas</span></div>
+        <div class="split missing">
+          <div><small><svg><use href="#i-chat"/></svg>Por WhatsApp</small><b>Bs 405</b></div>
+          <div><small><svg><use href="#store"/></svg>En el local</small><b>Bs 80</b></div>
+        </div>
+        <div class="chips" style="margin-top:8px"><span class="chip on">Hoy</span><span class="chip">Esta semana</span><span class="chip">Este mes</span></div>
+        <div class="sale"><div class="ico p"><svg><use href="#bag"/></svg></div><div class="mid"><div class="what missing">2 Poleras negras, 1 Gorra</div><div class="who">Carlos Mamani · 14:20</div></div><div class="end"><div class="amt">Bs 215</div><div class="pay">QR</div></div></div>
+        <div class="sale"><div class="ico p"><svg><use href="#bag"/></svg></div><div class="mid"><div class="what missing">1 Chamarra jean</div><div class="who">María Quispe · 13:00</div></div><div class="end"><div class="amt">Bs 120</div><div class="pay">Transferencia</div></div></div>
+        <div class="sale"><div class="ico m"><svg><use href="#store"/></svg></div><div class="mid"><div class="what missing">1 Polera blanca</div><div class="who">En el local · 11:05</div></div><div class="end"><div class="amt">Bs 80</div><div class="pay">Efectivo</div></div></div>
+        <div class="sale void"><div class="ico p"><svg><use href="#bag"/></svg></div><div class="mid"><div class="what">3 Gorras <span class="tagv">Anulada</span></div><div class="who">Juan Pérez · 09:00</div></div><div class="end"><div class="amt">Bs 150</div><div class="pay">QR</div></div></div>
+        <div class="sale"><div class="ico p"><svg><use href="#bag"/></svg></div><div class="mid"><div class="what missing">1 Gorra</div><div class="who">Ana Rojas · 08:00</div></div><div class="end"><div class="amt">Bs 70</div><div class="pay">Efectivo</div></div></div>
+      </div>
+      <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div><svg><use href="#i-chat"/></svg>Chats</div><div><svg><use href="#clip"/></svg>Pedidos</div><div class="on"><svg><use href="#cart"/></svg>Ventas</div><div><svg><use href="#menu"/></svg>Más</div></div>
+      </div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 2 · INICIO ============ -->
+<section class="part" id="inicio">
+  <h2>2 · Inicio: cómo vienen los últimos 30 días</h2>
+  <p>Sale de <code>sales_by_day</code>, que ya manda el back. Toca un día para ver cuánto fue. Ninguna de las dos agrega pantallas nuevas: vive en Inicio.</p>
+  <div class="stage">
+
+    <div class="variant">
+      <h3>A · Barras dentro de "Vendido hoy"</h3>
+      <small>La tarjeta amarilla crece hacia abajo: hoy es la barra negra al final. Se lee de un vistazo si hoy va mejor o peor que de costumbre.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="datehead"><h1>Viernes 2 de octubre</h1><p>Licorería El Barril</p></div>
+        <div class="card y">
+          <small>Vendido hoy</small>
+          <div class="fig">Bs 485</div>
+          <div class="sub">4 ventas</div>
+          <div class="bars" aria-label="Ventas de los últimos 30 días">
+            <i style="height:40%"></i><i style="height:55%"></i><i class="z"></i><i style="height:30%"></i><i style="height:62%"></i><i style="height:80%"></i><i style="height:45%"></i>
+            <i style="height:35%"></i><i style="height:50%"></i><i class="z"></i><i style="height:28%"></i><i style="height:70%"></i><i style="height:95%"></i><i style="height:52%"></i>
+            <i style="height:44%"></i><i style="height:58%"></i><i class="z"></i><i style="height:33%"></i><i style="height:66%"></i><i style="height:100%"></i><i style="height:48%"></i>
+            <i style="height:38%"></i><i style="height:60%"></i><i class="z"></i><i style="height:40%"></i><i style="height:72%"></i><i style="height:88%"></i><i style="height:50%"></i>
+            <i style="height:36%"></i><i class="t" style="height:68%"></i>
+          </div>
+          <div class="axis"><span>3 sept</span><span>Mejor día: sáb 26 · Bs 710</span><span>Hoy</span></div>
+        </div>
+        <div class="row-list"><h3>Últimas ventas</h3><p>Carlos Mamani · Bs 215</p><p>María Quispe · Bs 120</p></div>
+      </div></div></div>
+    </div>
+
+    <div class="variant">
+      <h3>B · El mes como hoja de calendario</h3>
+      <small>Debajo de las tarjetas, cada día es un cuadrito: más amarillo, más vendió. Se parece al cuaderno: se ve qué días de la semana venden más.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="datehead"><h1>Viernes 2 de octubre</h1><p>Licorería El Barril</p></div>
+        <div class="card y"><small>Vendido hoy</small><div class="fig">Bs 485</div><div class="sub">4 ventas</div></div>
+        <div class="week">
+          <h3><span>Últimos 30 días</span><span style="color:var(--ink)">Bs 11.840</span></h3>
+          <div class="cal">
+            <em>L</em><em>M</em><em>M</em><em>J</em><em>V</em><em>S</em><em>D</em>
+            <span class="e"></span><span class="e"></span><span class="l1">3</span><span class="l2">4</span><span class="l2">5</span><span class="l3">6</span><span>7</span>
+            <span class="l1">8</span><span class="l1">9</span><span class="l2">10</span><span class="l1">11</span><span class="l2">12</span><span class="l3">13</span><span>14</span>
+            <span class="l1">15</span><span class="l2">16</span><span class="l1">17</span><span class="l2">18</span><span class="l3">19</span><span class="l3">20</span><span>21</span>
+            <span class="l1">22</span><span class="l1">23</span><span class="l2">24</span><span class="l1">25</span><span class="l2">26</span><span class="l3">27</span><span>28</span>
+            <span class="l1">29</span><span class="l2">30</span><span class="l1">1</span><span class="l2 t">2</span><span class="e"></span><span class="e"></span><span class="e"></span>
+          </div>
+          <p class="note-hand">Toca un día: sáb 26 · Bs 710 en 9 ventas</p>
+        </div>
+      </div></div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 3 · CHAT ============ -->
+<section class="part" id="chat">
+  <h2>3 · El chat: qué mandó el bot y qué mandaste tú</h2>
+  <p>Con <code>sent_by</code> se sabe quién escribió cada mensaje; con <code>shape</code> se ven los botones, la lista o los productos tal como le llegaron al cliente; y con <code>status</code>, las palomitas.</p>
+  <div class="legend">
+    <span><svg style="color:#75655B"><use href="#tick1"/></svg>Enviado</span>
+    <span><svg style="color:#75655B"><use href="#tick2"/></svg>Le llegó</span>
+    <span><svg style="color:#1D8FD8"><use href="#tick2"/></svg>Lo leyó</span>
+    <span style="color:#C8102E;font-weight:800"><svg style="width:15px;height:15px"><use href="#alert"/></svg>No llegó</span>
+  </div>
+  <div class="stage">
+
+    <div class="variant A">
+      <h3>A · El bot en verde, tú en tinta</h3>
+      <small>Dos colores de burbuja: de un vistazo ves dónde entraste tú. El nombre arriba de cada burbuja lo confirma.</small>
+      <div class="phone"><div class="screen">
+        <div class="chathead"><svg class="back"><use href="#left"/></svg><div><b>Carlos Mamani</b><small>+591 7123 4567</small></div><span class="stagechip">Por cerrar</span></div>
+        <div class="scroll"><div class="thread">
+          <div class="day">Hoy</div>
+          <div class="b in">Hola, ¿tienen poleras negras talla M?<span class="meta">14:01</span></div>
+          <div class="b out bot"><span class="who">Doppel</span>¡Hola Carlos! Sí, tenemos. ¿Cuál te muestro?
+            <div class="prods"><div><i style="background:#2b2b2b"></i><span>Polera negra</span><em>Bs 80</em></div><div><i style="background:#3a3f6b"></i><span>Polera azul</span><em>Bs 80</em></div><div><i style="background:#8b5a2b"></i><span>Gorra</span><em>Bs 55</em></div></div>
+            <span class="meta">14:01 <svg style="color:var(--read)"><use href="#tick2"/></svg></span></div>
+          <div class="b in">Quiero 2 negras y la gorra<span class="meta">14:02</span></div>
+          <div class="b out bot"><span class="who">Doppel</span>Listo: 2 × Polera negra y 1 × Gorra, Bs 215. ¿Cómo quieres pagar?<span class="meta">14:02 <svg style="color:var(--read)"><use href="#tick2"/></svg></span></div>
+          <div class="btns"><span class="picked"><svg><use href="#reply"/></svg>QR</span><span><svg><use href="#reply"/></svg>Transferencia</span><span><svg><use href="#reply"/></svg>Efectivo al recoger</span></div>
+          <div class="b in">QR<span class="meta">14:03</span></div>
+          <div class="b out me"><span class="who">Tú</span>Carlos, te lo dejo listo para las 5 😊<span class="meta">14:10 <svg><use href="#tick2"/></svg></span></div>
+          <div class="b out me"><span class="who">Tú</span>¿Te paso la dirección del local?<span class="meta">14:10 <svg><use href="#tick1"/></svg></span></div>
+          <div class="b out bot"><span class="who">Doppel</span>Recordatorio: tu pedido vence a las 18:00.<span class="meta">16:00</span></div>
+          <div class="failed"><svg><use href="#alert"/></svg>No le llegó</div>
+        </div></div>
+        <div class="composer"><div>Escribe un mensaje…</div><span>Enviar</span></div>
+      </div></div>
+    </div>
+
+    <div class="variant B">
+      <h3>B · Mismo verde, firma distinta</h3>
+      <small>Todo lo que sale del negocio se ve igual que en WhatsApp; abajo de cada burbuja va la firma a mano: "Doppel" o "Tú". Tus mensajes con un tinte apenas distinto.</small>
+      <div class="phone"><div class="screen">
+        <div class="chathead"><svg class="back"><use href="#left"/></svg><div><b>Carlos Mamani</b><small>+591 7123 4567</small></div><span class="stagechip">Por cerrar</span></div>
+        <div class="scroll"><div class="thread">
+          <div class="day">Hoy</div>
+          <div class="b in">Hola, ¿tienen poleras negras talla M?<span class="meta">14:01</span></div>
+          <div class="b out bot">¡Hola Carlos! Sí, tenemos. ¿Qué te interesa?
+            <div class="list"><div class="lb"><svg><use href="#list"/></svg>Ver catálogo</div>
+              <div>Poleras<small>Negra, blanca y azul · Bs 80</small></div>
+              <div>Gorras<small>Bs 55</small></div>
+              <div>Chamarras<small>Jean · Bs 120</small></div></div>
+            <span class="meta">14:01 <svg style="color:var(--read)"><use href="#tick2"/></svg></span><span class="sig">— Doppel</span></div>
+          <div class="b in">Poleras<span class="meta">14:02</span></div>
+          <div class="b out bot">Listo: 2 × Polera negra y 1 × Gorra, Bs 215. ¿Cómo quieres pagar?<span class="meta">14:02 <svg style="color:var(--read)"><use href="#tick2"/></svg></span><span class="sig">— Doppel</span></div>
+          <div class="btns"><span class="picked"><svg><use href="#reply"/></svg>QR</span><span><svg><use href="#reply"/></svg>Transferencia</span><span><svg><use href="#reply"/></svg>Efectivo al recoger</span></div>
+          <div class="b in">QR<span class="meta">14:03</span></div>
+          <div class="b out me">Carlos, te lo dejo listo para las 5 😊<span class="meta">14:10 <svg><use href="#tick2"/></svg></span><span class="sig">— Tú</span></div>
+          <div class="b out me">¿Te paso la dirección del local?<span class="meta">14:10 <svg><use href="#tick1"/></svg></span><span class="sig">— Tú</span></div>
+          <div class="b out bot">Recordatorio: tu pedido vence a las 18:00.<span class="meta">16:00</span><span class="sig">— Doppel</span></div>
+          <div class="failed"><svg><use href="#alert"/></svg>No le llegó</div>
+        </div></div>
+        <div class="composer"><div>Escribe un mensaje…</div><span>Enviar</span></div>
+      </div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 4 · LISTA ============ -->
+<section class="part" id="lista">
+  <h2>4 · La lista de chats</h2>
+  <p>Esto no tiene variantes: nombre del perfil de WhatsApp (y el número debajo), la etapa que calcula el back y los no leídos. Las 6 etapas que hoy eliges a mano desaparecen; quedan tres y se filtra por ellas.</p>
+  <div class="stage">
+    <div class="variant">
+      <h3>Conversaciones</h3>
+      <small>Verde = mensajes nuevos (como WhatsApp). La etapa: gris Interesado, amarillo Por cerrar, verde Cliente.</small>
+      <div class="phone"><div class="screen"><div class="scroll">
+        <div class="top"><h1>Conversaciones</h1><p>El bot responde en +591 7000 0000</p></div>
+        <div class="search"><svg><use href="#search"/></svg>Buscar nombre o número</div>
+        <div class="chips"><span class="chip on">Todos <b>12</b></span><span class="chip">Interesados <b>7</b></span><span class="chip">Por cerrar <b>3</b></span><span class="chip">Clientes <b>2</b></span></div>
+        <div class="contact"><div class="mid"><div class="l1"><b>Carlos Mamani</b><time class="new">16:00</time></div><div class="l2"><span class="last bold">¿Te paso la dirección?</span><span class="unread">2</span></div><div class="l2"><span class="num">+591 7123 4567</span><span class="st clo">Por cerrar</span></div></div></div>
+        <div class="contact"><div class="mid"><div class="l1"><b>María Quispe</b><time>13:05</time></div><div class="l2"><span class="last">Gracias, ya llegó todo</span></div><div class="l2"><span class="num">+591 7654 3210</span><span class="st cus">Cliente</span></div></div></div>
+        <div class="contact"><div class="mid"><div class="l1"><b>+591 7001 1223</b><time class="new">12:40</time></div><div class="l2"><span class="last bold">Hola, info</span><span class="unread">1</span></div><div class="l2"><span class="num">Sin nombre en su perfil</span><span class="st int">Interesado</span></div></div></div>
+        <div class="contact"><div class="mid"><div class="l1"><b>Ana Rojas</b><time>ayer</time></div><div class="l2"><span class="last">¿Hasta qué hora atienden?</span></div><div class="l2"><span class="num">+591 7788 9900</span><span class="st int">Interesado</span></div></div></div>
+      </div>
+      <div class="tabbar"><div><svg><use href="#home"/></svg>Inicio</div><div class="on"><svg><use href="#i-chat"/></svg>Chats</div><div><svg><use href="#clip"/></svg>Pedidos</div><div><svg><use href="#cart"/></svg>Ventas</div><div><svg><use href="#menu"/></svg>Más</div></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+</body>
+</html>

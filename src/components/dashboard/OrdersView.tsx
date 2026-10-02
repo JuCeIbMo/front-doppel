@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import Link from "next/link";
+import { MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -288,10 +290,21 @@ function OrderRow({
       <div className="flex items-center gap-3 py-3">
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-baseline gap-x-2 text-[15px]">
-            <span className="font-bold tabular-nums">{order.code}</span>
-            <span className="text-ink-muted">·</span>
-            <span className="truncate">{formatPhone(order.whatsapp_number)}</span>
+            <span className="font-bold">{order.customer_name ?? formatPhone(order.whatsapp_number)}</span>
+            <Link
+              href={`/dashboard/automation?numero=${order.whatsapp_number}`}
+              className="inline-flex items-center gap-1 text-sm font-bold text-steps underline underline-offset-4"
+            >
+              <MessageCircle aria-hidden size={14} />
+              {order.customer_name ? formatPhone(order.whatsapp_number) : "Abrir chat"}
+              <span className="sr-only">: abrir su conversación</span>
+            </Link>
           </p>
+          {order.lines.length > 0 && (
+            <p className="mt-0.5 text-[15px]">
+              {order.lines.map((line) => `${line.quantity} × ${line.name}`).join(", ")}
+            </p>
+          )}
           <p className="mt-1 flex flex-wrap items-center gap-2 text-sm text-ink-muted">
             <Badge variant={STATUS[order.status].variant}>{STATUS[order.status].label}</Badge>
             <span>
@@ -299,6 +312,7 @@ function OrderRow({
                 ? expiresIn(order.expires_at)
                 : formatDateTime(order.placed_at)}
             </span>
+            <span className="tabular-nums">· {order.code}</span>
           </p>
         </div>
         <span className="font-hand text-xl font-bold text-steps tabular-nums">

@@ -137,6 +137,10 @@
   border-top-color: #DCEFE3;
   border-right: 8px solid transparent;
 }
+/* What the Owner wrote is in ink, so its tail is too. */
+.bubble-tail-out.bubble-ink::before {
+  border-top-color: var(--color-ink);
+}
 
 /* A plane pasted onto the page settles in once, from already visible. */
 @keyframes paste {

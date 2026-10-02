@@ -6,7 +6,7 @@ const AVAILABLE = [
   { href: "/dashboard/automation", label: "Automatización" },
   { href: "/dashboard/orders", label: "Pedidos" },
   { href: "/dashboard/approvals", label: "Aprobaciones" },
-  { href: "/dashboard/sales", label: "Ventas" },
+  { href: "/dashboard/sales", label: "Caja" },
   { href: "/dashboard/products", label: "Productos" },
   { href: "/dashboard/templates", label: "Plantillas" },
   { href: "/dashboard/settings", label: "Ajustes" },

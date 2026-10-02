@@ -129,6 +129,19 @@ describe("SettingsView", () => {
     expect(runOperation).not.toHaveBeenCalledWith("enable_selling");
   });
 
+  it("asks a Business that does neither to choose, and turns its choice on without warning", async () => {
+    answers(null, { selling_enabled: false, booking_enabled: false });
+    renderView();
+
+    expect(await screen.findByText(/todavía no tiene elegido qué hace/)).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Vendo productos/ })).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(screen.getByRole("radio", { name: /Agendo citas/ }));
+
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(runOperation).toHaveBeenCalledWith("enable_booking"));
+    expect(runOperation.mock.calls.map(([name]) => name)).toEqual(["enable_booking"]);
+  });
+
   it("does not ask Meta about reminders while the Business does not book", async () => {
     renderView();
 

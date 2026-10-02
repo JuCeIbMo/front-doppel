@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ replace: vi.fn() }) }));
@@ -20,6 +20,7 @@ const EMPTY: Overview = {
   free_messages_per_month: 1000,
   call_minutes_this_month: 0,
   call_minutes_per_month: 150,
+  sales_by_day: [],
   onboarding: {
     line_connected: false,
     has_product: false,
@@ -55,6 +56,28 @@ function renderView() {
 describe("OverviewView", () => {
   beforeEach(() => {
     readApi.mockReset();
+  });
+
+  it("draws the last days' sales under what was sold today, and says one day's total when chosen", async () => {
+    answers({
+      ...EMPTY,
+      sold_today: "40.00",
+      sales_today: 1,
+      sales_by_day: [
+        { day: "2026-09-26", total: "710.00", sales: 9 },
+        { day: "2026-09-27", total: "0.00", sales: 0 },
+        { day: "2026-09-28", total: "40.00", sales: 1 },
+      ],
+    });
+    renderView();
+
+    const bars = await screen.findByRole("slider", { name: "Ventas de los últimos 30 días" });
+    expect(screen.getByText(/Mejor día: sáb 26 sept/)).toBeInTheDocument();
+    expect(bars.getAttribute("aria-valuetext")).toMatch(/^lun 28 sept: Bs/);
+
+    fireEvent.keyDown(bars, { key: "ArrowLeft" });
+    fireEvent.keyDown(bars, { key: "ArrowLeft" });
+    expect(screen.getByText(/sáb 26 sept · .*710.* · 9 ventas/)).toBeInTheDocument();
   });
 
   it("walks a new business through four steps", async () => {

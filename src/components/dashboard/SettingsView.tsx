@@ -286,6 +286,7 @@ function WhatItDoes({ business }: { business: Business }) {
     },
   });
   const both = isOn(business, "selling") && isOn(business, "booking");
+  const neither = !isOn(business, "selling") && !isOn(business, "booking");
 
   return (
     <Card>
@@ -294,6 +295,12 @@ function WhatItDoes({ business }: { business: Business }) {
         <p className="mb-3 text-sm font-bold text-waiting">
           Hoy tu negocio vende y agenda a la vez. Elige uno: así tu asistente y tu panel se ocupan de
           una sola cosa.
+        </p>
+      )}
+      {neither && (
+        <p className="mb-3 text-sm font-bold text-waiting">
+          Tu negocio todavía no tiene elegido qué hace. Elige uno para que tu asistente sepa si
+          vende o agenda.
         </p>
       )}
       <div role="radiogroup" aria-label="Qué hace tu negocio" className="grid gap-3 sm:grid-cols-2">
@@ -307,7 +314,10 @@ function WhatItDoes({ business }: { business: Business }) {
               aria-checked={chosen}
               disabled={turn.isPending}
               onClick={() => {
-                if (!chosen) setAsking(kind);
+                if (chosen) return;
+                // With nothing chosen there is nothing to lose: no warning needed.
+                if (neither) turn.mutate(kind);
+                else setAsking(kind);
               }}
               className={`flex flex-col items-start gap-1 border-2 p-4 text-left transition-colors disabled:opacity-50 ${
                 chosen ? "border-ink bg-ink text-paper" : "border-paper-rule hover:border-ink"

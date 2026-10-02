@@ -32,7 +32,7 @@ describe("OwnerShell", () => {
     // The links behind a switch wait for the Business, so let it arrive first.
     await act(async () => {});
     expect((await screen.findAllByRole("link", { name: /Servicios/ })).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: "Ventas" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: "Caja" }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("link", { name: /Productos/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Inventario/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();

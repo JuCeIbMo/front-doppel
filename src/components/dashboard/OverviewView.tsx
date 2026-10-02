@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
@@ -254,12 +255,14 @@ function Figure({
   note,
   tone,
   mark,
+  children,
 }: {
   label: string;
   value: string;
   note: string;
   tone: string;
   mark?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
     <div className={`chakana px-3 pt-4 pb-3 ${tone}`}>
@@ -272,6 +275,98 @@ function Figure({
         {value.replace(/\u00a0/g, " ")}
       </p>
       <p className="mt-1 text-xs font-bold">{note}</p>
+      {children}
+    </div>
+  );
+}
+
+type DaySales = Overview["sales_by_day"][number];
+
+const SHORT_DAY = new Intl.DateTimeFormat("es-BO", {
+  timeZone: "UTC",
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+});
+
+/** "sáb 26 sept" for a YYYY-MM-DD day. */
+function shortDay(day: string): string {
+  return SHORT_DAY.format(new Date(`${day}T00:00:00Z`)).replace(/[.,]/g, "");
+}
+
+/**
+ * The last 30 days of sales as bars, today the ink one at the end. Touching or pointing at
+ * the strip, or the arrows once it has focus, says one day's total in place of the legend.
+ */
+function SalesBars({ days, format }: { days: DaySales[]; format: (amount: number) => string }) {
+  const [chosen, setChosen] = useState<number | null>(null);
+  if (days.length === 0) return null;
+  const highest = Math.max(...days.map((day) => Number(day.total)), 1);
+  const best = days.reduce((top, day) => (Number(day.total) > Number(top.total) ? day : top), days[0]);
+  const pick = (event: React.PointerEvent<HTMLDivElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    const at = Math.floor(((event.clientX - box.left) / box.width) * days.length);
+    setChosen(Math.min(days.length - 1, Math.max(0, at)));
+  };
+  const shown = chosen === null ? null : days[chosen];
+  const said = shown ?? days[days.length - 1];
+  return (
+    <div className="mt-3">
+      <div
+        role="slider"
+        tabIndex={0}
+        aria-label="Ventas de los últimos 30 días"
+        aria-valuemin={0}
+        aria-valuemax={days.length - 1}
+        aria-valuenow={chosen ?? days.length - 1}
+        aria-valuetext={`${shortDay(said.day)}: ${format(Number(said.total))}`}
+        onPointerDown={pick}
+        onPointerMove={(event) => {
+          if (event.pointerType === "mouse" || event.buttons > 0) pick(event);
+        }}
+        onPointerLeave={() => setChosen(null)}
+        onBlur={() => setChosen(null)}
+        onKeyDown={(event) => {
+          const from = chosen ?? days.length - 1;
+          if (event.key === "ArrowLeft") setChosen(Math.max(0, from - 1));
+          else if (event.key === "ArrowRight") setChosen(Math.min(days.length - 1, from + 1));
+          else return;
+          event.preventDefault();
+        }}
+        className="flex h-12 cursor-crosshair touch-none items-end gap-px outline-none focus-visible:ring-2 focus-visible:ring-ink"
+      >
+        {days.map((day, index) => {
+          const today = index === days.length - 1;
+          const empty = Number(day.total) === 0;
+          return (
+            <span
+              key={day.day}
+              aria-hidden
+              style={{ height: empty ? "2px" : `${Math.max(6, (Number(day.total) / highest) * 100)}%` }}
+              className={`flex-1 ${
+                chosen === index || (today && chosen === null)
+                  ? "bg-ink"
+                  : empty
+                    ? "bg-ink/15"
+                    : "bg-ink/35"
+              }`}
+            />
+          );
+        })}
+      </div>
+      <p className="mt-1.5 flex justify-between gap-2 text-[11px] font-bold leading-tight">
+        {shown ? (
+          <span>
+            {shortDay(shown.day)} · {format(Number(shown.total))}
+            {shown.sales > 0 && ` · ${shown.sales} ${shown.sales === 1 ? "venta" : "ventas"}`}
+          </span>
+        ) : Number(best.total) > 0 ? (
+          <span>Mejor día: {shortDay(best.day)} · {format(Number(best.total))}</span>
+        ) : (
+          <span>30 días sin ventas</span>
+        )}
+        {!shown && <span>Hoy</span>}
+      </p>
     </div>
   );
 }
@@ -378,7 +473,7 @@ function TodaysSales({ salesToday }: { salesToday: number }) {
                 {CLOCK.format(new Date(sale.created_at))}
               </span>
               <Link href={`/dashboard/sales/${sale.code}`} className="min-w-0 flex-1 hover:underline">
-                <span className="block truncate">{sale.code}</span>
+                <span className="block truncate">{sale.customer_name ?? "Sin cliente"}</span>
                 {sale.payment_method && (
                   <span className="block text-xs text-ink-muted">{PAYMENT[sale.payment_method]}</span>
                 )}
@@ -521,7 +616,9 @@ export function OverviewView() {
                       : `${overview.sales_today} ${overview.sales_today === 1 ? "venta" : "ventas"}`
                   }
                   tone="bg-money text-ink"
-                />
+                >
+                  <SalesBars days={overview.sales_by_day ?? []} format={format} />
+                </Figure>
                 <Figure
                   label="El bot"
                   value={botChats === null ? "Pronto" : `${botChats.count} chats`}

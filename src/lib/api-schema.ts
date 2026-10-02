@@ -2129,6 +2129,13 @@ export interface components {
             contact_code: string;
             /** Whatsapp Number */
             whatsapp_number: string;
+            /** Profile Name */
+            profile_name: string | null;
+            /**
+             * Stage
+             * @enum {string}
+             */
+            stage: "interested" | "closing" | "customer";
             /** Last Message At */
             last_message_at: string | null;
             /** Last Message Body */
@@ -2151,6 +2158,18 @@ export interface components {
              * @description Every unit on the shelf, reserved ones included
              */
             stock: number;
+        };
+        /** DaySales */
+        DaySales: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Total */
+            total: string;
+            /** Sales */
+            sales: number;
         };
         /** DaysOffInput */
         DaysOffInput: {
@@ -2344,6 +2363,7 @@ export interface components {
             /** Messages */
             messages: components["schemas"]["Reply"][];
         };
+        MessageShape: components["schemas"]["ButtonsReply"] | components["schemas"]["ListReply"] | components["schemas"]["ProductsReply"];
         /** MessageSummary */
         MessageSummary: {
             /**
@@ -2664,6 +2684,8 @@ export interface components {
             contact_code: string;
             /** Whatsapp Number */
             whatsapp_number: string;
+            /** Customer Name */
+            customer_name: string | null;
             /**
              * Placed At
              * Format: date-time
@@ -2674,6 +2696,15 @@ export interface components {
              * Format: date-time
              */
             expires_at: string;
+            /** Lines */
+            lines: components["schemas"]["OrderedItem"][];
+        };
+        /** OrderedItem */
+        OrderedItem: {
+            /** Name */
+            name: string;
+            /** Quantity */
+            quantity: number;
         };
         /** OtpSession */
         OtpSession: {
@@ -2708,6 +2739,8 @@ export interface components {
             call_minutes_this_month: number;
             /** Call Minutes Per Month */
             call_minutes_per_month: number;
+            /** Sales By Day */
+            sales_by_day: components["schemas"]["DaySales"][];
             onboarding: components["schemas"]["Onboarding"];
         };
         /**
@@ -2812,6 +2845,11 @@ export interface components {
             summary: string | null;
             /** Media State */
             media_state: string | null;
+            /** Sent By */
+            sent_by: ("public_agent" | "owner") | null;
+            shape: components["schemas"]["MessageShape"] | null;
+            /** Status */
+            status: ("sent" | "delivered" | "read" | "failed") | null;
         };
         /** PlaceOrderInput */
         PlaceOrderInput: {
@@ -3000,6 +3038,8 @@ export interface components {
             created_at: string;
             /** Voided At */
             voided_at: string | null;
+            /** Customer Name */
+            customer_name: string | null;
             /** Order Code */
             order_code: string | null;
             /** Appointment Code */
@@ -3036,6 +3076,8 @@ export interface components {
             created_at: string;
             /** Voided At */
             voided_at: string | null;
+            /** Customer Name */
+            customer_name: string | null;
         };
         /** SendOtpInput */
         SendOtpInput: {

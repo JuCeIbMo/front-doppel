@@ -56,6 +56,48 @@ describe("DashboardView", () => {
     mockRead.mockResolvedValue([]);
   });
 
+  it("says who wrote each message, how far it got, what the Contact chose, and filters by stage", async () => {
+    serve(async (path: string) => {
+      if (path === "/dashboard/business") return jsonResponse({ id: "biz_1", name: "Doppel Store" });
+      if (path === "/dashboard/whatsapp-line") {
+        return jsonResponse({ phone_number_id: "pn_1", display_phone_number: "+591 70000000", public_agent_enabled: true });
+      }
+      if (path === "/dashboard/manager-phones") return jsonResponse([{ phone: "59177777777" }]);
+      if (path === "/dashboard/pipeline") {
+        const row = { intervention_started_at: null, paused_until: null, reply_window_closes_at: "2999-01-01T00:00:00.000Z", last_call_at: null };
+        return jsonResponse([
+          { ...row, id: "c1", contact_code: "AAAAAA", whatsapp_number: "59170000001", profile_name: "Carlos Mamani", stage: "closing", last_message_at: "2026-06-17T12:00:00.000Z", last_message_body: "QR" },
+          { ...row, id: "c2", contact_code: "BBBBBB", whatsapp_number: "59170000002", profile_name: null, stage: "interested", last_message_at: "2026-06-17T11:00:00.000Z", last_message_body: "Hola" },
+        ]);
+      }
+      if (path === "/dashboard/pipeline/c1/messages") {
+        const message = { kind: "message", code: "M", media_type: null, media_url: null, transcript: null, summary: null, media_state: null, choice_id: null, shape: null, status: null, sent_by: null };
+        return jsonResponse([
+          { ...message, id: "m1", direction: "outbound", sent_by: "public_agent", status: "read", body: "¿Cómo pagas? QR Efectivo", created_at: "2026-06-17T11:58:00.000Z",
+            shape: { kind: "buttons", body: "¿Cómo pagas?", buttons: [{ id: "qr", title: "QR" }, { id: "cash", title: "Efectivo" }] } },
+          { ...message, id: "m2", direction: "inbound", body: "QR", choice_id: "qr", created_at: "2026-06-17T11:59:00.000Z" },
+          { ...message, id: "m3", direction: "outbound", sent_by: "owner", status: "failed", body: "Te espero a las 5", created_at: "2026-06-17T12:00:00.000Z" },
+        ]);
+      }
+      return jsonResponse([]);
+    });
+
+    render(<DashboardView />);
+
+    expect(await screen.findByText("¿Cómo pagas?")).toBeInTheDocument();
+    expect(screen.getByText("Doppel")).toBeInTheDocument();
+    expect(screen.getByText("Tú")).toBeInTheDocument();
+    expect(screen.getByText("Leído")).toBeInTheDocument();
+    expect(screen.getByText("(eligió esta)").parentElement).toHaveTextContent("QR");
+    expect(screen.getByText("No le llegó")).toBeInTheDocument();
+    expect(screen.getAllByText("Por cerrar").length).toBeGreaterThan(0);
+    expect(screen.getByText("Sin nombre en su perfil")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Interesados/ }));
+    expect(screen.queryByRole("button", { name: /Carlos Mamani/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /\+591 7000 0002/ })).toBeInTheDocument();
+  });
+
   it("renders the Pipeline's conversations and the selected one's messages", async () => {
     serve(async (path: string) => {
       if (path === "/dashboard/business") {

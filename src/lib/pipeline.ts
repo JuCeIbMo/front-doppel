@@ -15,6 +15,40 @@ const POLLING = { refetchInterval: REFRESH_MS, refetchIntervalInBackground: fals
 
 export type WhatsappLine = Schema<"WhatsappLineSummary">;
 
+const SEEN_KEY = "doppel:seen";
+
+function readSeen(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(SEEN_KEY) ?? "{}") as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * When the last thing the Owner read in each Conversation happened, kept in this browser:
+ * what came after is unread. `markSeen` moves it forward, never back.
+ */
+export function useSeen() {
+  const [seen, setSeen] = useState<Record<string, string>>(() =>
+    typeof window === "undefined" ? {} : readSeen(),
+  );
+  const markSeen = useCallback((conversationId: string, at: string) => {
+    setSeen((current) => {
+      const before = current[conversationId];
+      if (before && new Date(before).getTime() >= new Date(at).getTime()) return current;
+      const next = { ...current, [conversationId]: at };
+      try {
+        localStorage.setItem(SEEN_KEY, JSON.stringify(next));
+      } catch {
+        // A full or blocked storage only costs the unread marks.
+      }
+      return next;
+    });
+  }, []);
+  return { seen, markSeen };
+}
+
 /** The Business's Contact Conversations, kept fresh. */
 export function useConversations() {
   return useQuery({

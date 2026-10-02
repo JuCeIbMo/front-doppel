@@ -6,7 +6,7 @@ vi.mock("@/lib/operations", () => ({
   readApi: vi.fn(),
 }));
 
-import { chooseKind, turnSwitch } from "./business";
+import { chooseKind, switchKind, turnSwitch, type Business } from "./business";
 
 const executed = { status: "executed", result: {} };
 
@@ -74,5 +74,49 @@ describe("turnSwitch", () => {
     expect(await turnSwitch("booking", false)).toBe(
       "Tienes 3 citas por venir. Cancélalas antes de dejar de agendar.",
     );
+  });
+});
+
+describe("switchKind", () => {
+  const sells = { selling_enabled: true, booking_enabled: false } as Business;
+  const noPause = async () => {};
+
+  // Braces: a function returned from beforeEach runs as cleanup, and this mock may throw.
+  beforeEach(() => {
+    runOperation.mockReset().mockResolvedValue(executed);
+  });
+
+  it("turns the current one off first, then the new one on", async () => {
+    expect(await switchKind(sells, "booking", noPause)).toBeNull();
+    expect(runOperation.mock.calls).toEqual([["disable_selling"], ["enable_booking"]]);
+  });
+
+  it("retries turning on when the connection drops, instead of undoing the change", async () => {
+    runOperation
+      .mockResolvedValueOnce(executed)
+      .mockRejectedValueOnce(new Error("Sin conexión"))
+      .mockResolvedValueOnce(executed);
+
+    expect(await switchKind(sells, "booking", noPause)).toBeNull();
+    expect(runOperation.mock.calls).toEqual([["disable_selling"], ["enable_booking"], ["enable_booking"]]);
+  });
+
+  it("gives up after three tries, leaving the Business to choose again", async () => {
+    runOperation.mockImplementation(async (name: string) => {
+      if (name === "disable_selling") return executed;
+      throw new Error("Sin conexión");
+    });
+
+    const failure = await switchKind(sells, "booking", noPause).then(
+      () => null,
+      (error: Error) => error.message,
+    );
+    expect(failure).toBe("Sin conexión");
+    expect(runOperation.mock.calls.map(([name]) => name)).toEqual([
+      "disable_selling",
+      "enable_booking",
+      "enable_booking",
+      "enable_booking",
+    ]);
   });
 });
