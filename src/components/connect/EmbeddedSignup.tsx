@@ -5,6 +5,7 @@ import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { ErrorNote, Spinner, primaryClass } from "@/components/connect/ConnectShell";
 import { authenticatedFetch } from "@/lib/api";
+import { readSignupMessage, signupLoginOptions, type MetaSignupData } from "@/lib/embeddedSignup";
 
 declare global {
   interface Window {
@@ -24,12 +25,6 @@ declare global {
   }
 }
 
-interface MetaSignupData {
-  waba_id: string;
-  phone_number_id?: string;
-  is_coexistence: boolean;
-}
-
 type Status = "idle" | "loading" | "error";
 
 export function EmbeddedSignup() {
@@ -44,21 +39,16 @@ export function EmbeddedSignup() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.origin !== "https://www.facebook.com" && event.origin !== "https://web.facebook.com") return;
-      try {
-        const data = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-        if (data?.type === "WA_EMBEDDED_SIGNUP") {
-          if (data?.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING" && data?.data?.waba_id) {
-            metaData.current = { waba_id: data.data.waba_id, is_coexistence: true };
-          } else if (data?.data?.waba_id && data?.data?.phone_number_id) {
-            metaData.current = {
-              waba_id: data.data.waba_id,
-              phone_number_id: data.data.phone_number_id,
-              is_coexistence: false,
-            };
-          }
-        }
-      } catch {
-        // ignore non-JSON messages
+      const message = readSignupMessage(event.data);
+      if (message?.kind === "finished") {
+        metaData.current = message.signup;
+      } else if (message?.kind === "left") {
+        authenticatedFetch("/oauth/signup-event", {
+          method: "POST",
+          body: JSON.stringify(message.report),
+        }).catch(() => {
+          // only for support; the Owner can still try again
+        });
       }
     };
 
@@ -72,7 +62,7 @@ export function EmbeddedSignup() {
         appId: process.env.NEXT_PUBLIC_META_APP_ID || "",
         autoLogAppEvents: true,
         xfbml: true,
-        version: "v21.0",
+        version: "v26.0",
       });
       setSdkReady(true);
     };
@@ -134,16 +124,7 @@ export function EmbeddedSignup() {
           setStatus("idle");
         }
       },
-      {
-        config_id: process.env.NEXT_PUBLIC_META_CONFIG_ID || "",
-        response_type: "code",
-        override_default_response_type: true,
-        extras: {
-          setup: {},
-          featureType: "whatsapp_business_app_onboarding",
-          sessionInfoVersion: "3",
-        },
-      },
+      signupLoginOptions(process.env.NEXT_PUBLIC_META_CONFIG_ID || ""),
     );
   }, [router]);
 
