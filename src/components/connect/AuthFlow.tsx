@@ -31,6 +31,8 @@ export function AuthFlow() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [withPassword, setWithPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [otpError, setOtpError] = useState(false);
@@ -52,6 +54,38 @@ export function AuthFlow() {
       })
       .finally(() => setChecking(false));
   }, [router]);
+
+  // Returning users who already connected their business go straight to the
+  // dashboard. Only those without a WhatsApp Line yet see the rest.
+  const afterSignIn = useCallback(async () => {
+    if (await isOnboarded()) {
+      router.replace("/dashboard");
+      return;
+    }
+    setStep((await hasStarted()) ? "connect" : "kind");
+  }, [router]);
+
+  const handlePasswordSignIn = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setError("");
+      setLoading(true);
+
+      try {
+        const { error: signInError } = await getSupabase().auth.signInWithPassword({ email, password });
+        if (signInError) {
+          setError("Correo o contraseña incorrectos.");
+          return;
+        }
+        await afterSignIn();
+      } catch {
+        setError("Error de conexión. Intenta de nuevo.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [email, password, afterSignIn],
+  );
 
   const handleSendOTP = useCallback(
     async (e: React.FormEvent) => {
@@ -97,13 +131,7 @@ export function AuthFlow() {
           return;
         }
 
-        // Returning users who already connected their business go straight to the
-        // dashboard. Only those without a WhatsApp Line yet see the rest.
-        if (await isOnboarded()) {
-          router.replace("/dashboard");
-          return;
-        }
-        setStep((await hasStarted()) ? "connect" : "kind");
+        await afterSignIn();
       } catch {
         setOtpError(true);
         setError("Error de conexión. Intenta de nuevo.");
@@ -111,7 +139,7 @@ export function AuthFlow() {
         setLoading(false);
       }
     },
-    [email, router],
+    [email, afterSignIn],
   );
 
   const handleChooseKind = useCallback(async (kind: BusinessSwitch) => {
@@ -151,8 +179,33 @@ export function AuthFlow() {
     <ConnectShell stage={screen.stage} kind={kind} says={screen.says} step={screen.step}>
       <AnimatePresence mode="wait">
         {step === "email" && (
-          <motion.form key="email" {...enter} onSubmit={handleSendOTP} className="flex flex-col gap-4">
+          <motion.form
+            key="email"
+            {...enter}
+            onSubmit={withPassword ? handlePasswordSignIn : handleSendOTP}
+            className="flex flex-col gap-4"
+          >
             <StepTitle>Entra con tu correo</StepTitle>
+            <div role="tablist" className="grid grid-cols-2 rounded-xl border-[2.5px] border-ink p-1">
+              {(["Código", "Contraseña"] as const).map((label, i) => {
+                const active = withPassword === (i === 1);
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      setWithPassword(i === 1);
+                      setError("");
+                    }}
+                    className={`rounded-lg py-1.5 text-sm font-bold cursor-pointer ${active ? "bg-ink text-white" : ""}`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
             <label className="flex flex-col gap-1.5 text-sm font-bold">
               Tu correo
               <input
@@ -166,16 +219,37 @@ export function AuthFlow() {
                 className={fieldClass}
               />
             </label>
-            <button type="submit" disabled={loading || !email} className={primaryClass}>
+            {withPassword && (
+              <label className="flex flex-col gap-1.5 text-sm font-bold">
+                Tu contraseña
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={fieldClass}
+                />
+              </label>
+            )}
+            <button
+              type="submit"
+              disabled={loading || !email || (withPassword && !password)}
+              className={primaryClass}
+            >
               {loading ? (
                 <>
-                  <Spinner /> Enviando…
+                  <Spinner /> {withPassword ? "Entrando…" : "Enviando…"}
                 </>
+              ) : withPassword ? (
+                "Entrar"
               ) : (
                 "Mandarme el código"
               )}
             </button>
-            <p className="text-sm text-ink-muted">Sin contraseñas: te llega un código cada vez que entras.</p>
+            {withPassword && (
+              <p className="text-sm text-ink-muted">¿No tienes contraseña? Entra con código.</p>
+            )}
           </motion.form>
         )}
 
